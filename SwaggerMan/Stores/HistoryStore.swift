@@ -33,7 +33,7 @@ final class HistoryStore {
             }
         }
 
-        try? modelContext.save()
+        save()
         loadHistory(for: project)
         log.debug("History appended — total: \(project.history.count)")
     }
@@ -41,7 +41,17 @@ final class HistoryStore {
     func clear(for project: Project) {
         for item in project.history { modelContext.delete(item) }
         project.history.removeAll()
-        try? modelContext.save()
+        save()
         items = []
+    }
+
+    // MARK: - Private
+
+    private func save() {
+        do {
+            try modelContext.save()
+        } catch {
+            log.error("HistoryStore save failed: \(error.localizedDescription)")
+        }
     }
 }

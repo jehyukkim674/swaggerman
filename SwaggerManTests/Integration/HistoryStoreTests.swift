@@ -17,8 +17,8 @@ struct HistoryStoreTests {
         return (historyStore, project, container)
     }
 
-    func makeItem(durationMs: Int = 100) -> HistoryItem {
-        HistoryItem(
+    func makeItem(durationMs: Int = 100, executedAt: Date? = nil) -> HistoryItem {
+        let item = HistoryItem(
             environmentID: UUID(),
             method: "GET",
             path: "/status",
@@ -31,6 +31,10 @@ struct HistoryStoreTests {
             responseSize: 2,
             durationMs: durationMs
         )
+        if let date = executedAt {
+            item.executedAt = date
+        }
+        return item
     }
 
     @Test("항목 추가 시 project.history에 반영")
@@ -68,12 +72,14 @@ struct HistoryStoreTests {
     func loadsSortedDescending() throws {
         let (store, project, _container) = try makeSetup()
         _ = _container
-        let item1 = makeItem(durationMs: 10)
-        let item2 = makeItem(durationMs: 20)
+        let earlier = Date(timeIntervalSince1970: 1_000_000)
+        let later   = Date(timeIntervalSince1970: 2_000_000)
+        let item1 = makeItem(durationMs: 10, executedAt: earlier)
+        let item2 = makeItem(durationMs: 20, executedAt: later)
         store.append(item1, to: project)
         store.append(item2, to: project)
         store.loadHistory(for: project)
-        // Most recent first — item2 was inserted last so executedAt is later
+        // item2 has the later executedAt — must appear first
         #expect(store.items.first?.durationMs == 20)
     }
 }
