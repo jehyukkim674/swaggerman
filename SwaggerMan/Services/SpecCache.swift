@@ -19,10 +19,11 @@ actor SpecCache: SpecCacheProtocol {
 
     init(cacheDirectory: URL = .defaultSpecCacheDirectory) {
         self.cacheDirectory = cacheDirectory
-        try? FileManager.default.createDirectory(
-            at: cacheDirectory,
-            withIntermediateDirectories: true
-        )
+        do {
+            try FileManager.default.createDirectory(at: cacheDirectory, withIntermediateDirectories: true)
+        } catch {
+            log.error("캐시 디렉터리 생성 실패: \(error)")
+        }
     }
 
     func load(for urlString: String) -> CachedEntry? {
