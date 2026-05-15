@@ -20,15 +20,16 @@ final class ProjectStore {
     // MARK: - Public
 
     func addProject(alias: String, swaggerURL: String) throws {
-        guard !alias.trimmingCharacters(in: .whitespaces).isEmpty else {
+        let trimmedAlias = alias.trimmingCharacters(in: .whitespaces)
+        guard !trimmedAlias.isEmpty else {
             throw SwaggerManError.validation(.requiredFieldMissing("alias"))
         }
 
-        if projects.contains(where: { $0.alias == alias }) {
-            throw SwaggerManError.persistence(.duplicateAlias(alias))
+        if projects.contains(where: { $0.alias == trimmedAlias }) {
+            throw SwaggerManError.persistence(.duplicateAlias(trimmedAlias))
         }
 
-        let project = Project(alias: alias, swaggerURL: swaggerURL)
+        let project = Project(alias: trimmedAlias, swaggerURL: swaggerURL)
         modelContext.insert(project)
 
         let defaultEnv = APIEnvironment(name: "Dev", baseURL: swaggerURL, project: project)
@@ -47,14 +48,12 @@ final class ProjectStore {
 
     func deleteProject(_ project: Project) throws {
         let deletingID = project.id
+        let wasSelected = selectedProject?.id == deletingID
         modelContext.delete(project)
         try save()
-
-        if selectedProject?.id == deletingID {
-            loadProjects()
+        loadProjects()
+        if wasSelected {
             selectedProject = projects.first
-        } else {
-            loadProjects()
         }
     }
 
