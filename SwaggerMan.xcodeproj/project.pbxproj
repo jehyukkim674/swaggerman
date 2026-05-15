@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		0F53B01C5FB418F2E0F21958 /* RequestEditorStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 16B1333634325C9014B30215 /* RequestEditorStore.swift */; };
 		112B8F8270205C8C15037498 /* OperationStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 926DD7FBFC963B738C4C723D /* OperationStore.swift */; };
 		19EA5B4E0E86E38B5BAAC478 /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FC46B4D299E40B8FB191E1C5 /* RootView.swift */; };
 		1F84E3CBD50ED66A52725671 /* SpecCacheTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 762FE19D5939DB9E9FFD4A78 /* SpecCacheTests.swift */; };
@@ -36,6 +37,7 @@
 		93809A9D8269F9F0018EA283 /* OperationStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 32E29BFBE727A2F9044E73D0 /* OperationStoreTests.swift */; };
 		965804DFAB50D5EC081D9D97 /* SavedRequest.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC90FB82B4747FF3594457B0 /* SavedRequest.swift */; };
 		967A570A3EF061B84373EB05 /* RequestCollection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4E20515048111F4AB288E818 /* RequestCollection.swift */; };
+		97EC482DCF3964ECEF239C7A /* RequestEditorStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 457130744A25CF369BA64496 /* RequestEditorStoreTests.swift */; };
 		A954B8E9418C59A79D6DCF6A /* EnvironmentEditor.swift in Sources */ = {isa = PBXBuildFile; fileRef = B12077D1B02E17A7FE2B6E0E /* EnvironmentEditor.swift */; };
 		AA70BDC1B4333EE3A52DCCDC /* Yams in Frameworks */ = {isa = PBXBuildFile; productRef = F509A6B39E3528F956DF929B /* Yams */; };
 		AD8F794158DAC1B371F2F51F /* MockURLProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0232872888283B71F922CE78 /* MockURLProtocol.swift */; };
@@ -63,11 +65,13 @@
 
 /* Begin PBXFileReference section */
 		0232872888283B71F922CE78 /* MockURLProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MockURLProtocol.swift; sourceTree = "<group>"; };
+		16B1333634325C9014B30215 /* RequestEditorStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RequestEditorStore.swift; sourceTree = "<group>"; };
 		27592C48D763DBB3C5122AA4 /* OpenAPIParser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OpenAPIParser.swift; sourceTree = "<group>"; };
 		278B0F89749F7BAF2651F0ED /* HistoryItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HistoryItem.swift; sourceTree = "<group>"; };
 		32E29BFBE727A2F9044E73D0 /* OperationStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OperationStoreTests.swift; sourceTree = "<group>"; };
 		331D0CBD3D18384914C02DD8 /* ProjectStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProjectStore.swift; sourceTree = "<group>"; };
 		3F20ECBCB8B05CC12259B409 /* SwaggerManApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwaggerManApp.swift; sourceTree = "<group>"; };
+		457130744A25CF369BA64496 /* RequestEditorStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RequestEditorStoreTests.swift; sourceTree = "<group>"; };
 		48E84030EE82B02866797926 /* HistoryStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HistoryStoreTests.swift; sourceTree = "<group>"; };
 		4E20515048111F4AB288E818 /* RequestCollection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RequestCollection.swift; sourceTree = "<group>"; };
 		5969A4F5BD5921F28DF68692 /* EnvironmentStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EnvironmentStore.swift; sourceTree = "<group>"; };
@@ -260,6 +264,7 @@
 				32E29BFBE727A2F9044E73D0 /* OperationStoreTests.swift */,
 				D0C551C1B3F50B78FE0EA360 /* PersistenceTests.swift */,
 				74743855C2DA1865C9A0DFFA /* ProjectStoreTests.swift */,
+				457130744A25CF369BA64496 /* RequestEditorStoreTests.swift */,
 			);
 			path = Integration;
 			sourceTree = "<group>";
@@ -292,6 +297,7 @@
 				DF6A36E4B2D1D1C940AA296B /* HistoryStore.swift */,
 				926DD7FBFC963B738C4C723D /* OperationStore.swift */,
 				331D0CBD3D18384914C02DD8 /* ProjectStore.swift */,
+				16B1333634325C9014B30215 /* RequestEditorStore.swift */,
 			);
 			path = Stores;
 			sourceTree = "<group>";
@@ -413,6 +419,7 @@
 				C7104FC28C41526D383F0A01 /* ProjectStore.swift in Sources */,
 				7C47657D9BC71901631647B9 /* Protocols.swift in Sources */,
 				967A570A3EF061B84373EB05 /* RequestCollection.swift in Sources */,
+				0F53B01C5FB418F2E0F21958 /* RequestEditorStore.swift in Sources */,
 				19EA5B4E0E86E38B5BAAC478 /* RootView.swift in Sources */,
 				965804DFAB50D5EC081D9D97 /* SavedRequest.swift in Sources */,
 				2B9AC3557B4252D7BE49D0CB /* SpecCache.swift in Sources */,
@@ -438,6 +445,7 @@
 				85246807F05677D962084A5E /* PersistenceTests.swift in Sources */,
 				AF4AD9BB0A8A980B23215DA3 /* Placeholder.swift in Sources */,
 				5F949B93FC55D72CA6402E8A /* ProjectStoreTests.swift in Sources */,
+				97EC482DCF3964ECEF239C7A /* RequestEditorStoreTests.swift in Sources */,
 				1F84E3CBD50ED66A52725671 /* SpecCacheTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
