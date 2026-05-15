@@ -1,6 +1,20 @@
 import Foundation
 @testable import SwaggerMan
 
+actor MockHTTPClient: HTTPClientProtocol {
+    var getResult: Result<HTTPResponse, Error> = .success(
+        HTTPResponse(statusCode: 200, headers: [:], body: Data(), durationMs: 0)
+    )
+
+    func get(_ url: URL, headers: [String: String]) async throws -> HTTPResponse {
+        try getResult.get()
+    }
+
+    func execute(_ request: HTTPRequest) async throws -> HTTPResponse {
+        try getResult.get()
+    }
+}
+
 final class MockOpenAPIParser: OpenAPIParserProtocol, @unchecked Sendable {
     var parseResult: Result<ParsedSpec, Error> = .success(
         ParsedSpec(

@@ -8,13 +8,14 @@ import Foundation
 struct OperationStoreTests {
 
     func makeStore(parser: OpenAPIParserProtocol = MockOpenAPIParser(),
+                   httpClient: (any HTTPClientProtocol)? = nil,
                    cache: (any SpecCacheProtocol)? = nil) throws -> (OperationStore, ProjectStore, _container: ModelContainer) {
         let container = try ModelContainerFactory.makeInMemory()
         let ctx = container.mainContext
         let projectStore = ProjectStore(modelContext: ctx)
-        let http = HTTPClient(session: .mock())
+        let resolvedHTTP: any HTTPClientProtocol = httpClient ?? MockHTTPClient()
         let resolvedCache: any SpecCacheProtocol = cache ?? MockSpecCache()
-        let opStore = OperationStore(parser: parser, httpClient: http, cache: resolvedCache)
+        let opStore = OperationStore(parser: parser, httpClient: resolvedHTTP, cache: resolvedCache)
         return (opStore, projectStore, container)
     }
 
@@ -22,12 +23,6 @@ struct OperationStoreTests {
     func loadsSpec() async throws {
         let (opStore, projectStore, _container) = try makeStore()
         _ = _container
-
-        MockURLProtocol.requestHandler = { req in
-            let res = HTTPURLResponse(url: req.url!, statusCode: 200, httpVersion: nil, headerFields: nil)!
-            return (res, "{}".data(using: .utf8)!)
-        }
-        defer { MockURLProtocol.requestHandler = nil }
 
         try projectStore.addProject(alias: "API", swaggerURL: "https://api.com/docs")
         let project = projectStore.projects[0]
@@ -45,26 +40,19 @@ struct OperationStoreTests {
         let (opStore, projectStore, _container) = try makeStore(cache: mockCache)
         _ = _container
 
-        MockURLProtocol.requestHandler = { req in
-            let res = HTTPURLResponse(url: req.url!, statusCode: 200, httpVersion: nil, headerFields: nil)!
-            return (res, "{}".data(using: .utf8)!)
-        }
-        defer { MockURLProtocol.requestHandler = nil }
-
         try projectStore.addProject(alias: "API", swaggerURL: "https://api.com/docs")
         let project = projectStore.projects[0]
 
-        // First load: populates memory cache
+        // First load: fetches from network (MockHTTPClient), stores in cache
         try await opStore.loadSpec(for: project)
         #expect(opStore.currentSpec?.info.title == "Mock")
 
-        // Second load after clearSpec: handler nil → must serve from cache
+        // Second load after clearSpec: must serve from cache (MockHTTPClient would succeed too,
+        // but storeCallCount==1 proves cache was used, not the HTTP client)
         opStore.clearSpec()
-        MockURLProtocol.requestHandler = nil
         try await opStore.loadSpec(for: project)
         #expect(opStore.currentSpec?.info.title == "Mock")
 
-        // store was called exactly once (first load only — cache was used on second load)
         let storeCount = await mockCache.storeCallCount
         #expect(storeCount == 1)
     }
@@ -73,12 +61,6 @@ struct OperationStoreTests {
     func filtersByMethod() async throws {
         let (opStore, projectStore, _container) = try makeStore()
         _ = _container
-
-        MockURLProtocol.requestHandler = { req in
-            let res = HTTPURLResponse(url: req.url!, statusCode: 200, httpVersion: nil, headerFields: nil)!
-            return (res, "{}".data(using: .utf8)!)
-        }
-        defer { MockURLProtocol.requestHandler = nil }
 
         try projectStore.addProject(alias: "API", swaggerURL: "https://api.com/docs")
         let project = projectStore.projects[0]
