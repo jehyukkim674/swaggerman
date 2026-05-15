@@ -8,6 +8,8 @@
 
 /* Begin PBXBuildFile section */
 		1F84E3CBD50ED66A52725671 /* SpecCacheTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 762FE19D5939DB9E9FFD4A78 /* SpecCacheTests.swift */; };
+		A1B2C3D4E5F60001AABBCCDD /* ProjectStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F60002AABBCCDD /* ProjectStore.swift */; };
+		A1B2C3D4E5F60003AABBCCDD /* ProjectStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F60004AABBCCDD /* ProjectStoreTests.swift */; };
 		2481D731871FB71DEA6F3B6B /* ParsedSpec.swift in Sources */ = {isa = PBXBuildFile; fileRef = 64F1D6EF1D66D8B90F47B7BC /* ParsedSpec.swift */; };
 		25EC3ACDAF7D3361B9594DC7 /* ModelContainerFactory.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8D4498D6A072185815FC0CB6 /* ModelContainerFactory.swift */; };
 		2B9AC3557B4252D7BE49D0CB /* SpecCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = AC0C1004E596254D3341DD1B /* SpecCache.swift */; };
@@ -74,6 +76,8 @@
 		E9EE8955DD4AC216B916A619 /* SwaggerManTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = SwaggerManTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		F127BF4AE928639007808D35 /* HTTPClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HTTPClient.swift; sourceTree = "<group>"; };
 		FAA358F4C373334FF032AD94 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		A1B2C3D4E5F60002AABBCCDD /* ProjectStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProjectStore.swift; sourceTree = "<group>"; };
+		A1B2C3D4E5F60004AABBCCDD /* ProjectStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProjectStoreTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -176,6 +180,14 @@
 			path = Resources;
 			sourceTree = "<group>";
 		};
+		A1B2C3D4E5F60005AABBCCDD /* Stores */ = {
+			isa = PBXGroup;
+			children = (
+				A1B2C3D4E5F60002AABBCCDD /* ProjectStore.swift */,
+			);
+			path = Stores;
+			sourceTree = "<group>";
+		};
 		C5121655F99D563EFF442F4E /* SwaggerMan */ = {
 			isa = PBXGroup;
 			children = (
@@ -186,6 +198,7 @@
 				9451E56BF79EED4107AF9772 /* Persistence */,
 				B6E9E64D063AF3A7E7685FA8 /* Resources */,
 				15374DE5201C193470CC6BB1 /* Services */,
+				A1B2C3D4E5F60005AABBCCDD /* Stores */,
 			);
 			path = SwaggerMan;
 			sourceTree = "<group>";
@@ -194,6 +207,7 @@
 			isa = PBXGroup;
 			children = (
 				D0C551C1B3F50B78FE0EA360 /* PersistenceTests.swift */,
+				A1B2C3D4E5F60004AABBCCDD /* ProjectStoreTests.swift */,
 			);
 			path = Integration;
 			sourceTree = "<group>";
@@ -333,6 +347,7 @@
 				2B9AC3557B4252D7BE49D0CB /* SpecCache.swift in Sources */,
 				6FF47F8BCCD1AD840265F8AC /* SwaggerManApp.swift in Sources */,
 				D8161EFC574E3B0E4B43ED13 /* SwaggerManError.swift in Sources */,
+				A1B2C3D4E5F60001AABBCCDD /* ProjectStore.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -347,6 +362,7 @@
 				85246807F05677D962084A5E /* PersistenceTests.swift in Sources */,
 				AF4AD9BB0A8A980B23215DA3 /* Placeholder.swift in Sources */,
 				1F84E3CBD50ED66A52725671 /* SpecCacheTests.swift in Sources */,
+				A1B2C3D4E5F60003AABBCCDD /* ProjectStoreTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
