@@ -1,0 +1,47 @@
+import SwiftData
+import SwiftUI
+import os.log
+
+private let log = Logger(subsystem: "com.swaggerman", category: "HistoryStore")
+
+@Observable
+@MainActor
+final class HistoryStore {
+    private(set) var items: [HistoryItem] = []
+    private let modelContext: ModelContext
+    private let maxItemsPerProject = 500
+
+    init(modelContext: ModelContext) {
+        self.modelContext = modelContext
+    }
+
+    func loadHistory(for project: Project) {
+        items = project.history.sorted { $0.executedAt > $1.executedAt }
+    }
+
+    func append(_ item: HistoryItem, to project: Project) {
+        item.project = project
+        modelContext.insert(item)
+        project.history.append(item)
+
+        let sorted = project.history.sorted { $0.executedAt < $1.executedAt }
+        if sorted.count > maxItemsPerProject {
+            let excess = sorted.prefix(sorted.count - maxItemsPerProject)
+            for old in excess {
+                project.history.removeAll { $0.id == old.id }
+                modelContext.delete(old)
+            }
+        }
+
+        try? modelContext.save()
+        loadHistory(for: project)
+        log.debug("History appended — total: \(project.history.count)")
+    }
+
+    func clear(for project: Project) {
+        for item in project.history { modelContext.delete(item) }
+        project.history.removeAll()
+        try? modelContext.save()
+        items = []
+    }
+}

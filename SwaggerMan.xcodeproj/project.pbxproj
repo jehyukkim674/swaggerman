@@ -17,11 +17,13 @@
 		393C7B66E9B8CADDA87F225E /* OpenAPIKit30 in Frameworks */ = {isa = PBXBuildFile; productRef = 0C149ED80EFC497E8DB17CB2 /* OpenAPIKit30 */; };
 		3D6D2CFCB6E1E61E6CBECE79 /* CurlBuilder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9062C32CD9E4EB70E017B25F /* CurlBuilder.swift */; };
 		3E5BEB1EE17445418F53D426 /* APIEnvironment.swift in Sources */ = {isa = PBXBuildFile; fileRef = DECCE7EFD5AB5AAB04D2D054 /* APIEnvironment.swift */; };
+		46A700B5487A96F8CCC8172C /* HistoryStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = DF6A36E4B2D1D1C940AA296B /* HistoryStore.swift */; };
 		4D0972A168C4C2060A23875C /* HTTPResponse.swift in Sources */ = {isa = PBXBuildFile; fileRef = 789F794DBCB6AEA813331340 /* HTTPResponse.swift */; };
 		5CE73B88E0E6CF6B846AD88E /* SnapshotTesting in Frameworks */ = {isa = PBXBuildFile; productRef = C1432EC9278C04DD6E0CD004 /* SnapshotTesting */; };
 		5F949B93FC55D72CA6402E8A /* ProjectStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 74743855C2DA1865C9A0DFFA /* ProjectStoreTests.swift */; };
 		68A2048D0115BA9B60166BB9 /* HTTPClientTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC272CB1EE427B38104CBC28 /* HTTPClientTests.swift */; };
 		6926FB87BFB9FBDBDA2BEF09 /* HistoryItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 278B0F89749F7BAF2651F0ED /* HistoryItem.swift */; };
+		6FC5015E23170CC177AFCE32 /* HistoryStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 48E84030EE82B02866797926 /* HistoryStoreTests.swift */; };
 		6FF47F8BCCD1AD840265F8AC /* SwaggerManApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3F20ECBCB8B05CC12259B409 /* SwaggerManApp.swift */; };
 		7C47657D9BC71901631647B9 /* Protocols.swift in Sources */ = {isa = PBXBuildFile; fileRef = DC8516FD82630ADE4A4D3DDE /* Protocols.swift */; };
 		7D43F1170AC91B1BFBCCB586 /* HTTPClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = F127BF4AE928639007808D35 /* HTTPClient.swift */; };
@@ -66,6 +68,7 @@
 		32E29BFBE727A2F9044E73D0 /* OperationStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OperationStoreTests.swift; sourceTree = "<group>"; };
 		331D0CBD3D18384914C02DD8 /* ProjectStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProjectStore.swift; sourceTree = "<group>"; };
 		3F20ECBCB8B05CC12259B409 /* SwaggerManApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwaggerManApp.swift; sourceTree = "<group>"; };
+		48E84030EE82B02866797926 /* HistoryStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HistoryStoreTests.swift; sourceTree = "<group>"; };
 		4E20515048111F4AB288E818 /* RequestCollection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RequestCollection.swift; sourceTree = "<group>"; };
 		5969A4F5BD5921F28DF68692 /* EnvironmentStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EnvironmentStore.swift; sourceTree = "<group>"; };
 		5FB0D71794C859F51DC455F4 /* OpenAPIParserTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OpenAPIParserTests.swift; sourceTree = "<group>"; };
@@ -95,6 +98,7 @@
 		DC8516FD82630ADE4A4D3DDE /* Protocols.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Protocols.swift; sourceTree = "<group>"; };
 		DC86D6254F4B11874D1419A7 /* HTTPRequest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HTTPRequest.swift; sourceTree = "<group>"; };
 		DECCE7EFD5AB5AAB04D2D054 /* APIEnvironment.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIEnvironment.swift; sourceTree = "<group>"; };
+		DF6A36E4B2D1D1C940AA296B /* HistoryStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HistoryStore.swift; sourceTree = "<group>"; };
 		E217CB648EEB5FE2DA71880D /* SwaggerMan.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = SwaggerMan.entitlements; sourceTree = "<group>"; };
 		E9EE8955DD4AC216B916A619 /* SwaggerManTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = SwaggerManTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		F127BF4AE928639007808D35 /* HTTPClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HTTPClient.swift; sourceTree = "<group>"; };
@@ -252,6 +256,7 @@
 			isa = PBXGroup;
 			children = (
 				AAC7B57BAA92A183D00B4FCB /* EnvironmentStoreTests.swift */,
+				48E84030EE82B02866797926 /* HistoryStoreTests.swift */,
 				32E29BFBE727A2F9044E73D0 /* OperationStoreTests.swift */,
 				D0C551C1B3F50B78FE0EA360 /* PersistenceTests.swift */,
 				74743855C2DA1865C9A0DFFA /* ProjectStoreTests.swift */,
@@ -284,6 +289,7 @@
 			isa = PBXGroup;
 			children = (
 				5969A4F5BD5921F28DF68692 /* EnvironmentStore.swift */,
+				DF6A36E4B2D1D1C940AA296B /* HistoryStore.swift */,
 				926DD7FBFC963B738C4C723D /* OperationStore.swift */,
 				331D0CBD3D18384914C02DD8 /* ProjectStore.swift */,
 			);
@@ -397,6 +403,7 @@
 				8F41631B5F1399856A5C9F88 /* HTTPRequest.swift in Sources */,
 				4D0972A168C4C2060A23875C /* HTTPResponse.swift in Sources */,
 				6926FB87BFB9FBDBDA2BEF09 /* HistoryItem.swift in Sources */,
+				46A700B5487A96F8CCC8172C /* HistoryStore.swift in Sources */,
 				801A6430CC8E4A872DE05EDC /* OpenAPIParser.swift in Sources */,
 				ECDA00520DFDBBB474D0D8A6 /* Operation.swift in Sources */,
 				112B8F8270205C8C15037498 /* OperationStore.swift in Sources */,
@@ -422,6 +429,7 @@
 				8004A63FD25EDF98BACD0112 /* CurlBuilderTests.swift in Sources */,
 				DFC973A31673DD1988184B9A /* EnvironmentStoreTests.swift in Sources */,
 				68A2048D0115BA9B60166BB9 /* HTTPClientTests.swift in Sources */,
+				6FC5015E23170CC177AFCE32 /* HistoryStoreTests.swift in Sources */,
 				C9608399FDA21E4C3FE13110 /* MockServices.swift in Sources */,
 				AD8F794158DAC1B371F2F51F /* MockURLProtocol.swift in Sources */,
 				25EC3ACDAF7D3361B9594DC7 /* ModelContainerFactory.swift in Sources */,
