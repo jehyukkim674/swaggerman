@@ -60,6 +60,8 @@ final class RequestEditorStore {
 
     func clearSelection() {
         selectedOperation = nil
+        currentBaseURL = ""
+        currentEnvID = UUID()
         pathParams = [:]
         queryParams = []
         requestHeaders = []
@@ -72,17 +74,18 @@ final class RequestEditorStore {
     func send(project: Project, historyStore: HistoryStore) async {
         guard let op = selectedOperation else { return }
         isSending = true
-        sendError = nil
         defer { isSending = false }
+        sendError = nil
 
         do {
             let request = try buildRequest(op: op)
             lastCurlString = CurlBuilder.build(request)
-            response = try await httpClient.execute(request)
+            let res = try await httpClient.execute(request)
+            response = res
 
             let reqHeadersJSON = jsonString(from: request.headers)
-            let resHeadersJSON = jsonString(from: response!.headers)
-            let bodyStr = response!.bodyString ?? ""
+            let resHeadersJSON = jsonString(from: res.headers)
+            let bodyStr = res.bodyString ?? ""
             let truncatedBody = bodyStr.count > 1_000_000
                 ? String(bodyStr.prefix(1_000_000)) + "\n...(truncated)"
                 : bodyStr
@@ -94,15 +97,15 @@ final class RequestEditorStore {
                 fullURL: request.url.absoluteString,
                 requestHeadersJSON: reqHeadersJSON,
                 requestBody: request.body.flatMap { String(data: $0, encoding: .utf8) },
-                responseStatus: response!.statusCode,
+                responseStatus: res.statusCode,
                 responseHeadersJSON: resHeadersJSON,
                 responseBody: truncatedBody,
-                responseSize: response!.body.count,
-                durationMs: response!.durationMs,
+                responseSize: res.body.count,
+                durationMs: res.durationMs,
                 project: project
             )
             historyStore.append(item, to: project)
-            log.info("Request sent: \(op.method.rawValue) \(op.path) → \(self.response!.statusCode)")
+            log.info("Request sent: \(op.method.rawValue) \(op.path) → \(res.statusCode)")
         } catch {
             sendError = error
             log.error("Request failed: \(error.localizedDescription)")

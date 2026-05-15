@@ -125,6 +125,9 @@ struct RequestEditorStoreTests {
         _ = container
 
         let mockHTTP = MockHTTPClient()
+        await mockHTTP.setExecuteResult(.success(
+            HTTPResponse(statusCode: 200, headers: [:], body: Data(), durationMs: 10)
+        ))
 
         let projectStore = ProjectStore(modelContext: ctx)
         try projectStore.addProject(alias: "API", swaggerURL: "https://api.com/docs")
