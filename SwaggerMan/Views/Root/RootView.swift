@@ -6,12 +6,11 @@ struct RootView: View {
 
     @State private var projectStore: ProjectStore?
     @State private var environmentStore: EnvironmentStore?
-    @State private var operationStore = OperationStore()
 
     @State private var showSidebar = true
     @State private var showRequest = true
     @State private var showResponse = true
-    @State private var showProjectSettings = false
+    @State private var showProjectListEditor = false
 
     var body: some View {
         VStack(spacing: 0) {
@@ -22,7 +21,7 @@ struct RootView: View {
                     showSidebar: $showSidebar,
                     showRequest: $showRequest,
                     showResponse: $showResponse,
-                    onSettings: { showProjectSettings = true }
+                    onSettings: { showProjectListEditor = true }
                 )
                 Divider()
                 HStack(spacing: 0) {
@@ -54,7 +53,7 @@ struct RootView: View {
             projectStore = ps
             environmentStore = es
         }
-        .sheet(isPresented: $showProjectSettings) {
+        .sheet(isPresented: $showProjectListEditor) {
             if let ps = projectStore {
                 ProjectListEditor(store: ps)
             }
