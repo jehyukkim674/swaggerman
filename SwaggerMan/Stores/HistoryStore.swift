@@ -15,6 +15,8 @@ final class HistoryStore {
         self.modelContext = modelContext
     }
 
+    // MARK: - Public
+
     func loadHistory(for project: Project) {
         items = project.history.sorted { $0.executedAt > $1.executedAt }
     }
