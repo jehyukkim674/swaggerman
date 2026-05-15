@@ -7,12 +7,14 @@ import Foundation
 @MainActor
 struct OperationStoreTests {
 
-    func makeStore(parser: OpenAPIParserProtocol = MockOpenAPIParser()) throws -> (OperationStore, ProjectStore, _container: ModelContainer) {
+    func makeStore(parser: OpenAPIParserProtocol = MockOpenAPIParser(),
+                   cache: SpecCacheProtocol? = nil) throws -> (OperationStore, ProjectStore, _container: ModelContainer) {
         let container = try ModelContainerFactory.makeInMemory()
         let ctx = container.mainContext
         let projectStore = ProjectStore(modelContext: ctx)
         let http = HTTPClient(session: .mock())
-        let opStore = OperationStore(parser: parser, httpClient: http)
+        let resolvedCache = cache ?? SpecCache(cacheDirectory: URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(UUID().uuidString))
+        let opStore = OperationStore(parser: parser, httpClient: http, cache: resolvedCache)
         return (opStore, projectStore, container)
     }
 
@@ -35,6 +37,32 @@ struct OperationStoreTests {
         #expect(opStore.currentSpec != nil)
         #expect(opStore.currentSpec?.info.title == "Mock")
         #expect(opStore.operations.count == 1)
+    }
+
+    @Test("캐시 히트 시 네트워크 미호출")
+    func cacheHitSkipsNetwork() async throws {
+        let mockCache = MockSpecCache()
+        let (opStore, projectStore, _container) = try makeStore(cache: mockCache)
+        _ = _container
+
+        MockURLProtocol.requestHandler = { req in
+            let res = HTTPURLResponse(url: req.url!, statusCode: 200, httpVersion: nil, headerFields: nil)!
+            return (res, "{}".data(using: .utf8)!)
+        }
+        defer { MockURLProtocol.requestHandler = nil }
+
+        try projectStore.addProject(alias: "API", swaggerURL: "https://api.com/docs")
+        let project = projectStore.projects[0]
+
+        // First load: populates memory cache
+        try await opStore.loadSpec(for: project)
+        #expect(opStore.currentSpec?.info.title == "Mock")
+
+        // Second load after clearSpec: handler nil → must serve from cache
+        opStore.clearSpec()
+        MockURLProtocol.requestHandler = nil
+        try await opStore.loadSpec(for: project)
+        #expect(opStore.currentSpec?.info.title == "Mock")
     }
 
     @Test("selectedMethods 필터 - POST는 제외됨")

@@ -37,13 +37,16 @@ final class OperationStore {
 
     private let parser: OpenAPIParserProtocol
     private let httpClient: HTTPClientProtocol
+    private let cache: SpecCacheProtocol
 
     init(
         parser: OpenAPIParserProtocol = OpenAPIParser(),
-        httpClient: HTTPClientProtocol = HTTPClient()
+        httpClient: HTTPClientProtocol = HTTPClient(),
+        cache: SpecCacheProtocol = SpecCache()
     ) {
         self.parser = parser
         self.httpClient = httpClient
+        self.cache = cache
     }
 
     func loadSpec(for project: Project) async throws {
@@ -57,9 +60,19 @@ final class OperationStore {
             throw err
         }
 
+        // Memory cache hit (disk cache returns empty operations — skip it)
+        if let cached = await cache.load(for: project.swaggerURL),
+           !cached.spec.operations.isEmpty {
+            currentSpec = cached.spec
+            log.info("Spec served from cache: \(cached.spec.info.title)")
+            return
+        }
+
         do {
             let response = try await httpClient.get(url, headers: [:])
             let spec = try parser.parse(response.body)
+            await cache.store(CachedEntry(spec: spec, etag: nil, cachedAt: Date()),
+                              for: project.swaggerURL)
             currentSpec = spec
             log.info("Spec loaded: \(spec.info.title) (\(spec.rawOperationCount) ops)")
         } catch {
