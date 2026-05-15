@@ -67,7 +67,7 @@ struct OpenAPIParser: OpenAPIParserProtocol {
                     guard let parameter = resolveParameter(paramEither, components: document.components) else {
                         return nil
                     }
-                    return convertParameter(parameter)
+                    return convertParameter(parameter, pathString: pathString)
                 }
 
                 let parsedRequestBody = op.requestBody.flatMap {
@@ -140,7 +140,7 @@ struct OpenAPIParser: OpenAPIParserProtocol {
         case .patch: return .patch
         case .options: return .options
         case .head: return .head
-        case .trace: return nil
+        case .trace: return nil // TRACE not in HTTPMethod enum; skip silently
         }
     }
 
@@ -153,7 +153,7 @@ struct OpenAPIParser: OpenAPIParserProtocol {
         }
     }
 
-    private func convertParameter(_ parameter: OpenAPI.Parameter) -> ParsedParameter {
+    private func convertParameter(_ parameter: OpenAPI.Parameter, pathString: String) -> ParsedParameter {
         let location = mapLocation(parameter.location)
         let schema: ParsedSchema?
         if let schemaContext = parameter.schemaOrContent.a,
@@ -164,7 +164,7 @@ struct OpenAPIParser: OpenAPIParserProtocol {
         }
 
         return ParsedParameter(
-            id: "\(parameter.name)-\(location.rawValue)",
+            id: "\(pathString)-\(parameter.name)-\(location.rawValue)",
             name: parameter.name,
             location: location,
             required: parameter.required,

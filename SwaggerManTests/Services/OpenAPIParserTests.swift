@@ -139,4 +139,25 @@ struct OpenAPIParserTests {
             _ = try parser.parse(data)
         }
     }
+
+    @Test("YAML 입력 파싱")
+    func parsesYAML() throws {
+        let yaml = """
+        openapi: "3.0.0"
+        info:
+          title: YAML API
+          version: "1.0.0"
+        paths:
+          /health:
+            get:
+              summary: Health check
+              responses:
+                "200":
+                  description: OK
+        """
+        let spec = try parser.parseYAML(yaml)
+        #expect(spec.info.title == "YAML API")
+        #expect(spec.operations.count == 1)
+        #expect(spec.operations.first?.path == "/health")
+    }
 }
