@@ -13,7 +13,7 @@ enum ParameterLocation: String, Codable {
     case path, query, header, cookie
 }
 
-struct ParsedSchema {
+final class ParsedSchema {
     let type: SchemaType
     let properties: [String: ParsedSchema]?
     let items: ParsedSchema?
@@ -22,6 +22,20 @@ struct ParsedSchema {
     let defaultValue: String?
     let example: String?
     let description: String?
+
+    init(type: SchemaType, properties: [String: ParsedSchema]? = nil,
+         items: ParsedSchema? = nil, enumValues: [String]? = nil,
+         required: [String]? = nil, defaultValue: String? = nil,
+         example: String? = nil, description: String? = nil) {
+        self.type = type
+        self.properties = properties
+        self.items = items
+        self.enumValues = enumValues
+        self.required = required
+        self.defaultValue = defaultValue
+        self.example = example
+        self.description = description
+    }
 }
 
 enum SchemaType: String {

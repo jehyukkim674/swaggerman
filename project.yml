@@ -54,6 +54,7 @@ targets:
         PRODUCT_BUNDLE_IDENTIFIER: com.swaggerman.tests
         TEST_HOST: "$(BUILT_PRODUCTS_DIR)/SwaggerMan.app/Contents/MacOS/SwaggerMan"
         BUNDLE_LOADER: "$(TEST_HOST)"
+        GENERATE_INFOPLIST_FILE: YES
     dependencies:
       - target: SwaggerMan
       - package: swift-snapshot-testing
