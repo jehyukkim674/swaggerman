@@ -28,7 +28,10 @@ struct ProjectListEditor: View {
                 }
                 ToolbarItem {
                     Button {
-                        if let p = selectedProject { try? store.deleteProject(p) }
+                        if let p = selectedProject {
+                            try? store.deleteProject(p)
+                            selectedProject = nil
+                        }
                     } label: {
                         Image(systemName: "minus")
                     }

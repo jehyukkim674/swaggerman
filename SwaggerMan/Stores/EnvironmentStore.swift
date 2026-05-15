@@ -35,10 +35,11 @@ final class EnvironmentStore {
     }
 
     func updateEnvironment(_ env: APIEnvironment, name: String, baseURL: String,
-                           authScheme: AuthSchemeType) throws {
+                           authScheme: AuthSchemeType, disableTLS: Bool = false) throws {
         env.name = name
         env.baseURL = baseURL
         env.authScheme = authScheme
+        env.disableTLSValidation = disableTLS
         try save()
     }
 

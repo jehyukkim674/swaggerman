@@ -105,8 +105,7 @@ private struct EnvironmentDetailForm: View {
 
     private func save() {
         do {
-            env.disableTLSValidation = disableTLS
-            try store.updateEnvironment(env, name: name, baseURL: baseURL, authScheme: authScheme)
+            try store.updateEnvironment(env, name: name, baseURL: baseURL, authScheme: authScheme, disableTLS: disableTLS)
             errorMessage = nil
         } catch {
             errorMessage = error.localizedDescription
