@@ -6,3 +6,7 @@ DerivedData/
 .swiftpm/
 .superpowers/
 xcuserdata/
+*.xcodeproj/xcuserdata/
+*.xcworkspace/xcuserdata/
+.build/
+*.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/

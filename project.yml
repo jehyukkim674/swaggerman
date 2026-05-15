@@ -1,0 +1,74 @@
+name: SwaggerMan
+options:
+  bundleIdPrefix: com.swaggerman
+  deploymentTarget:
+    macOS: "14.0"
+  xcodeVersion: "16.0"
+  createIntermediateGroups: true
+
+settings:
+  base:
+    SWIFT_VERSION: "5.9"
+    MACOSX_DEPLOYMENT_TARGET: "14.0"
+    ENABLE_HARDENED_RUNTIME: YES
+
+targets:
+  SwaggerMan:
+    type: application
+    platform: macOS
+    sources:
+      - path: SwaggerMan
+    info:
+      path: SwaggerMan/Resources/Info.plist
+      properties:
+        CFBundleDisplayName: "Swagger Man"
+        NSHumanReadableCopyright: ""
+        NSAppTransportSecurity:
+          NSAllowsArbitraryLoads: true
+    entitlements:
+      path: SwaggerMan/SwaggerMan.entitlements
+      properties:
+        com.apple.security.app-sandbox: true
+        com.apple.security.network.client: true
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.swaggerman.app
+        PRODUCT_NAME: SwaggerMan
+        CODE_SIGN_STYLE: Automatic
+        DEVELOPMENT_TEAM: ""
+    dependencies:
+      - package: OpenAPIKit
+        product: OpenAPIKit30
+      - package: Yams
+        product: Yams
+      - package: KeychainAccess
+        product: KeychainAccess
+
+  SwaggerManTests:
+    type: bundle.unit-test
+    platform: macOS
+    sources:
+      - path: SwaggerManTests
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.swaggerman.tests
+        TEST_HOST: "$(BUILT_PRODUCTS_DIR)/SwaggerMan.app/Contents/MacOS/SwaggerMan"
+        BUNDLE_LOADER: "$(TEST_HOST)"
+    dependencies:
+      - target: SwaggerMan
+      - package: swift-snapshot-testing
+        product: SnapshotTesting
+
+packages:
+  OpenAPIKit:
+    url: https://github.com/mattpolzin/OpenAPIKit
+    from: "3.0.0"
+  Yams:
+    url: https://github.com/jpsim/Yams
+    from: "5.0.0"
+  KeychainAccess:
+    url: https://github.com/kishikawakatsumi/KeychainAccess
+    from: "4.2.0"
+  swift-snapshot-testing:
+    url: https://github.com/pointfreeco/swift-snapshot-testing
+    from: "1.15.0"

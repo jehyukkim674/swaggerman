@@ -1,0 +1,514 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		393C7B66E9B8CADDA87F225E /* OpenAPIKit30 in Frameworks */ = {isa = PBXBuildFile; productRef = 0C149ED80EFC497E8DB17CB2 /* OpenAPIKit30 */; };
+		5CE73B88E0E6CF6B846AD88E /* SnapshotTesting in Frameworks */ = {isa = PBXBuildFile; productRef = C1432EC9278C04DD6E0CD004 /* SnapshotTesting */; };
+		6FF47F8BCCD1AD840265F8AC /* SwaggerManApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3F20ECBCB8B05CC12259B409 /* SwaggerManApp.swift */; };
+		AA70BDC1B4333EE3A52DCCDC /* Yams in Frameworks */ = {isa = PBXBuildFile; productRef = F509A6B39E3528F956DF929B /* Yams */; };
+		AF4AD9BB0A8A980B23215DA3 /* Placeholder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6D44C6F0EA53F4BC29712C8D /* Placeholder.swift */; };
+		E337F0C04AD8BED1E2EE57FA /* KeychainAccess in Frameworks */ = {isa = PBXBuildFile; productRef = 71BDFAF1A9574AC512D9B08F /* KeychainAccess */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		F920363C51EFBBA0FF6F5668 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = E24DF78E1A27B7320FD84DAA /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 79B4E1F9C6CAED45D5DEC30C;
+			remoteInfo = SwaggerMan;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXFileReference section */
+		3F20ECBCB8B05CC12259B409 /* SwaggerManApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwaggerManApp.swift; sourceTree = "<group>"; };
+		6D44C6F0EA53F4BC29712C8D /* Placeholder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Placeholder.swift; sourceTree = "<group>"; };
+		B71DFC167E78A6E9C0A9820D /* SwaggerMan.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = SwaggerMan.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		E217CB648EEB5FE2DA71880D /* SwaggerMan.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = SwaggerMan.entitlements; sourceTree = "<group>"; };
+		E9EE8955DD4AC216B916A619 /* SwaggerManTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = SwaggerManTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		FAA358F4C373334FF032AD94 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		74A64BF8B431BE6102D7D10C /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				393C7B66E9B8CADDA87F225E /* OpenAPIKit30 in Frameworks */,
+				AA70BDC1B4333EE3A52DCCDC /* Yams in Frameworks */,
+				E337F0C04AD8BED1E2EE57FA /* KeychainAccess in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		D0BDE2D40EBD669F4812F658 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				5CE73B88E0E6CF6B846AD88E /* SnapshotTesting in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		3FB7355E95500A0FB373F7C8 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				B71DFC167E78A6E9C0A9820D /* SwaggerMan.app */,
+				E9EE8955DD4AC216B916A619 /* SwaggerManTests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		6D8343C9D90C76647A174D0E /* TestHelpers */ = {
+			isa = PBXGroup;
+			children = (
+				6D44C6F0EA53F4BC29712C8D /* Placeholder.swift */,
+			);
+			path = TestHelpers;
+			sourceTree = "<group>";
+		};
+		8699B4B18D6C361FED7F6101 /* App */ = {
+			isa = PBXGroup;
+			children = (
+				3F20ECBCB8B05CC12259B409 /* SwaggerManApp.swift */,
+			);
+			path = App;
+			sourceTree = "<group>";
+		};
+		B39C50ABF1165B75D60A714D = {
+			isa = PBXGroup;
+			children = (
+				C5121655F99D563EFF442F4E /* SwaggerMan */,
+				E608479DC7D2E956D22D37F3 /* SwaggerManTests */,
+				3FB7355E95500A0FB373F7C8 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		B6E9E64D063AF3A7E7685FA8 /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				FAA358F4C373334FF032AD94 /* Info.plist */,
+			);
+			path = Resources;
+			sourceTree = "<group>";
+		};
+		C5121655F99D563EFF442F4E /* SwaggerMan */ = {
+			isa = PBXGroup;
+			children = (
+				E217CB648EEB5FE2DA71880D /* SwaggerMan.entitlements */,
+				8699B4B18D6C361FED7F6101 /* App */,
+				B6E9E64D063AF3A7E7685FA8 /* Resources */,
+			);
+			path = SwaggerMan;
+			sourceTree = "<group>";
+		};
+		E608479DC7D2E956D22D37F3 /* SwaggerManTests */ = {
+			isa = PBXGroup;
+			children = (
+				6D8343C9D90C76647A174D0E /* TestHelpers */,
+			);
+			path = SwaggerManTests;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		472C23C76FB8D02A0B449DBB /* SwaggerManTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = B829659CA1077938D0DC9C50 /* Build configuration list for PBXNativeTarget "SwaggerManTests" */;
+			buildPhases = (
+				B33ADC8AF6B8336F36040E5A /* Sources */,
+				D0BDE2D40EBD669F4812F658 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				151D74A63D29247515BF795D /* PBXTargetDependency */,
+			);
+			name = SwaggerManTests;
+			packageProductDependencies = (
+				C1432EC9278C04DD6E0CD004 /* SnapshotTesting */,
+			);
+			productName = SwaggerManTests;
+			productReference = E9EE8955DD4AC216B916A619 /* SwaggerManTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+		79B4E1F9C6CAED45D5DEC30C /* SwaggerMan */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = EC992A59EB0EE6324999BBC4 /* Build configuration list for PBXNativeTarget "SwaggerMan" */;
+			buildPhases = (
+				A86A36C07F6FFFCA31816CEE /* Sources */,
+				74A64BF8B431BE6102D7D10C /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = SwaggerMan;
+			packageProductDependencies = (
+				0C149ED80EFC497E8DB17CB2 /* OpenAPIKit30 */,
+				F509A6B39E3528F956DF929B /* Yams */,
+				71BDFAF1A9574AC512D9B08F /* KeychainAccess */,
+			);
+			productName = SwaggerMan;
+			productReference = B71DFC167E78A6E9C0A9820D /* SwaggerMan.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		E24DF78E1A27B7320FD84DAA /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = YES;
+				LastUpgradeCheck = 1600;
+				TargetAttributes = {
+					79B4E1F9C6CAED45D5DEC30C = {
+						DevelopmentTeam = "";
+						ProvisioningStyle = Automatic;
+					};
+				};
+			};
+			buildConfigurationList = AAF5779917F39C95F5E9E437 /* Build configuration list for PBXProject "SwaggerMan" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				Base,
+				en,
+			);
+			mainGroup = B39C50ABF1165B75D60A714D;
+			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				34EAB3608D11DFC44B569C84 /* XCRemoteSwiftPackageReference "KeychainAccess" */,
+				B4A748E7C738B1077559A27F /* XCRemoteSwiftPackageReference "OpenAPIKit" */,
+				258E00D4E68C54758755D518 /* XCRemoteSwiftPackageReference "Yams" */,
+				728D26A02B8786969E4789F6 /* XCRemoteSwiftPackageReference "swift-snapshot-testing" */,
+			);
+			preferredProjectObjectVersion = 77;
+			productRefGroup = 3FB7355E95500A0FB373F7C8 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				79B4E1F9C6CAED45D5DEC30C /* SwaggerMan */,
+				472C23C76FB8D02A0B449DBB /* SwaggerManTests */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXSourcesBuildPhase section */
+		A86A36C07F6FFFCA31816CEE /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				6FF47F8BCCD1AD840265F8AC /* SwaggerManApp.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		B33ADC8AF6B8336F36040E5A /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				AF4AD9BB0A8A980B23215DA3 /* Placeholder.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		151D74A63D29247515BF795D /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 79B4E1F9C6CAED45D5DEC30C /* SwaggerMan */;
+			targetProxy = F920363C51EFBBA0FF6F5668 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		12A41F1B59EE154812C54F95 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 5.9;
+			};
+			name = Release;
+		};
+		3749B5C0A2860BFF572B21D3 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					"DEBUG=1",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.9;
+			};
+			name = Debug;
+		};
+		56EFBA30E611F319A7E197BA /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = SwaggerMan/SwaggerMan.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				DEVELOPMENT_TEAM = "";
+				INFOPLIST_FILE = SwaggerMan/Resources/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.swaggerman.app;
+				PRODUCT_NAME = SwaggerMan;
+				SDKROOT = macosx;
+			};
+			name = Release;
+		};
+		584A744854693925EDD7D699 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				COMBINE_HIDPI_IMAGES = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@loader_path/../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.swaggerman.tests;
+				SDKROOT = macosx;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/SwaggerMan.app/Contents/MacOS/SwaggerMan";
+			};
+			name = Debug;
+		};
+		6997454F9D4FACCCC88CF191 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = SwaggerMan/SwaggerMan.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				DEVELOPMENT_TEAM = "";
+				INFOPLIST_FILE = SwaggerMan/Resources/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.swaggerman.app;
+				PRODUCT_NAME = SwaggerMan;
+				SDKROOT = macosx;
+			};
+			name = Debug;
+		};
+		DD21A339B1E818B320A03596 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				COMBINE_HIDPI_IMAGES = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@loader_path/../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.swaggerman.tests;
+				SDKROOT = macosx;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/SwaggerMan.app/Contents/MacOS/SwaggerMan";
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		AAF5779917F39C95F5E9E437 /* Build configuration list for PBXProject "SwaggerMan" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				3749B5C0A2860BFF572B21D3 /* Debug */,
+				12A41F1B59EE154812C54F95 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		B829659CA1077938D0DC9C50 /* Build configuration list for PBXNativeTarget "SwaggerManTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				584A744854693925EDD7D699 /* Debug */,
+				DD21A339B1E818B320A03596 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		EC992A59EB0EE6324999BBC4 /* Build configuration list for PBXNativeTarget "SwaggerMan" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				6997454F9D4FACCCC88CF191 /* Debug */,
+				56EFBA30E611F319A7E197BA /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+/* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		258E00D4E68C54758755D518 /* XCRemoteSwiftPackageReference "Yams" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/jpsim/Yams";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 5.0.0;
+			};
+		};
+		34EAB3608D11DFC44B569C84 /* XCRemoteSwiftPackageReference "KeychainAccess" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/kishikawakatsumi/KeychainAccess";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 4.2.0;
+			};
+		};
+		728D26A02B8786969E4789F6 /* XCRemoteSwiftPackageReference "swift-snapshot-testing" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/pointfreeco/swift-snapshot-testing";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.15.0;
+			};
+		};
+		B4A748E7C738B1077559A27F /* XCRemoteSwiftPackageReference "OpenAPIKit" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/mattpolzin/OpenAPIKit";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 3.0.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		0C149ED80EFC497E8DB17CB2 /* OpenAPIKit30 */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = B4A748E7C738B1077559A27F /* XCRemoteSwiftPackageReference "OpenAPIKit" */;
+			productName = OpenAPIKit30;
+		};
+		71BDFAF1A9574AC512D9B08F /* KeychainAccess */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 34EAB3608D11DFC44B569C84 /* XCRemoteSwiftPackageReference "KeychainAccess" */;
+			productName = KeychainAccess;
+		};
+		C1432EC9278C04DD6E0CD004 /* SnapshotTesting */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 728D26A02B8786969E4789F6 /* XCRemoteSwiftPackageReference "swift-snapshot-testing" */;
+			productName = SnapshotTesting;
+		};
+		F509A6B39E3528F956DF929B /* Yams */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 258E00D4E68C54758755D518 /* XCRemoteSwiftPackageReference "Yams" */;
+			productName = Yams;
+		};
+/* End XCSwiftPackageProductDependency section */
+	};
+	rootObject = E24DF78E1A27B7320FD84DAA /* Project object */;
+}
