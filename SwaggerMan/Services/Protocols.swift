@@ -16,7 +16,7 @@ protocol OpenAPIParserProtocol: Sendable {
 
 // MARK: - SpecCache
 
-struct CachedEntry {
+struct CachedEntry: Sendable {
     let spec: ParsedSpec
     let etag: String?
     let cachedAt: Date
