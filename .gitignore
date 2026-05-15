@@ -10,3 +10,4 @@ xcuserdata/
 *.xcworkspace/xcuserdata/
 .build/
 *.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/
+logs/
