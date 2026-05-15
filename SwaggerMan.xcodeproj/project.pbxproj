@@ -41,6 +41,9 @@
 		E337F0C04AD8BED1E2EE57FA /* KeychainAccess in Frameworks */ = {isa = PBXBuildFile; productRef = 71BDFAF1A9574AC512D9B08F /* KeychainAccess */; };
 		E46E110E35024CC470DAD734 /* Project.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6D7D745D56D7C8C9C78C7ECA /* Project.swift */; };
 		ECDA00520DFDBBB474D0D8A6 /* Operation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 808E4F522ACED6C40C8A27E3 /* Operation.swift */; };
+		AA01BB01AA01BB01AA01BB01 /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB01BB01BB01BB01BB01BB01 /* RootView.swift */; };
+		AA02BB02AA02BB02AA02BB02 /* TopBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB02BB02BB02BB02BB02BB02 /* TopBar.swift */; };
+		AA03BB03AA03BB03AA03BB03 /* ProjectListEditor.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB03BB03BB03BB03BB03BB03 /* ProjectListEditor.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -88,6 +91,9 @@
 		E9EE8955DD4AC216B916A619 /* SwaggerManTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = SwaggerManTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		F127BF4AE928639007808D35 /* HTTPClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HTTPClient.swift; sourceTree = "<group>"; };
 		FAA358F4C373334FF032AD94 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		BB01BB01BB01BB01BB01BB01 /* RootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootView.swift; sourceTree = "<group>"; };
+		BB02BB02BB02BB02BB02BB02 /* TopBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TopBar.swift; sourceTree = "<group>"; };
+		BB03BB03BB03BB03BB03BB03 /* ProjectListEditor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProjectListEditor.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -202,6 +208,7 @@
 				B6E9E64D063AF3A7E7685FA8 /* Resources */,
 				15374DE5201C193470CC6BB1 /* Services */,
 				E9918F69841B89B972394210 /* Stores */,
+				CC10CC10CC10CC10CC10CC10 /* Views */,
 			);
 			path = SwaggerMan;
 			sourceTree = "<group>";
@@ -254,6 +261,32 @@
 				6B17EDA67B620F605EF7D167 /* SwaggerManError.swift */,
 			);
 			path = Errors;
+			sourceTree = "<group>";
+		};
+		CC10CC10CC10CC10CC10CC10 /* Views */ = {
+			isa = PBXGroup;
+			children = (
+				CC11CC11CC11CC11CC11CC11 /* Root */,
+				CC12CC12CC12CC12CC12CC12 /* Settings */,
+			);
+			path = Views;
+			sourceTree = "<group>";
+		};
+		CC11CC11CC11CC11CC11CC11 /* Root */ = {
+			isa = PBXGroup;
+			children = (
+				BB01BB01BB01BB01BB01BB01 /* RootView.swift */,
+				BB02BB02BB02BB02BB02BB02 /* TopBar.swift */,
+			);
+			path = Root;
+			sourceTree = "<group>";
+		};
+		CC12CC12CC12CC12CC12CC12 /* Settings */ = {
+			isa = PBXGroup;
+			children = (
+				BB03BB03BB03BB03BB03BB03 /* ProjectListEditor.swift */,
+			);
+			path = Settings;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -365,6 +398,9 @@
 				2B9AC3557B4252D7BE49D0CB /* SpecCache.swift in Sources */,
 				6FF47F8BCCD1AD840265F8AC /* SwaggerManApp.swift in Sources */,
 				D8161EFC574E3B0E4B43ED13 /* SwaggerManError.swift in Sources */,
+				AA01BB01AA01BB01AA01BB01 /* RootView.swift in Sources */,
+				AA02BB02AA02BB02AA02BB02 /* TopBar.swift in Sources */,
+				AA03BB03AA03BB03AA03BB03 /* ProjectListEditor.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
