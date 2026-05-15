@@ -23,10 +23,10 @@ struct CachedEntry: Sendable {
 }
 
 protocol SpecCacheProtocol: Sendable {
-    func load(for urlString: String) -> CachedEntry?
-    func store(_ entry: CachedEntry, for urlString: String)
-    func invalidate(for urlString: String)
-    func clear()
+    func load(for urlString: String) async -> CachedEntry?
+    func store(_ entry: CachedEntry, for urlString: String) async
+    func invalidate(for urlString: String) async
+    func clear() async
 }
 
 // MARK: - KeychainService
