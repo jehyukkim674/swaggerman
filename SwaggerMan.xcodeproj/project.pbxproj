@@ -9,6 +9,10 @@
 /* Begin PBXBuildFile section */
 		2481D731871FB71DEA6F3B6B /* ParsedSpec.swift in Sources */ = {isa = PBXBuildFile; fileRef = 64F1D6EF1D66D8B90F47B7BC /* ParsedSpec.swift */; };
 		25EC3ACDAF7D3361B9594DC7 /* ModelContainerFactory.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8D4498D6A072185815FC0CB6 /* ModelContainerFactory.swift */; };
+		A1B2C3D4E5F6A1B2 /* HTTPClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F6A1B3 /* HTTPClient.swift */; };
+		A1B2C3D4E5F6A1B5 /* Protocols.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F6A1B4 /* Protocols.swift */; };
+		B2C3D4E5F6A1B2C3 /* MockURLProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2C3D4E5F6A1B2C4 /* MockURLProtocol.swift */; };
+		C3D4E5F6A1B2C3D4 /* HTTPClientTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C3D4E5F6A1B2C3D5 /* HTTPClientTests.swift */; };
 		393C7B66E9B8CADDA87F225E /* OpenAPIKit30 in Frameworks */ = {isa = PBXBuildFile; productRef = 0C149ED80EFC497E8DB17CB2 /* OpenAPIKit30 */; };
 		3E5BEB1EE17445418F53D426 /* APIEnvironment.swift in Sources */ = {isa = PBXBuildFile; fileRef = DECCE7EFD5AB5AAB04D2D054 /* APIEnvironment.swift */; };
 		4D0972A168C4C2060A23875C /* HTTPResponse.swift in Sources */ = {isa = PBXBuildFile; fileRef = 789F794DBCB6AEA813331340 /* HTTPResponse.swift */; };
@@ -45,6 +49,10 @@
 		64F1D6EF1D66D8B90F47B7BC /* ParsedSpec.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ParsedSpec.swift; sourceTree = "<group>"; };
 		6B17EDA67B620F605EF7D167 /* SwaggerManError.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwaggerManError.swift; sourceTree = "<group>"; };
 		6D44C6F0EA53F4BC29712C8D /* Placeholder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Placeholder.swift; sourceTree = "<group>"; };
+		A1B2C3D4E5F6A1B3 /* HTTPClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HTTPClient.swift; sourceTree = "<group>"; };
+		A1B2C3D4E5F6A1B4 /* Protocols.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Protocols.swift; sourceTree = "<group>"; };
+		B2C3D4E5F6A1B2C4 /* MockURLProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MockURLProtocol.swift; sourceTree = "<group>"; };
+		C3D4E5F6A1B2C3D5 /* HTTPClientTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HTTPClientTests.swift; sourceTree = "<group>"; };
 		6D7D745D56D7C8C9C78C7ECA /* Project.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Project.swift; sourceTree = "<group>"; };
 		789F794DBCB6AEA813331340 /* HTTPResponse.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HTTPResponse.swift; sourceTree = "<group>"; };
 		808E4F522ACED6C40C8A27E3 /* Operation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Operation.swift; sourceTree = "<group>"; };
@@ -96,8 +104,26 @@
 			children = (
 				8D4498D6A072185815FC0CB6 /* ModelContainerFactory.swift */,
 				6D44C6F0EA53F4BC29712C8D /* Placeholder.swift */,
+				B2C3D4E5F6A1B2C4 /* MockURLProtocol.swift */,
 			);
 			path = TestHelpers;
+			sourceTree = "<group>";
+		};
+		D4E5F6A1B2C3D4E5 /* Services */ = {
+			isa = PBXGroup;
+			children = (
+				A1B2C3D4E5F6A1B3 /* HTTPClient.swift */,
+				A1B2C3D4E5F6A1B4 /* Protocols.swift */,
+			);
+			path = Services;
+			sourceTree = "<group>";
+		};
+		E5F6A1B2C3D4E5F6 /* TestServices */ = {
+			isa = PBXGroup;
+			children = (
+				C3D4E5F6A1B2C3D5 /* HTTPClientTests.swift */,
+			);
+			path = Services;
 			sourceTree = "<group>";
 		};
 		8699B4B18D6C361FED7F6101 /* App */ = {
@@ -146,6 +172,7 @@
 				FB4EF1FF2F067B933C08F141 /* Errors */,
 				D7671D641A044174DCAD9AF3 /* Models */,
 				9451E56BF79EED4107AF9772 /* Persistence */,
+				D4E5F6A1B2C3D4E5 /* Services */,
 				B6E9E64D063AF3A7E7685FA8 /* Resources */,
 			);
 			path = SwaggerMan;
@@ -174,6 +201,7 @@
 			isa = PBXGroup;
 			children = (
 				C53F25D3505FC4195874FE87 /* Integration */,
+				E5F6A1B2C3D4E5F6 /* TestServices */,
 				6D8343C9D90C76647A174D0E /* TestHelpers */,
 			);
 			path = SwaggerManTests;
@@ -279,6 +307,8 @@
 			files = (
 				3E5BEB1EE17445418F53D426 /* APIEnvironment.swift in Sources */,
 				92E124973FB679263BE73833 /* FavoriteOperation.swift in Sources */,
+				A1B2C3D4E5F6A1B2 /* HTTPClient.swift in Sources */,
+				A1B2C3D4E5F6A1B5 /* Protocols.swift in Sources */,
 				8F41631B5F1399856A5C9F88 /* HTTPRequest.swift in Sources */,
 				4D0972A168C4C2060A23875C /* HTTPResponse.swift in Sources */,
 				6926FB87BFB9FBDBDA2BEF09 /* HistoryItem.swift in Sources */,
@@ -297,6 +327,8 @@
 			buildActionMask = 2147483647;
 			files = (
 				25EC3ACDAF7D3361B9594DC7 /* ModelContainerFactory.swift in Sources */,
+				C3D4E5F6A1B2C3D4 /* HTTPClientTests.swift in Sources */,
+				B2C3D4E5F6A1B2C3 /* MockURLProtocol.swift in Sources */,
 				85246807F05677D962084A5E /* PersistenceTests.swift in Sources */,
 				AF4AD9BB0A8A980B23215DA3 /* Placeholder.swift in Sources */,
 			);
