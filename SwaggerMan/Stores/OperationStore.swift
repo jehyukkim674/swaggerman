@@ -36,16 +36,13 @@ final class OperationStore {
     }
 
     private let parser: OpenAPIParserProtocol
-    private let cache: SpecCache
     private let httpClient: HTTPClientProtocol
 
     init(
         parser: OpenAPIParserProtocol = OpenAPIParser(),
-        cache: SpecCache = SpecCache(),
         httpClient: HTTPClientProtocol = HTTPClient()
     ) {
         self.parser = parser
-        self.cache = cache
         self.httpClient = httpClient
     }
 
@@ -55,14 +52,20 @@ final class OperationStore {
         defer { isLoading = false }
 
         guard let url = URL(string: project.swaggerURL) else {
-            throw SwaggerManError.parsing(.invalidJSON("Invalid URL: \(project.swaggerURL)"))
+            let err = SwaggerManError.parsing(.invalidJSON("Invalid URL: \(project.swaggerURL)"))
+            loadError = err
+            throw err
         }
 
-        let response = try await httpClient.get(url, headers: [:])
-        let spec = try parser.parse(response.body)
-
-        currentSpec = spec
-        log.info("Spec loaded: \(spec.info.title) (\(spec.rawOperationCount) ops)")
+        do {
+            let response = try await httpClient.get(url, headers: [:])
+            let spec = try parser.parse(response.body)
+            currentSpec = spec
+            log.info("Spec loaded: \(spec.info.title) (\(spec.rawOperationCount) ops)")
+        } catch {
+            loadError = error
+            throw error
+        }
     }
 
     func clearSpec() {

@@ -11,10 +11,8 @@ struct OperationStoreTests {
         let container = try ModelContainerFactory.makeInMemory()
         let ctx = container.mainContext
         let projectStore = ProjectStore(modelContext: ctx)
-        let cache = SpecCache(cacheDirectory: FileManager.default.temporaryDirectory
-            .appendingPathComponent("OpStoreTests-\(UUID().uuidString)"))
         let http = HTTPClient(session: .mock())
-        let opStore = OperationStore(parser: parser, cache: cache, httpClient: http)
+        let opStore = OperationStore(parser: parser, httpClient: http)
         return (opStore, projectStore, container)
     }
 
