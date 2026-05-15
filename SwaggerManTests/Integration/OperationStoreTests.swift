@@ -8,12 +8,12 @@ import Foundation
 struct OperationStoreTests {
 
     func makeStore(parser: OpenAPIParserProtocol = MockOpenAPIParser(),
-                   cache: SpecCacheProtocol? = nil) throws -> (OperationStore, ProjectStore, _container: ModelContainer) {
+                   cache: (any SpecCacheProtocol)? = nil) throws -> (OperationStore, ProjectStore, _container: ModelContainer) {
         let container = try ModelContainerFactory.makeInMemory()
         let ctx = container.mainContext
         let projectStore = ProjectStore(modelContext: ctx)
         let http = HTTPClient(session: .mock())
-        let resolvedCache = cache ?? SpecCache(cacheDirectory: URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(UUID().uuidString))
+        let resolvedCache: any SpecCacheProtocol = cache ?? MockSpecCache()
         let opStore = OperationStore(parser: parser, httpClient: http, cache: resolvedCache)
         return (opStore, projectStore, container)
     }
@@ -63,6 +63,10 @@ struct OperationStoreTests {
         MockURLProtocol.requestHandler = nil
         try await opStore.loadSpec(for: project)
         #expect(opStore.currentSpec?.info.title == "Mock")
+
+        // store was called exactly once (first load only — cache was used on second load)
+        let storeCount = await mockCache.storeCallCount
+        #expect(storeCount == 1)
     }
 
     @Test("selectedMethods 필터 - POST는 제외됨")

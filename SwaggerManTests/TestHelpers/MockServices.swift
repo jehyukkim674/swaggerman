@@ -33,22 +33,26 @@ final class MockOpenAPIParser: OpenAPIParserProtocol, @unchecked Sendable {
     }
 }
 
-final class MockSpecCache: SpecCacheProtocol, @unchecked Sendable {
+actor MockSpecCache: SpecCacheProtocol {
     var storedEntries: [String: CachedEntry] = [:]
+    var loadCallCount = 0
+    var storeCallCount = 0
 
-    func load(for urlString: String) async -> CachedEntry? {
-        storedEntries[urlString]
+    func load(for urlString: String) -> CachedEntry? {
+        loadCallCount += 1
+        return storedEntries[urlString]
     }
 
-    func store(_ entry: CachedEntry, for urlString: String) async {
+    func store(_ entry: CachedEntry, for urlString: String) {
+        storeCallCount += 1
         storedEntries[urlString] = entry
     }
 
-    func invalidate(for urlString: String) async {
+    func invalidate(for urlString: String) {
         storedEntries.removeValue(forKey: urlString)
     }
 
-    func clear() async {
+    func clear() {
         storedEntries.removeAll()
     }
 }

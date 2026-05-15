@@ -60,9 +60,8 @@ final class OperationStore {
             throw err
         }
 
-        // Memory cache hit (disk cache returns empty operations — skip it)
-        if let cached = await cache.load(for: project.swaggerURL),
-           !cached.spec.operations.isEmpty {
+        // Only use cache if it contains full operation data
+        if let cached = await cache.load(for: project.swaggerURL), cached.isUsable {
             currentSpec = cached.spec
             log.info("Spec served from cache: \(cached.spec.info.title)")
             return

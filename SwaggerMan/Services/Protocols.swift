@@ -20,6 +20,7 @@ struct CachedEntry: Sendable {
     let spec: ParsedSpec
     let etag: String?
     let cachedAt: Date
+    var isUsable: Bool { !spec.operations.isEmpty }
 }
 
 protocol SpecCacheProtocol: Sendable {
