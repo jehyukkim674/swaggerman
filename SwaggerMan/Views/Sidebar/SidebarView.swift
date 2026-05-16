@@ -44,10 +44,13 @@ struct SidebarView: View {
                                 )
                                 .contentShape(Rectangle())
                                 .onTapGesture { onSelectOperation(op) }
+                                .listRowInsets(EdgeInsets(top: 2, leading: 8, bottom: 2, trailing: 8))
+                                .listRowBackground(Color.clear)
                             }
                         }
                     }
-                    .listStyle(.sidebar)
+                    .listStyle(.plain)
+                    .scrollContentBackground(.hidden)
                 }
             }
         }
