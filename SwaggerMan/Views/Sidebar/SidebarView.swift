@@ -2,6 +2,7 @@ import SwiftUI
 
 struct SidebarView: View {
     @Bindable var operationStore: OperationStore
+    let selectedOperationID: String?
     let onSelectOperation: (ParsedOperation) -> Void
 
     var body: some View {
@@ -37,9 +38,12 @@ struct SidebarView: View {
                     List(operationStore.operationsByTag, id: \.tag) { group in
                         Section(group.tag) {
                             ForEach(group.operations) { op in
-                                OperationRowView(operation: op)
-                                    .contentShape(Rectangle())
-                                    .onTapGesture { onSelectOperation(op) }
+                                OperationRowView(
+                                    operation: op,
+                                    isSelected: op.id == selectedOperationID
+                                )
+                                .contentShape(Rectangle())
+                                .onTapGesture { onSelectOperation(op) }
                             }
                         }
                     }
@@ -119,6 +123,7 @@ private struct MethodFilterView: View {
 
 struct OperationRowView: View {
     let operation: ParsedOperation
+    var isSelected: Bool = false
 
     var body: some View {
         HStack(spacing: 6) {
@@ -134,6 +139,7 @@ struct OperationRowView: View {
             VStack(alignment: .leading, spacing: 1) {
                 Text(operation.path)
                     .font(.system(.caption, design: .monospaced))
+                    .foregroundStyle(isSelected ? .primary : .primary)
                     .lineLimit(1)
                 if let summary = operation.summary, !summary.isEmpty {
                     Text(summary)
@@ -143,6 +149,21 @@ struct OperationRowView: View {
                 }
             }
         }
-        .padding(.vertical, 2)
+        .padding(.vertical, 4)
+        .padding(.horizontal, 6)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            isSelected
+                ? operation.method.swiftUIColor.opacity(0.18)
+                : Color.clear
+        )
+        .clipShape(.rect(cornerRadius: 6))
+        .overlay(
+            RoundedRectangle(cornerRadius: 6)
+                .stroke(
+                    isSelected ? operation.method.swiftUIColor.opacity(0.5) : Color.clear,
+                    lineWidth: 1
+                )
+        )
     }
 }

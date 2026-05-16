@@ -38,6 +38,7 @@ struct RootView: View {
                         if showSidebar {
                             SidebarView(
                                 operationStore: operationStore,
+                                selectedOperationID: requestEditorStore.selectedOperation?.id,
                                 onSelectOperation: { op in
                                     guard let project = projectStore.selectedProject,
                                           let env = environmentStore.activeEnvironment(for: project) else { return }
