@@ -42,7 +42,8 @@ final class RequestEditorStore {
 
     // MARK: - Public Methods
 
-    func loadOperation(_ op: ParsedOperation, baseURL: String, environment: APIEnvironment) {
+    func loadOperation(_ op: ParsedOperation, baseURL: String, environment: APIEnvironment,
+                       securityHeaders: [String: String] = [:]) {
         selectedOperation = op
         currentBaseURL = baseURL
         currentEnvID = environment.id
@@ -56,7 +57,7 @@ final class RequestEditorStore {
         queryParams = op.parameters
             .filter { $0.location == .query }
             .map { RequestParam(key: $0.name, value: "", enabled: true) }
-        requestHeaders = buildDefaultHeaders(for: op, environment: environment)
+        requestHeaders = buildDefaultHeaders(for: op, environment: environment, securityHeaders: securityHeaders)
         bodyJSON = op.requestBody != nil ? "{}" : ""
     }
 
@@ -153,9 +154,18 @@ final class RequestEditorStore {
         return HTTPRequest(method: op.method, url: url, headers: headers, body: body)
     }
 
-    private func buildDefaultHeaders(for op: ParsedOperation, environment: APIEnvironment) -> [RequestParam] {
+    private func buildDefaultHeaders(for op: ParsedOperation, environment: APIEnvironment,
+                                     securityHeaders: [String: String] = [:]) -> [RequestParam] {
         var headers: [RequestParam] = []
 
+        // Security scheme values (from Authorize dialog) take priority
+        for (key, value) in securityHeaders {
+            headers.append(RequestParam(key: key, value: value, enabled: true))
+        }
+
+        // Environment-level auth (only if no security scheme already set Authorization)
+        let hasAuth = securityHeaders.keys.contains { $0.lowercased() == "authorization" }
+        if !hasAuth {
         switch environment.authScheme {
         case .bearer:
             let token = environment.bearerToken ?? ""
@@ -182,6 +192,7 @@ final class RequestEditorStore {
         case .none:
             break
         }
+        } // end if !hasAuth
 
         // Spec-defined header parameters
         for param in op.parameters where param.location == .header {

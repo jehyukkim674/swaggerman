@@ -97,10 +97,34 @@ struct OpenAPIParser: OpenAPIParserProtocol {
             }
         }
 
+        let securitySchemes: [ParsedSecurityScheme] = document.components.securitySchemes.compactMap { entry in
+            let key = entry.key
+            let scheme = entry.value
+            let kind: SecuritySchemeKind
+            switch scheme.type {
+            case .apiKey(let name, let location):
+                let loc: String
+                switch location {
+                case .header: loc = "header"
+                case .query:  loc = "query"
+                case .cookie: loc = "cookie"
+                }
+                kind = .apiKey(name: name, location: loc)
+            case .http(let s, _):
+                kind = .http(scheme: s)
+            case .oauth2:
+                kind = .oauth2
+            default:
+                kind = .unknown
+            }
+            return ParsedSecurityScheme(id: key.rawValue, name: key.rawValue, kind: kind, description: scheme.description)
+        }
+
         return ParsedSpec(
             info: info,
             servers: servers,
             operations: operations,
+            securitySchemes: securitySchemes.sorted { $0.name < $1.name },
             rawOperationCount: operations.count
         )
     }

@@ -30,6 +30,7 @@ struct RootView: View {
                     TopBar(
                         projectStore: projectStore,
                         environmentStore: environmentStore,
+                        operationStore: operationStore,
                         showSidebar: $showSidebar,
                         showRequest: $showRequest,
                         showResponse: $showResponse,
@@ -46,7 +47,8 @@ struct RootView: View {
                                         guard let project = projectStore.selectedProject,
                                               let env = environmentStore.activeEnvironment(for: project) else { return }
                                         let baseURL = env.baseURL.trimmingCharacters(in: CharacterSet(charactersIn: "/"))
-                                        requestEditorStore.loadOperation(op, baseURL: baseURL, environment: env)
+                                        requestEditorStore.loadOperation(op, baseURL: baseURL, environment: env,
+                                            securityHeaders: operationStore.computedSecurityHeaders)
                                         projectStore.saveLastOperationID(op.id, for: project)
                                     }
                                 )
@@ -139,7 +141,8 @@ struct RootView: View {
               let op = os.operations.first(where: { $0.id == lastID }),
               let env = es.activeEnvironment(for: project) else { return }
         let baseURL = env.baseURL.trimmingCharacters(in: CharacterSet(charactersIn: "/"))
-        res.loadOperation(op, baseURL: baseURL, environment: env)
+        res.loadOperation(op, baseURL: baseURL, environment: env,
+                          securityHeaders: os.computedSecurityHeaders)
     }
 }
 

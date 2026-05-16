@@ -3,11 +3,20 @@ import SwiftUI
 struct TopBar: View {
     @Bindable var projectStore: ProjectStore
     @Bindable var environmentStore: EnvironmentStore
+    @Bindable var operationStore: OperationStore
     @Binding var showSidebar: Bool
     @Binding var showRequest: Bool
     @Binding var showResponse: Bool
     let onSettings: () -> Void
     let onEnvironmentEditor: () -> Void
+
+    @State private var showAuthorize = false
+
+    private var authorizedCount: Int {
+        operationStore.securitySchemes.filter {
+            !(operationStore.securityValues[$0.name] ?? "").isEmpty
+        }.count
+    }
 
     var body: some View {
         HStack(spacing: 8) {
@@ -46,6 +55,31 @@ struct TopBar: View {
                 }
                 .menuStyle(.borderedButton)
                 .help("활성 환경 선택")
+            }
+
+            // Authorize button (only when spec has security schemes)
+            if !operationStore.securitySchemes.isEmpty {
+                Button {
+                    showAuthorize = true
+                } label: {
+                    HStack(spacing: 4) {
+                        Image(systemName: authorizedCount > 0 ? "lock.fill" : "lock.open")
+                            .foregroundStyle(authorizedCount > 0 ? .green : .secondary)
+                        Text("Authorize")
+                            .font(.caption.weight(.medium))
+                        if authorizedCount > 0 {
+                            Text("\(authorizedCount)/\(operationStore.securitySchemes.count)")
+                                .font(.caption2)
+                                .foregroundStyle(.green)
+                        }
+                    }
+                }
+                .buttonStyle(.bordered)
+                .controlSize(.small)
+                .help("API 인증 토큰 설정")
+                .sheet(isPresented: $showAuthorize) {
+                    AuthorizeSheet(operationStore: operationStore)
+                }
             }
 
             Spacer()

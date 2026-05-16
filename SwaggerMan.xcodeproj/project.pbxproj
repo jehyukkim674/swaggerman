@@ -11,6 +11,7 @@
 		112B8F8270205C8C15037498 /* OperationStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 926DD7FBFC963B738C4C723D /* OperationStore.swift */; };
 		19EA5B4E0E86E38B5BAAC478 /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FC46B4D299E40B8FB191E1C5 /* RootView.swift */; };
 		1F84E3CBD50ED66A52725671 /* SpecCacheTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 762FE19D5939DB9E9FFD4A78 /* SpecCacheTests.swift */; };
+		240CB85AD76A5918462F95D2 /* AuthorizeSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6FCDE48D3285F986E4DBC9D8 /* AuthorizeSheet.swift */; };
 		2481D731871FB71DEA6F3B6B /* ParsedSpec.swift in Sources */ = {isa = PBXBuildFile; fileRef = 64F1D6EF1D66D8B90F47B7BC /* ParsedSpec.swift */; };
 		25EC3ACDAF7D3361B9594DC7 /* ModelContainerFactory.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8D4498D6A072185815FC0CB6 /* ModelContainerFactory.swift */; };
 		2964399335E1DA9F9CEDDBA3 /* EnvironmentStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5969A4F5BD5921F28DF68692 /* EnvironmentStore.swift */; };
@@ -91,6 +92,7 @@
 		6B17EDA67B620F605EF7D167 /* SwaggerManError.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwaggerManError.swift; sourceTree = "<group>"; };
 		6D44C6F0EA53F4BC29712C8D /* Placeholder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Placeholder.swift; sourceTree = "<group>"; };
 		6D7D745D56D7C8C9C78C7ECA /* Project.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Project.swift; sourceTree = "<group>"; };
+		6FCDE48D3285F986E4DBC9D8 /* AuthorizeSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthorizeSheet.swift; sourceTree = "<group>"; };
 		703D49FC435639AE8C06D6E0 /* BodyTab.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BodyTab.swift; sourceTree = "<group>"; };
 		721467F53D70168DBFA6BFD1 /* ParamsTab.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ParamsTab.swift; sourceTree = "<group>"; };
 		74743855C2DA1865C9A0DFFA /* ProjectStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProjectStoreTests.swift; sourceTree = "<group>"; };
@@ -238,6 +240,7 @@
 		89D1764C953CBCA3103DE8BF /* Settings */ = {
 			isa = PBXGroup;
 			children = (
+				6FCDE48D3285F986E4DBC9D8 /* AuthorizeSheet.swift */,
 				B12077D1B02E17A7FE2B6E0E /* EnvironmentEditor.swift */,
 				62D0C3B971847E595DC46323 /* ProjectListEditor.swift */,
 			);
@@ -447,6 +450,7 @@
 			files = (
 				3E5BEB1EE17445418F53D426 /* APIEnvironment.swift in Sources */,
 				D161EB749901D339E7350BD7 /* AuthTab.swift in Sources */,
+				240CB85AD76A5918462F95D2 /* AuthorizeSheet.swift in Sources */,
 				F93A499E3B17E594E97B228C /* BodyTab.swift in Sources */,
 				3D6D2CFCB6E1E61E6CBECE79 /* CurlBuilder.swift in Sources */,
 				A954B8E9418C59A79D6DCF6A /* EnvironmentEditor.swift in Sources */,

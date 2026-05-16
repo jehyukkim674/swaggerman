@@ -39,6 +39,7 @@ actor SpecCache: SpecCacheProtocol {
             info: SpecInfo(title: envelope.infoTitle, version: envelope.infoVersion, description: envelope.infoDescription),
             servers: envelope.servers,
             operations: [],
+            securitySchemes: [],
             rawOperationCount: 0
         )
         let entry = CachedEntry(spec: spec, etag: envelope.etag, cachedAt: envelope.cachedAt)

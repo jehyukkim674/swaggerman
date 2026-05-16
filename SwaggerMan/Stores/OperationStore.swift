@@ -13,6 +13,30 @@ final class OperationStore {
     var searchText: String = ""
     var selectedMethods: Set<HTTPMethod> = []
 
+    // Security scheme values entered by user (scheme name → token/value)
+    var securityValues: [String: String] = [:]
+
+    var securitySchemes: [ParsedSecurityScheme] { currentSpec?.securitySchemes ?? [] }
+
+    // Maps header-name → value, computed from securityValues + scheme definitions
+    var computedSecurityHeaders: [String: String] {
+        var result: [String: String] = [:]
+        for scheme in securitySchemes {
+            guard let value = securityValues[scheme.name], !value.isEmpty else { continue }
+            switch scheme.kind {
+            case .apiKey(let name, let location) where location == "header":
+                result[name] = value
+            case .http(let s) where s.lowercased() == "bearer":
+                result["Authorization"] = "Bearer \(value)"
+            case .http(let s) where s.lowercased() == "basic":
+                result["Authorization"] = "Basic \(value)"
+            default:
+                break
+            }
+        }
+        return result
+    }
+
     var operations: [ParsedOperation] { currentSpec?.operations ?? [] }
 
     var filteredOperations: [ParsedOperation] {
@@ -83,6 +107,7 @@ final class OperationStore {
         searchText = ""
         selectedMethods = []
         loadError = nil
+        securityValues = [:]
     }
 
     // MARK: - Private
