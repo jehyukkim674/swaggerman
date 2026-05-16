@@ -134,8 +134,11 @@ private struct WelcomeView: View {
             VStack(spacing: 6) {
                 Text("Swagger Man")
                     .font(.largeTitle.bold())
-                Text("OpenAPI 3.x Spec URL을 입력해서 시작하세요.")
+                Text("OpenAPI JSON spec URL을 입력해서 시작하세요.")
                     .foregroundStyle(.secondary)
+                Text("Swagger UI 주소(index.html)가 아닌 spec 파일 URL이 필요합니다.")
+                    .font(.caption)
+                    .foregroundStyle(.tertiary)
             }
 
             VStack(alignment: .leading, spacing: 10) {
@@ -143,7 +146,7 @@ private struct WelcomeView: View {
                     .textFieldStyle(.roundedBorder)
                     .frame(width: 420)
 
-                TextField("Swagger URL", text: $swaggerURL)
+                TextField("JSON Spec URL (예: /v3/api-docs, /openapi.json)", text: $swaggerURL)
                     .textFieldStyle(.roundedBorder)
                     .frame(width: 420)
 

@@ -69,6 +69,15 @@ final class OperationStore {
 
         do {
             let response = try await httpClient.get(url, headers: [:])
+            if let bodyStr = String(data: response.body, encoding: .utf8),
+               bodyStr.trimmingCharacters(in: .whitespacesAndNewlines).hasPrefix("<") {
+                let err = SwaggerManError.parsing(.invalidJSON(
+                    "HTML 페이지를 받았습니다. Swagger UI URL이 아닌 JSON spec URL을 입력하세요.\n" +
+                    "예: /v3/api-docs, /openapi.json, /api/schema/"
+                ))
+                loadError = err
+                throw err
+            }
             let spec = try parser.parse(response.body)
             await cache.store(CachedEntry(spec: spec, etag: nil, cachedAt: Date()),
                               for: project.swaggerURL)
