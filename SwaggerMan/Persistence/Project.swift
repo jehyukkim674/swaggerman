@@ -8,6 +8,7 @@ final class Project {
     var swaggerURL: String
     var createdAt: Date
     var lastUsedAt: Date
+    var lastOperationID: String?
 
     @Relationship(deleteRule: .cascade, inverse: \APIEnvironment.project)
     var environments: [APIEnvironment]
@@ -27,6 +28,7 @@ final class Project {
         self.swaggerURL = swaggerURL
         self.createdAt = Date()
         self.lastUsedAt = Date()
+        self.lastOperationID = nil
         self.environments = []
         self.collections = []
         self.favorites = []

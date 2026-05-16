@@ -53,7 +53,7 @@ struct EnvironmentEditor: View {
         .sheet(isPresented: $showAddSheet) {
             AddEnvironmentSheet(project: project, store: store)
         }
-        .frame(minWidth: 500, minHeight: 350)
+        .frame(minWidth: 520, minHeight: 380)
     }
 }
 
@@ -67,6 +67,12 @@ private struct EnvironmentDetailForm: View {
     @State private var name: String
     @State private var baseURL: String
     @State private var authScheme: AuthSchemeType
+    @State private var bearerToken: String
+    @State private var basicUsername: String
+    @State private var basicPassword: String
+    @State private var apiKeyHeaderName: String
+    @State private var apiKeyValue: String
+    @State private var apiKeyInQuery: Bool
     @State private var disableTLS: Bool
     @State private var errorMessage: String?
 
@@ -77,26 +83,61 @@ private struct EnvironmentDetailForm: View {
         _name = State(initialValue: env.name)
         _baseURL = State(initialValue: env.baseURL)
         _authScheme = State(initialValue: env.authScheme)
+        _bearerToken = State(initialValue: env.bearerToken ?? "")
+        _basicUsername = State(initialValue: env.basicUsername ?? "")
+        _basicPassword = State(initialValue: env.basicPassword ?? "")
+        _apiKeyHeaderName = State(initialValue: env.apiKeyHeaderName ?? "X-API-Key")
+        _apiKeyValue = State(initialValue: env.apiKeyValue ?? "")
+        _apiKeyInQuery = State(initialValue: env.apiKeyInQuery)
         _disableTLS = State(initialValue: env.disableTLSValidation)
     }
 
     var body: some View {
         Form {
-            TextField("이름", text: $name)
-            TextField("Base URL", text: $baseURL)
-            Picker("인증 방식", selection: $authScheme) {
-                ForEach(AuthSchemeType.allCases, id: \.self) { scheme in
-                    Text(scheme.displayName).tag(scheme)
+            Section("기본 설정") {
+                TextField("이름", text: $name)
+                TextField("Base URL", text: $baseURL)
+                    .font(.system(.body, design: .monospaced))
+            }
+
+            Section("인증") {
+                Picker("방식", selection: $authScheme) {
+                    ForEach(AuthSchemeType.allCases, id: \.self) { scheme in
+                        Text(scheme.displayName).tag(scheme)
+                    }
+                }
+
+                switch authScheme {
+                case .none:
+                    EmptyView()
+                case .bearer:
+                    SecureField("Bearer Token", text: $bearerToken)
+                        .font(.system(.body, design: .monospaced))
+                case .basic:
+                    TextField("사용자명 (Username)", text: $basicUsername)
+                    SecureField("비밀번호 (Password)", text: $basicPassword)
+                case .apiKey:
+                    TextField("헤더/파라미터 이름", text: $apiKeyHeaderName)
+                        .font(.system(.body, design: .monospaced))
+                    SecureField("값 (Value)", text: $apiKeyValue)
+                        .font(.system(.body, design: .monospaced))
+                    Toggle("Query Parameter로 전송", isOn: $apiKeyInQuery)
                 }
             }
-            Toggle("TLS 검증 비활성화", isOn: $disableTLS)
 
-            if let err = errorMessage {
-                Text(err).foregroundStyle(.red).font(.caption)
+            Section("고급") {
+                Toggle("TLS 검증 비활성화", isOn: $disableTLS)
             }
 
-            Button("저장") { save() }
-                .disabled(name.isEmpty || baseURL.isEmpty)
+            if let err = errorMessage {
+                Section { Text(err).foregroundStyle(.red).font(.caption) }
+            }
+
+            Section {
+                Button("저장") { save() }
+                    .disabled(name.isEmpty || baseURL.isEmpty)
+                    .buttonStyle(.borderedProminent)
+            }
         }
         .formStyle(.grouped)
         .navigationTitle(env.name)
@@ -104,7 +145,19 @@ private struct EnvironmentDetailForm: View {
 
     private func save() {
         do {
-            try store.updateEnvironment(env, name: name, baseURL: baseURL, authScheme: authScheme, disableTLS: disableTLS)
+            try store.updateEnvironment(
+                env,
+                name: name,
+                baseURL: baseURL,
+                authScheme: authScheme,
+                bearerToken: bearerToken.isEmpty ? nil : bearerToken,
+                basicUsername: basicUsername.isEmpty ? nil : basicUsername,
+                basicPassword: basicPassword.isEmpty ? nil : basicPassword,
+                apiKeyHeaderName: apiKeyHeaderName.isEmpty ? nil : apiKeyHeaderName,
+                apiKeyValue: apiKeyValue.isEmpty ? nil : apiKeyValue,
+                apiKeyInQuery: apiKeyInQuery,
+                disableTLS: disableTLS
+            )
             errorMessage = nil
         } catch {
             errorMessage = error.localizedDescription
@@ -130,6 +183,7 @@ private struct AddEnvironmentSheet: View {
             Form {
                 TextField("이름 (예: Dev)", text: $name)
                 TextField("Base URL", text: $baseURL)
+                    .font(.system(.body, design: .monospaced))
             }
             .formStyle(.grouped)
 
@@ -147,7 +201,7 @@ private struct AddEnvironmentSheet: View {
             }
         }
         .padding()
-        .frame(width: 380)
+        .frame(width: 400)
     }
 
     private func addEnvironment() {

@@ -63,6 +63,11 @@ final class ProjectStore {
         try? save()
     }
 
+    func saveLastOperationID(_ id: String, for project: Project) {
+        project.lastOperationID = id
+        try? save()
+    }
+
     func updateProject(_ project: Project, alias: String, swaggerURL: String) throws {
         let isDuplicate = projects.contains { $0.alias == alias && $0.id != project.id }
         if isDuplicate {

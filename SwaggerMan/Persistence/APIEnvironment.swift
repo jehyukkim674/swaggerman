@@ -21,14 +21,17 @@ final class APIEnvironment {
     var name: String
     var baseURL: String
     var authScheme: AuthSchemeType
+
+    // Auth values
+    var bearerToken: String?
+    var basicUsername: String?
+    var basicPassword: String?
+    var apiKeyValue: String?
     var apiKeyHeaderName: String?
-    var apiKeyLocation: String?
+    var apiKeyInQuery: Bool
+
     var disableTLSValidation: Bool
     var createdAt: Date
-
-    var keychainKey: String {
-        "com.swaggerman.token.\(project?.id.uuidString ?? "").\(id.uuidString)"
-    }
 
     init(name: String, baseURL: String, project: Project? = nil) {
         self.id = UUID()
@@ -36,6 +39,12 @@ final class APIEnvironment {
         self.name = name
         self.baseURL = baseURL
         self.authScheme = .none
+        self.bearerToken = nil
+        self.basicUsername = nil
+        self.basicPassword = nil
+        self.apiKeyValue = nil
+        self.apiKeyHeaderName = nil
+        self.apiKeyInQuery = false
         self.disableTLSValidation = false
         self.createdAt = Date()
     }

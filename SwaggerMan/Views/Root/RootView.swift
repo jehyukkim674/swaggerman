@@ -37,47 +37,49 @@ struct RootView: View {
                         onEnvironmentEditor: { showEnvironmentEditor = true }
                     )
                     Divider()
-                    HStack(spacing: 0) {
-                        if showSidebar {
-                            SidebarView(
-                                operationStore: operationStore,
-                                selectedOperationID: requestEditorStore.selectedOperation?.id,
-                                onSelectOperation: { op in
-                                    guard let project = projectStore.selectedProject,
-                                          let env = environmentStore.activeEnvironment(for: project) else { return }
-                                    let baseURL = env.baseURL.trimmingCharacters(in: CharacterSet(charactersIn: "/"))
-                                    requestEditorStore.loadOperation(op, baseURL: baseURL, envID: env.id)
-                                }
-                            )
-                            .frame(width: sidebarWidth)
-                            PanelDivider { delta in
-                                sidebarWidth = max(160, min(500, sidebarWidth + delta))
-                            }
-                        }
-                        if showRequest {
-                            RequestPaneView(
-                                store: requestEditorStore,
-                                activeEnvironment: projectStore.selectedProject.flatMap {
-                                    environmentStore.activeEnvironment(for: $0)
-                                },
-                                onSend: {
-                                    guard let project = projectStore.selectedProject else { return }
-                                    await requestEditorStore.send(project: project, historyStore: historyStore)
-                                }
-                            )
-                            .frame(maxWidth: .infinity)
-                            if showResponse {
+                    GeometryReader { geo in
+                        HStack(spacing: 0) {
+                            if showSidebar {
+                                SidebarView(
+                                    operationStore: operationStore,
+                                    selectedOperationID: requestEditorStore.selectedOperation?.id,
+                                    onSelectOperation: { op in
+                                        guard let project = projectStore.selectedProject,
+                                              let env = environmentStore.activeEnvironment(for: project) else { return }
+                                        let baseURL = env.baseURL.trimmingCharacters(in: CharacterSet(charactersIn: "/"))
+                                        requestEditorStore.loadOperation(op, baseURL: baseURL, environment: env)
+                                        projectStore.saveLastOperationID(op.id, for: project)
+                                    }
+                                )
+                                .frame(width: sidebarWidth)
                                 PanelDivider { delta in
-                                    responseWidth = max(200, min(700, responseWidth - delta))
+                                    sidebarWidth = max(80, sidebarWidth + delta)
                                 }
                             }
-                        }
-                        if showResponse {
-                            ResponsePaneView(store: requestEditorStore)
-                                .frame(width: responseWidth)
+                            if showRequest {
+                                RequestPaneView(
+                                    store: requestEditorStore,
+                                    activeEnvironment: projectStore.selectedProject.flatMap {
+                                        environmentStore.activeEnvironment(for: $0)
+                                    },
+                                    onSend: {
+                                        guard let project = projectStore.selectedProject else { return }
+                                        await requestEditorStore.send(project: project, historyStore: historyStore)
+                                    }
+                                )
+                                .frame(maxWidth: .infinity)
+                                if showResponse {
+                                    PanelDivider { delta in
+                                        responseWidth = max(80, responseWidth - delta)
+                                    }
+                                }
+                            }
+                            if showResponse {
+                                ResponsePaneView(store: requestEditorStore)
+                                    .frame(width: responseWidth)
+                            }
                         }
                     }
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
                 }
             } else {
                 ProgressView("초기화 중...")
@@ -98,7 +100,10 @@ struct RootView: View {
             historyStore = hs
             if let project = ps.selectedProject {
                 es.onProjectChanged(project)
-                Task { try? await os.loadSpec(for: project) }
+                Task {
+                    try? await os.loadSpec(for: project)
+                    restoreLastOperation(project: project, os: os, es: es, res: res)
+                }
             }
         }
         .onChange(of: projectStore?.selectedProject?.id) { oldID, newID in
@@ -110,7 +115,10 @@ struct RootView: View {
             es.onProjectChanged(project)
             os.clearSpec()
             res.clearSelection()
-            Task { try? await os.loadSpec(for: project) }
+            Task {
+                try? await os.loadSpec(for: project)
+                restoreLastOperation(project: project, os: os, es: es, res: res)
+            }
         }
         .sheet(isPresented: $showProjectListEditor) {
             if let ps = projectStore {
@@ -123,6 +131,16 @@ struct RootView: View {
                 EnvironmentEditor(project: project, store: es)
             }
         }
+    }
+
+    @MainActor
+    private func restoreLastOperation(project: Project, os: OperationStore,
+                                      es: EnvironmentStore, res: RequestEditorStore) {
+        guard let lastID = project.lastOperationID,
+              let op = os.operations.first(where: { $0.id == lastID }),
+              let env = es.activeEnvironment(for: project) else { return }
+        let baseURL = env.baseURL.trimmingCharacters(in: CharacterSet(charactersIn: "/"))
+        res.loadOperation(op, baseURL: baseURL, environment: env)
     }
 }
 
@@ -194,9 +212,7 @@ private struct WelcomeView: View {
 private struct PanelDivider: View {
     let onDrag: (CGFloat) -> Void
 
-    @State private var startX: CGFloat = 0
-    @State private var startValue: CGFloat = 0
-    @State private var isHovering = false
+    @State private var prevTranslation: CGFloat = 0
 
     var body: some View {
         ZStack {
@@ -208,17 +224,17 @@ private struct PanelDivider: View {
         .frame(width: 8)
         .contentShape(Rectangle())
         .onHover { hovering in
-            isHovering = hovering
             if hovering { NSCursor.resizeLeftRight.push() }
             else { NSCursor.pop() }
         }
         .gesture(
             DragGesture(minimumDistance: 1, coordinateSpace: .global)
                 .onChanged { value in
-                    if startX == 0 { startX = value.startLocation.x }
-                    onDrag(value.location.x - value.startLocation.x)
+                    let delta = value.translation.width - prevTranslation
+                    prevTranslation = value.translation.width
+                    onDrag(delta)
                 }
-                .onEnded { _ in startX = 0 }
+                .onEnded { _ in prevTranslation = 0 }
         )
     }
 }

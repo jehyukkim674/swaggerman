@@ -40,10 +40,10 @@ final class RequestEditorStore {
 
     // MARK: - Public Methods
 
-    func loadOperation(_ op: ParsedOperation, baseURL: String, envID: UUID) {
+    func loadOperation(_ op: ParsedOperation, baseURL: String, environment: APIEnvironment) {
         selectedOperation = op
         currentBaseURL = baseURL
-        currentEnvID = envID
+        currentEnvID = environment.id
         response = nil
         sendError = nil
         lastCurlString = nil
@@ -54,7 +54,7 @@ final class RequestEditorStore {
         queryParams = op.parameters
             .filter { $0.location == .query }
             .map { RequestParam(key: $0.name, value: "", enabled: true) }
-        requestHeaders = []
+        requestHeaders = buildDefaultHeaders(for: op, environment: environment)
         bodyJSON = op.requestBody != nil ? "{}" : ""
     }
 
@@ -149,6 +149,43 @@ final class RequestEditorStore {
         }
 
         return HTTPRequest(method: op.method, url: url, headers: headers, body: body)
+    }
+
+    private func buildDefaultHeaders(for op: ParsedOperation, environment: APIEnvironment) -> [RequestParam] {
+        var headers: [RequestParam] = []
+
+        switch environment.authScheme {
+        case .bearer:
+            let token = environment.bearerToken ?? ""
+            headers.append(RequestParam(
+                key: "Authorization",
+                value: token.isEmpty ? "Bearer " : "Bearer \(token)",
+                enabled: !token.isEmpty
+            ))
+        case .basic:
+            let user = environment.basicUsername ?? ""
+            let pass = environment.basicPassword ?? ""
+            let encoded = Data("\(user):\(pass)".utf8).base64EncodedString()
+            headers.append(RequestParam(
+                key: "Authorization",
+                value: user.isEmpty ? "Basic " : "Basic \(encoded)",
+                enabled: !user.isEmpty
+            ))
+        case .apiKey:
+            let keyName = environment.apiKeyHeaderName ?? "X-API-Key"
+            let keyValue = environment.apiKeyValue ?? ""
+            if !environment.apiKeyInQuery {
+                headers.append(RequestParam(key: keyName, value: keyValue, enabled: !keyValue.isEmpty))
+            }
+        case .none:
+            break
+        }
+
+        if op.requestBody != nil {
+            headers.append(RequestParam(key: "Content-Type", value: "application/json", enabled: true))
+        }
+        headers.append(RequestParam(key: "Accept", value: "application/json", enabled: true))
+        return headers
     }
 
     private func jsonString(from dict: [String: String]) -> String {
