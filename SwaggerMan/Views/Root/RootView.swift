@@ -47,6 +47,7 @@ struct RootView: View {
                                 }
                             )
                             .frame(minWidth: 180, idealWidth: 240, maxWidth: 400)
+                            .frame(maxHeight: .infinity)
                         }
                         if showRequest {
                             RequestPaneView(
@@ -59,13 +60,14 @@ struct RootView: View {
                                     await requestEditorStore.send(project: project, historyStore: historyStore)
                                 }
                             )
-                            .frame(minWidth: 280)
+                            .frame(minWidth: 280, maxHeight: .infinity)
                         }
                         if showResponse {
                             ResponsePaneView(store: requestEditorStore)
-                                .frame(minWidth: 280)
+                                .frame(minWidth: 280, maxHeight: .infinity)
                         }
                     }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
                 }
             } else {
                 ProgressView("초기화 중...")
