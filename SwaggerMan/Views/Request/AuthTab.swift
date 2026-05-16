@@ -8,11 +8,11 @@ struct AuthTab: View {
             Section {
                 if let env = environment {
                     LabeledContent("인증 방식") {
-                        Text(authLabel(env.authScheme))
+                        Text(env.authScheme.displayName)
                             .foregroundStyle(.secondary)
                     }
                     if env.authScheme != .none {
-                        Text("토큰은 환경 설정에서 관리합니다.\nKeychain 통합은 Phase 4에서 구현됩니다.")
+                        Text("토큰은 환경 설정에서 관리합니다.")
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     }
@@ -25,12 +25,4 @@ struct AuthTab: View {
         .formStyle(.grouped)
     }
 
-    private func authLabel(_ scheme: AuthSchemeType) -> String {
-        switch scheme {
-        case .none: return "없음"
-        case .bearer: return "Bearer Token"
-        case .basic: return "Basic Auth"
-        case .apiKey: return "API Key"
-        }
-    }
 }

@@ -74,6 +74,8 @@ private struct OperationHeaderView: View {
             }
             .buttonStyle(.borderedProminent)
             .disabled(isSending)
+            .help("선택한 endpoint로 HTTP 요청을 보냅니다.")
+            .keyboardShortcut(.return, modifiers: .command)
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 8)

@@ -85,10 +85,9 @@ private struct EnvironmentDetailForm: View {
             TextField("이름", text: $name)
             TextField("Base URL", text: $baseURL)
             Picker("인증 방식", selection: $authScheme) {
-                Text("없음").tag(AuthSchemeType.none)
-                Text("Bearer Token").tag(AuthSchemeType.bearer)
-                Text("Basic Auth").tag(AuthSchemeType.basic)
-                Text("API Key").tag(AuthSchemeType.apiKey)
+                ForEach(AuthSchemeType.allCases, id: \.self) { scheme in
+                    Text(scheme.displayName).tag(scheme)
+                }
             }
             Toggle("TLS 검증 비활성화", isOn: $disableTLS)
 

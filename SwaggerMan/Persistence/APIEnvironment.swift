@@ -1,8 +1,17 @@
 import SwiftData
 import Foundation
 
-enum AuthSchemeType: String, Codable {
+enum AuthSchemeType: String, Codable, CaseIterable {
     case none, bearer, basic, apiKey
+
+    var displayName: String {
+        switch self {
+        case .none:   return "없음"
+        case .bearer: return "Bearer Token"
+        case .basic:  return "Basic Auth"
+        case .apiKey: return "API Key"
+        }
+    }
 }
 
 @Model
