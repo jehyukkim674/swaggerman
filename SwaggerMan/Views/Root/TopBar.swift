@@ -7,6 +7,7 @@ struct TopBar: View {
     @Binding var showRequest: Bool
     @Binding var showResponse: Bool
     let onSettings: () -> Void
+    let onEnvironmentEditor: () -> Void
 
     var body: some View {
         HStack(spacing: 8) {
@@ -35,6 +36,8 @@ struct TopBar: View {
                             environmentStore.setActive(env, for: project)
                         }
                     }
+                    Divider()
+                    Button("환경 관리...") { onEnvironmentEditor() }
                 } label: {
                     let activeEnv = environmentStore.activeEnvironment(for: project)
                     Label(activeEnv?.name ?? "환경 없음", systemImage: "server.rack")
