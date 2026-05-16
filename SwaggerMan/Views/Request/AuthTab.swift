@@ -44,7 +44,7 @@ struct AuthTab: View {
                             Text(val.isEmpty ? "없음" : "•••" + String(val.suffix(4)))
                                 .foregroundStyle(val.isEmpty ? .orange : .secondary)
                         }
-                        if env.apiKeyInQuery {
+                        if env.apiKeyInQuery == true {
                             Text("Query parameter로 전송됩니다.")
                                 .font(.caption)
                                 .foregroundStyle(.secondary)

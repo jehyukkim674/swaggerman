@@ -174,7 +174,7 @@ final class RequestEditorStore {
         case .apiKey:
             let keyName = environment.apiKeyHeaderName ?? "X-API-Key"
             let keyValue = environment.apiKeyValue ?? ""
-            if !environment.apiKeyInQuery {
+            if environment.apiKeyInQuery != true {
                 headers.append(RequestParam(key: keyName, value: keyValue, enabled: !keyValue.isEmpty))
             }
         case .none:

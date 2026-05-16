@@ -88,7 +88,7 @@ private struct EnvironmentDetailForm: View {
         _basicPassword = State(initialValue: env.basicPassword ?? "")
         _apiKeyHeaderName = State(initialValue: env.apiKeyHeaderName ?? "X-API-Key")
         _apiKeyValue = State(initialValue: env.apiKeyValue ?? "")
-        _apiKeyInQuery = State(initialValue: env.apiKeyInQuery)
+        _apiKeyInQuery = State(initialValue: env.apiKeyInQuery ?? false)
         _disableTLS = State(initialValue: env.disableTLSValidation)
     }
 

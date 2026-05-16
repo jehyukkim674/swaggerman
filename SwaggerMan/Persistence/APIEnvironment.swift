@@ -28,7 +28,7 @@ final class APIEnvironment {
     var basicPassword: String?
     var apiKeyValue: String?
     var apiKeyHeaderName: String?
-    var apiKeyInQuery: Bool
+    var apiKeyInQuery: Bool?
 
     var disableTLSValidation: Bool
     var createdAt: Date
@@ -44,7 +44,7 @@ final class APIEnvironment {
         self.basicPassword = nil
         self.apiKeyValue = nil
         self.apiKeyHeaderName = nil
-        self.apiKeyInQuery = false
+        self.apiKeyInQuery = nil
         self.disableTLSValidation = false
         self.createdAt = Date()
     }
