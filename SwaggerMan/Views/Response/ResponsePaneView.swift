@@ -55,7 +55,6 @@ private struct ResponseDetailView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            // Status bar
             HStack(spacing: 8) {
                 Text("\(response.statusCode)")
                     .font(.system(.body, design: .monospaced).bold())
@@ -156,7 +155,7 @@ private struct ResponseDetailView: View {
 
     private func formatSize(_ bytes: Int) -> String {
         if bytes < 1_024 { return "\(bytes) B" }
-        if bytes < 1_024 * 1_024 { return "\(bytes / 1_024) KB" }
+        if bytes < 1_024 * 1_024 { return String(format: "%.1f KB", Double(bytes) / 1_024) }
         return String(format: "%.1f MB", Double(bytes) / (1_024 * 1_024))
     }
 }
