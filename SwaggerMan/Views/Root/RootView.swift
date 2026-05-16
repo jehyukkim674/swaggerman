@@ -37,8 +37,7 @@ struct RootView: View {
                         onEnvironmentEditor: { showEnvironmentEditor = true }
                     )
                     Divider()
-                    GeometryReader { geo in
-                        HStack(spacing: 0) {
+                    HStack(spacing: 0) {
                             if showSidebar {
                                 SidebarView(
                                     operationStore: operationStore,
@@ -78,8 +77,8 @@ struct RootView: View {
                                 ResponsePaneView(store: requestEditorStore)
                                     .frame(width: responseWidth)
                             }
-                        }
                     }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
                 }
             } else {
                 ProgressView("초기화 중...")
@@ -207,34 +206,59 @@ private struct WelcomeView: View {
     }
 }
 
-// MARK: - Draggable Panel Divider
+// MARK: - Draggable Panel Divider (native AppKit for smooth tracking)
 
 private struct PanelDivider: View {
     let onDrag: (CGFloat) -> Void
 
-    @State private var prevTranslation: CGFloat = 0
-
     var body: some View {
-        ZStack {
-            Color(nsColor: .separatorColor)
-                .frame(width: 1)
-            Color.clear
-                .frame(width: 8)
+        NativeDividerView(onDrag: onDrag)
+            .frame(width: 8)
+    }
+}
+
+private struct NativeDividerView: NSViewRepresentable {
+    let onDrag: (CGFloat) -> Void
+
+    func makeNSView(context: Context) -> DividerNSView {
+        let v = DividerNSView()
+        v.onDrag = onDrag
+        return v
+    }
+
+    func updateNSView(_ nsView: DividerNSView, context: Context) {
+        nsView.onDrag = onDrag
+    }
+}
+
+final class DividerNSView: NSView {
+    var onDrag: ((CGFloat) -> Void)?
+
+    override func resetCursorRects() {
+        addCursorRect(bounds, cursor: .resizeLeftRight)
+    }
+
+    override func mouseDown(with event: NSEvent) {
+        var prevX = event.locationInWindow.x
+        window?.trackEvents(
+            matching: [.leftMouseDragged, .leftMouseUp],
+            timeout: .infinity,
+            mode: .eventTracking
+        ) { [weak self] event, stop in
+            guard let event else { stop.pointee = true; return }
+            switch event.type {
+            case .leftMouseDragged:
+                let x = event.locationInWindow.x
+                self?.onDrag?(x - prevX)
+                prevX = x
+            default:
+                stop.pointee = true
+            }
         }
-        .frame(width: 8)
-        .contentShape(Rectangle())
-        .onHover { hovering in
-            if hovering { NSCursor.resizeLeftRight.push() }
-            else { NSCursor.pop() }
-        }
-        .gesture(
-            DragGesture(minimumDistance: 1, coordinateSpace: .global)
-                .onChanged { value in
-                    let delta = value.translation.width - prevTranslation
-                    prevTranslation = value.translation.width
-                    onDrag(delta)
-                }
-                .onEnded { _ in prevTranslation = 0 }
-        )
+    }
+
+    override func draw(_ dirtyRect: NSRect) {
+        NSColor.separatorColor.setFill()
+        NSRect(x: (bounds.width - 1) / 2, y: 0, width: 1, height: bounds.height).fill()
     }
 }
