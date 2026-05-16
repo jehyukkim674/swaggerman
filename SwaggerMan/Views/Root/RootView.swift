@@ -36,12 +36,10 @@ struct RootView: View {
                         SidebarView(
                             operationStore: operationStore,
                             onSelectOperation: { op in
-                                guard let project = projectStore.selectedProject else { return }
-                                let env = environmentStore.activeEnvironment(for: project)
-                                let baseURL = (env?.baseURL ?? project.swaggerURL)
-                                    .trimmingCharacters(in: CharacterSet(charactersIn: "/"))
-                                let envID = env?.id ?? UUID()
-                                requestEditorStore.loadOperation(op, baseURL: baseURL, envID: envID)
+                                guard let project = projectStore.selectedProject,
+                                      let env = environmentStore.activeEnvironment(for: project) else { return }
+                                let baseURL = env.baseURL.trimmingCharacters(in: CharacterSet(charactersIn: "/"))
+                                requestEditorStore.loadOperation(op, baseURL: baseURL, envID: env.id)
                             }
                         )
                         .frame(width: 240)

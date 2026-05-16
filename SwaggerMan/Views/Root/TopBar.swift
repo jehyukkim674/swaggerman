@@ -28,6 +28,7 @@ struct TopBar: View {
                 .frame(minWidth: 120)
             }
             .menuStyle(.borderedButton)
+            .help("프로젝트 선택")
 
             if let project = projectStore.selectedProject {
                 Menu {
@@ -44,6 +45,7 @@ struct TopBar: View {
                         .frame(minWidth: 80)
                 }
                 .menuStyle(.borderedButton)
+                .help("활성 환경 선택")
             }
 
             Spacer()
