@@ -34,7 +34,7 @@ struct RootView: View {
                         onEnvironmentEditor: { showEnvironmentEditor = true }
                     )
                     Divider()
-                    HStack(spacing: 0) {
+                    HSplitView {
                         if showSidebar {
                             SidebarView(
                                 operationStore: operationStore,
@@ -45,9 +45,7 @@ struct RootView: View {
                                     requestEditorStore.loadOperation(op, baseURL: baseURL, envID: env.id)
                                 }
                             )
-                            .frame(width: 240)
-                            .frame(maxHeight: .infinity)
-                            Divider()
+                            .frame(minWidth: 180, idealWidth: 240, maxWidth: 400)
                         }
                         if showRequest {
                             RequestPaneView(
@@ -60,12 +58,11 @@ struct RootView: View {
                                     await requestEditorStore.send(project: project, historyStore: historyStore)
                                 }
                             )
-                            .frame(maxWidth: .infinity, maxHeight: .infinity)
-                            Divider()
+                            .frame(minWidth: 280)
                         }
                         if showResponse {
                             ResponsePaneView(store: requestEditorStore)
-                                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                                .frame(minWidth: 280)
                         }
                     }
                 }
