@@ -86,20 +86,23 @@ private struct MethodFilterView: View {
     @Binding var selectedMethods: Set<HTTPMethod>
 
     var body: some View {
+        let filterMethods: [HTTPMethod] = [.get, .post, .put, .delete, .patch]
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 4) {
-                ForEach(HTTPMethod.allCases, id: \.self) { method in
+                ForEach(filterMethods, id: \.self) { method in
                     let selected = selectedMethods.contains(method)
-                    Button(method.rawValue) {
-                        if selected { selectedMethods.remove(method) }
-                        else { selectedMethods.insert(method) }
-                    }
-                    .buttonStyle(.bordered)
-                    .controlSize(.mini)
-                    .tint(method.swiftUIColor)
-                    .background(selected ? method.swiftUIColor.opacity(0.15) : .clear)
-                    .clipShape(.rect(cornerRadius: 4))
-                    .help("Filter by \(method.rawValue)")
+                    Text(method.rawValue)
+                        .font(.system(.caption, design: .monospaced).weight(selected ? .bold : .medium))
+                        .foregroundStyle(selected ? .white : method.swiftUIColor)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 3)
+                        .background(selected ? method.swiftUIColor : method.swiftUIColor.opacity(0.15))
+                        .clipShape(.rect(cornerRadius: 4))
+                        .onTapGesture {
+                            if selected { selectedMethods.remove(method) }
+                            else { selectedMethods.insert(method) }
+                        }
+                        .help("Filter by \(method.rawValue)")
                 }
             }
             .padding(.horizontal, 8)
