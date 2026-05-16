@@ -16,6 +16,9 @@ struct RootView: View {
     @State private var showProjectListEditor = false
     @State private var showEnvironmentEditor = false
 
+    @State private var sidebarWidth: CGFloat = 240
+    @State private var responseWidth: CGFloat = 420
+
     var body: some View {
         VStack(spacing: 0) {
             if let projectStore, let environmentStore,
@@ -34,7 +37,7 @@ struct RootView: View {
                         onEnvironmentEditor: { showEnvironmentEditor = true }
                     )
                     Divider()
-                    HSplitView {
+                    HStack(spacing: 0) {
                         if showSidebar {
                             SidebarView(
                                 operationStore: operationStore,
@@ -46,8 +49,10 @@ struct RootView: View {
                                     requestEditorStore.loadOperation(op, baseURL: baseURL, envID: env.id)
                                 }
                             )
-                            .frame(minWidth: 180, idealWidth: 240, maxWidth: 400)
-                            .frame(maxHeight: .infinity)
+                            .frame(width: sidebarWidth)
+                            PanelDivider { delta in
+                                sidebarWidth = max(160, min(500, sidebarWidth + delta))
+                            }
                         }
                         if showRequest {
                             RequestPaneView(
@@ -60,11 +65,16 @@ struct RootView: View {
                                     await requestEditorStore.send(project: project, historyStore: historyStore)
                                 }
                             )
-                            .frame(minWidth: 280, maxHeight: .infinity)
+                            .frame(maxWidth: .infinity)
+                            if showResponse {
+                                PanelDivider { delta in
+                                    responseWidth = max(200, min(700, responseWidth - delta))
+                                }
+                            }
                         }
                         if showResponse {
                             ResponsePaneView(store: requestEditorStore)
-                                .frame(minWidth: 280, maxHeight: .infinity)
+                                .frame(width: responseWidth)
                         }
                     }
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -91,7 +101,8 @@ struct RootView: View {
                 Task { try? await os.loadSpec(for: project) }
             }
         }
-        .onChange(of: projectStore?.selectedProject?.id) { _, _ in
+        .onChange(of: projectStore?.selectedProject?.id) { oldID, newID in
+            guard oldID != newID else { return }
             guard let project = projectStore?.selectedProject,
                   let os = operationStore,
                   let es = environmentStore,
@@ -175,5 +186,39 @@ private struct WelcomeView: View {
         } catch {
             errorMessage = error.localizedDescription
         }
+    }
+}
+
+// MARK: - Draggable Panel Divider
+
+private struct PanelDivider: View {
+    let onDrag: (CGFloat) -> Void
+
+    @State private var startX: CGFloat = 0
+    @State private var startValue: CGFloat = 0
+    @State private var isHovering = false
+
+    var body: some View {
+        ZStack {
+            Color(nsColor: .separatorColor)
+                .frame(width: 1)
+            Color.clear
+                .frame(width: 8)
+        }
+        .frame(width: 8)
+        .contentShape(Rectangle())
+        .onHover { hovering in
+            isHovering = hovering
+            if hovering { NSCursor.resizeLeftRight.push() }
+            else { NSCursor.pop() }
+        }
+        .gesture(
+            DragGesture(minimumDistance: 1, coordinateSpace: .global)
+                .onChanged { value in
+                    if startX == 0 { startX = value.startLocation.x }
+                    onDrag(value.location.x - value.startLocation.x)
+                }
+                .onEnded { _ in startX = 0 }
+        )
     }
 }

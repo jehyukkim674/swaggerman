@@ -5,27 +5,24 @@ struct HeadersTab: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            List {
-                ForEach($store.requestHeaders) { $header in
-                    HStack(spacing: 6) {
-                        Toggle("", isOn: $header.enabled)
-                            .labelsHidden()
-                            .frame(width: 20)
-                        TextField("Header 이름", text: $header.key)
-                            .frame(maxWidth: .infinity)
-                        TextField("값", text: $header.value)
-                            .frame(maxWidth: .infinity)
-                        Button {
-                            store.requestHeaders.removeAll { $0.id == header.id }
-                        } label: {
-                            Image(systemName: "minus.circle.fill")
-                                .foregroundStyle(.red)
+            if store.requestHeaders.isEmpty {
+                ContentUnavailableView(
+                    "헤더 없음",
+                    systemImage: "list.bullet.rectangle",
+                    description: Text("아래 버튼으로 헤더를 추가하세요.")
+                )
+            } else {
+                ScrollView {
+                    VStack(spacing: 4) {
+                        ForEach($store.requestHeaders) { $header in
+                            HeaderInputRow(header: $header) {
+                                store.requestHeaders.removeAll { $0.id == header.id }
+                            }
                         }
-                        .buttonStyle(.plain)
                     }
+                    .padding(12)
                 }
             }
-            .listStyle(.plain)
 
             Divider()
 
@@ -33,8 +30,61 @@ struct HeadersTab: View {
                 store.requestHeaders.append(RequestParam(key: "", value: "", enabled: true))
             } label: {
                 Label("헤더 추가", systemImage: "plus")
+                    .font(.caption.weight(.medium))
             }
-            .padding(8)
+            .buttonStyle(.plain)
+            .foregroundStyle(Color.accentColor)
+            .padding(10)
+        }
+    }
+}
+
+private struct HeaderInputRow: View {
+    @Binding var header: RequestParam
+    let onDelete: () -> Void
+
+    var body: some View {
+        HStack(spacing: 6) {
+            Toggle("", isOn: $header.enabled)
+                .labelsHidden()
+                .scaleEffect(0.85)
+                .frame(width: 24)
+
+            TextField("Header 이름", text: $header.key)
+                .font(.system(.caption, design: .monospaced))
+                .textFieldStyle(.plain)
+                .padding(.horizontal, 8)
+                .padding(.vertical, 6)
+                .frame(maxWidth: .infinity)
+                .background(header.enabled
+                    ? Color(.textBackgroundColor).opacity(0.5)
+                    : Color(.textBackgroundColor).opacity(0.15))
+                .clipShape(.rect(cornerRadius: 5))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 5)
+                        .stroke(Color(.separatorColor), lineWidth: 1)
+                )
+
+            TextField("값", text: $header.value)
+                .font(.system(.caption, design: .monospaced))
+                .textFieldStyle(.plain)
+                .padding(.horizontal, 8)
+                .padding(.vertical, 6)
+                .frame(maxWidth: .infinity)
+                .background(header.enabled
+                    ? Color(.textBackgroundColor).opacity(0.5)
+                    : Color(.textBackgroundColor).opacity(0.15))
+                .clipShape(.rect(cornerRadius: 5))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 5)
+                        .stroke(Color(.separatorColor), lineWidth: 1)
+                )
+
+            Button(action: onDelete) {
+                Image(systemName: "minus.circle.fill")
+                    .foregroundStyle(.red.opacity(0.8))
+            }
+            .buttonStyle(.plain)
         }
     }
 }

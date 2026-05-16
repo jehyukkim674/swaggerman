@@ -51,10 +51,10 @@ private struct SendErrorView: View {
 private struct ResponseDetailView: View {
     let response: HTTPResponse
     let curlString: String?
-    @State private var selectedTab = 0
 
     var body: some View {
         VStack(spacing: 0) {
+            // Status bar
             HStack(spacing: 8) {
                 Text("\(response.statusCode)")
                     .font(.system(.body, design: .monospaced).bold())
@@ -94,37 +94,19 @@ private struct ResponseDetailView: View {
 
             Divider()
 
-            Picker("", selection: $selectedTab) {
-                Text("Body").tag(0)
-                Text("Headers").tag(1)
+            // Response Headers (fixed at top)
+            if !response.headers.isEmpty {
+                ResponseHeadersSection(headers: response.headers)
+                Divider()
             }
-            .pickerStyle(.segmented)
-            .padding(.horizontal, 12)
-            .padding(.vertical, 4)
 
-            Divider()
-
-            if selectedTab == 0 {
-                ScrollView {
-                    Text(prettyBody)
-                        .font(.system(.caption, design: .monospaced))
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .textSelection(.enabled)
-                        .padding(12)
-                }
-            } else {
-                List(response.headers.sorted(by: { $0.key < $1.key }), id: \.key) { key, value in
-                    HStack(alignment: .top, spacing: 8) {
-                        Text(key)
-                            .font(.system(.caption, design: .monospaced).bold())
-                            .frame(width: 200, alignment: .leading)
-                        Text(value)
-                            .font(.system(.caption, design: .monospaced))
-                            .foregroundStyle(.secondary)
-                            .textSelection(.enabled)
-                    }
-                }
-                .listStyle(.plain)
+            // Response Body (scrollable, fills remaining space)
+            ScrollView {
+                Text(prettyBody)
+                    .font(.system(.caption, design: .monospaced))
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .textSelection(.enabled)
+                    .padding(12)
             }
         }
     }
@@ -157,5 +139,63 @@ private struct ResponseDetailView: View {
         if bytes < 1_024 { return "\(bytes) B" }
         if bytes < 1_024 * 1_024 { return String(format: "%.1f KB", Double(bytes) / 1_024) }
         return String(format: "%.1f MB", Double(bytes) / (1_024 * 1_024))
+    }
+}
+
+// MARK: - Headers Section
+
+private struct ResponseHeadersSection: View {
+    let headers: [String: String]
+    @State private var isExpanded = true
+
+    var sorted: [(key: String, value: String)] {
+        headers.sorted { $0.key < $1.key }
+    }
+
+    var body: some View {
+        VStack(spacing: 0) {
+            Button {
+                withAnimation(.easeInOut(duration: 0.15)) { isExpanded.toggle() }
+            } label: {
+                HStack(spacing: 4) {
+                    Image(systemName: isExpanded ? "chevron.down" : "chevron.right")
+                        .font(.system(size: 10, weight: .semibold))
+                        .foregroundStyle(.secondary)
+                    Text("Headers")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(.secondary)
+                    Text("\(headers.count)")
+                        .font(.caption)
+                        .foregroundStyle(.tertiary)
+                    Spacer()
+                }
+                .padding(.horizontal, 12)
+                .padding(.vertical, 6)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+
+            if isExpanded {
+                VStack(spacing: 0) {
+                    ForEach(sorted, id: \.key) { item in
+                        HStack(alignment: .top, spacing: 8) {
+                            Text(item.key)
+                                .font(.system(.caption, design: .monospaced).bold())
+                                .foregroundStyle(.primary)
+                                .frame(width: 160, alignment: .leading)
+                            Text(item.value)
+                                .font(.system(.caption, design: .monospaced))
+                                .foregroundStyle(.secondary)
+                                .textSelection(.enabled)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                        }
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 3)
+                    }
+                    .padding(.bottom, 4)
+                }
+            }
+        }
+        .background(Color(.textBackgroundColor).opacity(0.2))
     }
 }
