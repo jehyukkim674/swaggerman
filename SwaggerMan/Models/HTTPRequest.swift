@@ -33,6 +33,18 @@ extension HTTPMethod {
         case .options, .head: return .gray
         }
     }
+
+    var sfSymbol: String {
+        switch self {
+        case .get:     return "arrow.down.circle.fill"
+        case .post:    return "plus.circle.fill"
+        case .put:     return "arrow.up.circle.fill"
+        case .delete:  return "trash.fill"
+        case .patch:   return "pencil.circle.fill"
+        case .options: return "ellipsis.circle.fill"
+        case .head:    return "eye.circle.fill"
+        }
+    }
 }
 
 struct HTTPRequest {

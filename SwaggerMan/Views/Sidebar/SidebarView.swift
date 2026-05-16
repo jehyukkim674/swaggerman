@@ -91,18 +91,22 @@ private struct MethodFilterView: View {
             HStack(spacing: 4) {
                 ForEach(filterMethods, id: \.self) { method in
                     let selected = selectedMethods.contains(method)
-                    Text(method.rawValue)
-                        .font(.system(.caption, design: .monospaced).weight(selected ? .bold : .medium))
-                        .foregroundStyle(selected ? .white : method.swiftUIColor)
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 3)
-                        .background(selected ? method.swiftUIColor : method.swiftUIColor.opacity(0.15))
-                        .clipShape(.rect(cornerRadius: 4))
-                        .onTapGesture {
-                            if selected { selectedMethods.remove(method) }
-                            else { selectedMethods.insert(method) }
-                        }
-                        .help("Filter by \(method.rawValue)")
+                    HStack(spacing: 3) {
+                        Image(systemName: method.sfSymbol)
+                            .font(.system(size: 9).weight(selected ? .bold : .medium))
+                        Text(method.rawValue)
+                            .font(.system(.caption, design: .monospaced).weight(selected ? .bold : .medium))
+                    }
+                    .foregroundStyle(selected ? .white : method.swiftUIColor)
+                    .padding(.horizontal, 7)
+                    .padding(.vertical, 4)
+                    .background(selected ? method.swiftUIColor : method.swiftUIColor.opacity(0.12))
+                    .clipShape(.rect(cornerRadius: 5))
+                    .onTapGesture {
+                        if selected { selectedMethods.remove(method) }
+                        else { selectedMethods.insert(method) }
+                    }
+                    .help("Filter by \(method.rawValue)")
                 }
             }
             .padding(.horizontal, 8)
@@ -118,10 +122,14 @@ struct OperationRowView: View {
 
     var body: some View {
         HStack(spacing: 6) {
-            Text(operation.method.rawValue)
-                .font(.system(.caption, design: .monospaced).bold())
-                .foregroundStyle(operation.method.swiftUIColor)
-                .frame(width: 52, alignment: .leading)
+            HStack(spacing: 3) {
+                Image(systemName: operation.method.sfSymbol)
+                    .font(.system(size: 9).bold())
+                Text(operation.method.rawValue)
+                    .font(.system(.caption, design: .monospaced).bold())
+            }
+            .foregroundStyle(operation.method.swiftUIColor)
+            .frame(width: 68, alignment: .leading)
 
             VStack(alignment: .leading, spacing: 1) {
                 Text(operation.path)
