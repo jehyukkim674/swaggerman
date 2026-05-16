@@ -9,6 +9,8 @@ struct RequestParam: Identifiable {
     var key: String
     var value: String
     var enabled: Bool = true
+    var isFromSpec: Bool = false
+    var isRequired: Bool = false
 }
 
 @Observable
@@ -179,6 +181,17 @@ final class RequestEditorStore {
             }
         case .none:
             break
+        }
+
+        // Spec-defined header parameters
+        for param in op.parameters where param.location == .header {
+            let alreadySet = headers.contains { $0.key.lowercased() == param.name.lowercased() }
+            if !alreadySet {
+                headers.append(RequestParam(
+                    key: param.name, value: "", enabled: param.required,
+                    isFromSpec: true, isRequired: param.required
+                ))
+            }
         }
 
         if op.requestBody != nil {
