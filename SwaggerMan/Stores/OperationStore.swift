@@ -55,12 +55,11 @@ final class OperationStore {
         defer { isLoading = false }
 
         guard let url = URL(string: project.swaggerURL) else {
-            let err = SwaggerManError.parsing(.invalidJSON("Invalid URL: \(project.swaggerURL)"))
+            let err = SwaggerManError.parsing(.invalidJSON("잘못된 URL: \(project.swaggerURL)"))
             loadError = err
             throw err
         }
 
-        // Only use cache if it contains full operation data
         if let cached = await cache.load(for: project.swaggerURL), cached.isUsable {
             currentSpec = cached.spec
             log.info("Spec served from cache: \(cached.spec.info.title)")
@@ -68,17 +67,7 @@ final class OperationStore {
         }
 
         do {
-            let response = try await httpClient.get(url, headers: [:])
-            if let bodyStr = String(data: response.body, encoding: .utf8),
-               bodyStr.trimmingCharacters(in: .whitespacesAndNewlines).hasPrefix("<") {
-                let err = SwaggerManError.parsing(.invalidJSON(
-                    "HTML 페이지를 받았습니다. Swagger UI URL이 아닌 JSON spec URL을 입력하세요.\n" +
-                    "예: /v3/api-docs, /openapi.json, /api/schema/"
-                ))
-                loadError = err
-                throw err
-            }
-            let spec = try parser.parse(response.body)
+            let spec = try await fetchAndParse(url: url)
             await cache.store(CachedEntry(spec: spec, etag: nil, cachedAt: Date()),
                               for: project.swaggerURL)
             currentSpec = spec
@@ -94,5 +83,73 @@ final class OperationStore {
         searchText = ""
         selectedMethods = []
         loadError = nil
+    }
+
+    // MARK: - Private
+
+    private func fetchAndParse(url: URL) async throws -> ParsedSpec {
+        let response = try await httpClient.get(url, headers: [:])
+        let bodyStr = String(data: response.body, encoding: .utf8) ?? ""
+
+        if bodyStr.trimmingCharacters(in: .whitespacesAndNewlines).hasPrefix("<") {
+            // HTML received — try to auto-discover the real spec URL
+            return try await discoverSpec(from: url)
+        }
+
+        return try parseBody(response.body, bodyStr: bodyStr,
+                             contentType: response.headers["Content-Type"] ?? response.headers["content-type"] ?? "")
+    }
+
+    private func parseBody(_ data: Data, bodyStr: String, contentType: String) throws -> ParsedSpec {
+        let isYAML = contentType.contains("yaml")
+            || bodyStr.hasPrefix("openapi:")
+            || bodyStr.hasPrefix("swagger:")
+        if isYAML {
+            return try parser.parseYAML(bodyStr)
+        }
+        return try parser.parse(data)
+    }
+
+    // Swagger UI URL → try swagger-config, then common spec paths
+    private func discoverSpec(from url: URL) async throws -> ParsedSpec {
+        log.info("HTML received — auto-discovering spec URL from \(url)")
+
+        if let specURL = await swaggerConfigSpecURL(from: url),
+           let spec = try? await fetchAndParse(url: specURL) {
+            log.info("Spec discovered via swagger-config: \(specURL)")
+            return spec
+        }
+
+        var base = URLComponents(url: url, resolvingAgainstBaseURL: false)!
+        base.query = nil
+        let candidates = ["/v3/api-docs", "/openapi.json", "/api/schema/", "/api-docs", "/swagger.json"]
+        for path in candidates {
+            base.path = path
+            guard let candidate = base.url else { continue }
+            if let spec = try? await fetchAndParse(url: candidate) {
+                log.info("Spec discovered at: \(candidate)")
+                return spec
+            }
+        }
+
+        throw SwaggerManError.parsing(.invalidJSON(
+            "HTML 페이지를 받았습니다. JSON spec URL을 직접 입력하세요.\n예: /v3/api-docs, /openapi.json, /api/schema/"
+        ))
+    }
+
+    private func swaggerConfigSpecURL(from url: URL) async -> URL? {
+        var base = URLComponents(url: url, resolvingAgainstBaseURL: false)!
+        base.path = "/swagger-ui/swagger-config"
+        base.query = nil
+        guard let configURL = base.url,
+              let response = try? await httpClient.get(configURL, headers: [:]) else { return nil }
+
+        struct SwaggerUIConfig: Decodable { var url: String? }
+        guard let config = try? JSONDecoder().decode(SwaggerUIConfig.self, from: response.body),
+              let specPath = config.url, !specPath.isEmpty else { return nil }
+
+        if specPath.hasPrefix("http") { return URL(string: specPath) }
+        base.path = specPath
+        return base.url
     }
 }
