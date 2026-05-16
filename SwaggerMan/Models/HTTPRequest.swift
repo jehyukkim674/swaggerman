@@ -1,4 +1,5 @@
 import Foundation
+import SwiftUI
 
 enum HTTPMethod: String, Codable, CaseIterable {
     case get = "GET"
@@ -17,6 +18,19 @@ enum HTTPMethod: String, Codable, CaseIterable {
         case .delete: return "red"
         case .patch: return "purple"
         case .options, .head: return "gray"
+        }
+    }
+}
+
+extension HTTPMethod {
+    var swiftUIColor: Color {
+        switch self {
+        case .get: return .green
+        case .post: return .blue
+        case .put: return .orange
+        case .delete: return .red
+        case .patch: return .purple
+        case .options, .head: return .gray
         }
     }
 }

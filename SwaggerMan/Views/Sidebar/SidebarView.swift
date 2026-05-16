@@ -61,20 +61,20 @@ private struct SearchBarView: View {
                 .foregroundStyle(.secondary)
             TextField("검색...", text: $text)
                 .textFieldStyle(.plain)
-            if !text.isEmpty {
-                Button {
-                    text = ""
-                } label: {
-                    Image(systemName: "xmark.circle.fill")
-                        .foregroundStyle(.secondary)
-                }
-                .buttonStyle(.plain)
+            Button {
+                text = ""
+            } label: {
+                Image(systemName: "xmark.circle.fill")
+                    .foregroundStyle(.secondary)
             }
+            .buttonStyle(.plain)
+            .opacity(text.isEmpty ? 0 : 1)
+            .allowsHitTesting(!text.isEmpty)
         }
         .padding(.horizontal, 8)
         .padding(.vertical, 6)
         .background(Color(.textBackgroundColor).opacity(0.4))
-        .cornerRadius(8)
+        .clipShape(.rect(cornerRadius: 8))
         .padding(.horizontal, 8)
         .padding(.vertical, 4)
     }
@@ -96,24 +96,14 @@ private struct MethodFilterView: View {
                     }
                     .buttonStyle(.bordered)
                     .controlSize(.mini)
-                    .tint(methodColor(method))
-                    .background(selected ? methodColor(method).opacity(0.15) : .clear)
-                    .cornerRadius(4)
+                    .tint(method.swiftUIColor)
+                    .background(selected ? method.swiftUIColor.opacity(0.15) : .clear)
+                    .clipShape(.rect(cornerRadius: 4))
+                    .help("Filter by \(method.rawValue)")
                 }
             }
             .padding(.horizontal, 8)
             .padding(.vertical, 4)
-        }
-    }
-
-    private func methodColor(_ method: HTTPMethod) -> Color {
-        switch method {
-        case .get: return .green
-        case .post: return .blue
-        case .put: return .orange
-        case .delete: return .red
-        case .patch: return .purple
-        case .options, .head: return .gray
         }
     }
 }
@@ -127,7 +117,7 @@ struct OperationRowView: View {
         HStack(spacing: 6) {
             Text(operation.method.rawValue)
                 .font(.system(.caption, design: .monospaced).bold())
-                .foregroundStyle(methodColor)
+                .foregroundStyle(operation.method.swiftUIColor)
                 .frame(width: 52, alignment: .leading)
 
             VStack(alignment: .leading, spacing: 1) {
@@ -143,16 +133,5 @@ struct OperationRowView: View {
             }
         }
         .padding(.vertical, 2)
-    }
-
-    private var methodColor: Color {
-        switch operation.method {
-        case .get: return .green
-        case .post: return .blue
-        case .put: return .orange
-        case .delete: return .red
-        case .patch: return .purple
-        case .options, .head: return .gray
-        }
     }
 }
