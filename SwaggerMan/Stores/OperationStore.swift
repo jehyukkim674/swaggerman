@@ -12,6 +12,7 @@ final class OperationStore {
 
     var searchText: String = ""
     var selectedMethods: Set<HTTPMethod> = []
+    var selectedTag: String? = nil
 
     // Security scheme values entered by user (scheme name → token/value)
     var securityValues: [String: String] = [:]
@@ -39,6 +40,16 @@ final class OperationStore {
 
     var operations: [ParsedOperation] { currentSpec?.operations ?? [] }
 
+    var availableTags: [String] {
+        var seen = Set<String>()
+        var tags: [String] = []
+        for op in operations {
+            let tag = op.tags.first ?? "Other"
+            if seen.insert(tag).inserted { tags.append(tag) }
+        }
+        return tags.sorted()
+    }
+
     var filteredOperations: [ParsedOperation] {
         operations.filter { op in
             let matchesMethod = selectedMethods.isEmpty || selectedMethods.contains(op.method)
@@ -46,7 +57,13 @@ final class OperationStore {
                 || op.path.localizedCaseInsensitiveContains(searchText)
                 || (op.summary ?? "").localizedCaseInsensitiveContains(searchText)
                 || op.tags.contains { $0.localizedCaseInsensitiveContains(searchText) }
-            return matchesMethod && matchesSearch
+            let matchesTag: Bool
+            if let tag = selectedTag {
+                matchesTag = (op.tags.first ?? "Other") == tag
+            } else {
+                matchesTag = true
+            }
+            return matchesMethod && matchesSearch && matchesTag
         }
     }
 
@@ -106,6 +123,7 @@ final class OperationStore {
         currentSpec = nil
         searchText = ""
         selectedMethods = []
+        selectedTag = nil
         loadError = nil
         securityValues = [:]
     }

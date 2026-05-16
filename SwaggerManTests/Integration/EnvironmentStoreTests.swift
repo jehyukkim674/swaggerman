@@ -73,4 +73,51 @@ struct EnvironmentStoreTests {
 
         #expect(envStore.activeEnvironment(for: project)?.id == devEnv.id)
     }
+
+    @Test("환경이 없는 프로젝트에 onProjectChanged 시 기본 환경 자동 생성")
+    func autoCreatesDefaultEnvironmentWhenNoneExists() throws {
+        let container = try ModelContainerFactory.makeInMemory()
+        let ctx = container.mainContext
+        let projectStore = ProjectStore(modelContext: ctx)
+        let envStore = EnvironmentStore(modelContext: ctx)
+
+        // 환경 없이 프로젝트 직접 삽입
+        let project = Project(alias: "No-Env API", swaggerURL: "http://localhost:8000/swagger-ui")
+        ctx.insert(project)
+
+        #expect(project.environments.isEmpty)
+
+        envStore.onProjectChanged(project)
+
+        #expect(project.environments.count == 1)
+        #expect(project.environments[0].name == "Default")
+        #expect(envStore.activeEnvironment(for: project) != nil)
+    }
+
+    @Test("기본 환경 baseURL은 swaggerURL의 origin으로 설정")
+    func defaultEnvironmentBaseURLIsOrigin() throws {
+        let container = try ModelContainerFactory.makeInMemory()
+        let ctx = container.mainContext
+        let envStore = EnvironmentStore(modelContext: ctx)
+
+        let project = Project(alias: "Test", swaggerURL: "http://localhost:8000/swagger-ui/index.html")
+        ctx.insert(project)
+
+        envStore.onProjectChanged(project)
+
+        #expect(project.environments[0].baseURL == "http://localhost:8000")
+    }
+
+    @Test("activeEnvironment는 환경 없을 때 nil 반환")
+    func activeEnvironmentReturnsNilWhenProjectHasNoEnvironments() throws {
+        let container = try ModelContainerFactory.makeInMemory()
+        let ctx = container.mainContext
+        let envStore = EnvironmentStore(modelContext: ctx)
+
+        let project = Project(alias: "Empty", swaggerURL: "https://api.com")
+        ctx.insert(project)
+
+        // onProjectChanged 없이 직접 조회 → nil
+        #expect(envStore.activeEnvironment(for: project) == nil)
+    }
 }

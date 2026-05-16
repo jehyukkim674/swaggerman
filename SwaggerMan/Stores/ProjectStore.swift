@@ -86,6 +86,9 @@ final class ProjectStore {
             sortBy: [SortDescriptor<Project>(\.lastUsedAt, order: .reverse)]
         )
         projects = (try? modelContext.fetch(descriptor)) ?? []
+        if selectedProject == nil {
+            selectedProject = projects.first
+        }
     }
 
     private func save() throws {

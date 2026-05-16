@@ -72,4 +72,62 @@ struct OperationStoreTests {
         opStore.selectedMethods = [.get]
         #expect(opStore.filteredOperations.count == 1)
     }
+
+    @Test("selectedTag 필터 - 태그로 operation 필터링")
+    func filtersByTag() async throws {
+        let multiTagParser = MockOpenAPIParser()
+        multiTagParser.parseResult = .success(ParsedSpec(
+            info: SpecInfo(title: "Multi-tag", version: "1.0", description: nil),
+            servers: ["https://api.com"],
+            operations: [
+                ParsedOperation(id: "GET /users", method: .get, path: "/users",
+                                operationId: nil, summary: nil, description: nil,
+                                tags: ["Users"], parameters: [], requestBody: nil,
+                                responseDescriptions: [:]),
+                ParsedOperation(id: "GET /orders", method: .get, path: "/orders",
+                                operationId: nil, summary: nil, description: nil,
+                                tags: ["Orders"], parameters: [], requestBody: nil,
+                                responseDescriptions: [:]),
+                ParsedOperation(id: "POST /orders", method: .post, path: "/orders",
+                                operationId: nil, summary: nil, description: nil,
+                                tags: ["Orders"], parameters: [], requestBody: nil,
+                                responseDescriptions: [:])
+            ],
+            securitySchemes: [],
+            rawOperationCount: 3
+        ))
+        let (opStore, projectStore, _container) = try makeStore(parser: multiTagParser)
+        _ = _container
+
+        try projectStore.addProject(alias: "API", swaggerURL: "https://api.com/docs")
+        let project = projectStore.projects[0]
+        try await opStore.loadSpec(for: project)
+
+        #expect(opStore.availableTags == ["Orders", "Users"])
+
+        opStore.selectedTag = "Orders"
+        #expect(opStore.filteredOperations.count == 2)
+        #expect(opStore.filteredOperations.allSatisfy { $0.tags.first == "Orders" })
+
+        opStore.selectedTag = "Users"
+        #expect(opStore.filteredOperations.count == 1)
+
+        opStore.selectedTag = nil
+        #expect(opStore.filteredOperations.count == 3)
+    }
+
+    @Test("clearSpec 호출 시 selectedTag 초기화")
+    func clearSpecResetsSelectedTag() async throws {
+        let (opStore, projectStore, _container) = try makeStore()
+        _ = _container
+
+        try projectStore.addProject(alias: "API", swaggerURL: "https://api.com/docs")
+        let project = projectStore.projects[0]
+        try await opStore.loadSpec(for: project)
+
+        opStore.selectedTag = "Users"
+        opStore.clearSpec()
+
+        #expect(opStore.selectedTag == nil)
+    }
 }

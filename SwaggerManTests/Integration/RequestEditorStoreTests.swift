@@ -30,11 +30,15 @@ struct RequestEditorStoreTests {
         )
     }
 
+    func makeEnv(baseURL: String = "https://api.com") -> APIEnvironment {
+        APIEnvironment(name: "Test", baseURL: baseURL)
+    }
+
     @Test("loadOperation이 pathParams / queryParams 초기화")
     func loadOperationSetsParams() async {
         let store = RequestEditorStore(httpClient: MockHTTPClient())
         let op = makeOperation()
-        store.loadOperation(op, baseURL: "https://api.com", envID: UUID())
+        store.loadOperation(op, baseURL: "https://api.com", environment: makeEnv())
 
         #expect(store.selectedOperation?.id == "GET /users/{id}")
         #expect(store.pathParams["id"] == "")
@@ -46,8 +50,9 @@ struct RequestEditorStoreTests {
     func loadOperationClearsResponse() async {
         let store = RequestEditorStore(httpClient: MockHTTPClient())
         let op = makeOperation()
-        store.loadOperation(op, baseURL: "https://api.com", envID: UUID())
-        store.loadOperation(op, baseURL: "https://api.com", envID: UUID())
+        let env = makeEnv()
+        store.loadOperation(op, baseURL: "https://api.com", environment: env)
+        store.loadOperation(op, baseURL: "https://api.com", environment: env)
         #expect(store.response == nil)
         #expect(store.sendError == nil)
     }
@@ -56,7 +61,7 @@ struct RequestEditorStoreTests {
     func loadOperationWithBodySetsJSON() async {
         let store = RequestEditorStore(httpClient: MockHTTPClient())
         let op = makeOperation(method: .post, path: "/users", hasBody: true)
-        store.loadOperation(op, baseURL: "https://api.com", envID: UUID())
+        store.loadOperation(op, baseURL: "https://api.com", environment: makeEnv())
         #expect(store.bodyJSON == "{}")
     }
 
@@ -80,7 +85,7 @@ struct RequestEditorStoreTests {
         let store = RequestEditorStore(httpClient: mockHTTP)
 
         let op = makeOperation(method: .post, path: "/users", hasBody: true)
-        store.loadOperation(op, baseURL: "https://api.com", envID: UUID())
+        store.loadOperation(op, baseURL: "https://api.com", environment: makeEnv())
         store.bodyJSON = "{\"name\":\"Alice\"}"
 
         await store.send(project: project, historyStore: historyStore)
@@ -109,7 +114,7 @@ struct RequestEditorStoreTests {
         let store = RequestEditorStore(httpClient: mockHTTP)
 
         let op = makeOperation()
-        store.loadOperation(op, baseURL: "https://api.com", envID: UUID())
+        store.loadOperation(op, baseURL: "https://api.com", environment: makeEnv())
 
         await store.send(project: project, historyStore: historyStore)
 
@@ -137,7 +142,7 @@ struct RequestEditorStoreTests {
         let store = RequestEditorStore(httpClient: mockHTTP)
 
         let op = makeOperation()
-        store.loadOperation(op, baseURL: "https://api.com", envID: UUID())
+        store.loadOperation(op, baseURL: "https://api.com", environment: makeEnv())
         store.pathParams["id"] = "42"
 
         await store.send(project: project, historyStore: historyStore)

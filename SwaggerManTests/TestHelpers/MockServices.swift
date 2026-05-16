@@ -22,26 +22,27 @@ actor MockHTTPClient: HTTPClientProtocol {
 }
 
 final class MockOpenAPIParser: OpenAPIParserProtocol, @unchecked Sendable {
-    var parseResult: Result<ParsedSpec, Error> = .success(
-        ParsedSpec(
-            info: SpecInfo(title: "Mock", version: "1.0", description: nil),
-            servers: ["https://mock.api.com"],
-            operations: [
-                ParsedOperation(
-                    id: "GET /users",
-                    method: .get,
-                    path: "/users",
-                    operationId: "listUsers",
-                    summary: "List users",
-                    description: nil,
-                    tags: ["Users"],
-                    parameters: [],
-                    requestBody: nil,
-                    responseDescriptions: ["200": "Success"]
-                )
-            ],
-            rawOperationCount: 1
-        )
+    var parseResult: Result<ParsedSpec, Error> = .success(MockOpenAPIParser.defaultSpec)
+
+    static let defaultSpec = ParsedSpec(
+        info: SpecInfo(title: "Mock", version: "1.0", description: nil),
+        servers: ["https://mock.api.com"],
+        operations: [
+            ParsedOperation(
+                id: "GET /users",
+                method: .get,
+                path: "/users",
+                operationId: "listUsers",
+                summary: "List users",
+                description: nil,
+                tags: ["Users"],
+                parameters: [],
+                requestBody: nil,
+                responseDescriptions: ["200": "Success"]
+            )
+        ],
+        securitySchemes: [],
+        rawOperationCount: 1
     )
 
     func parse(_ data: Data) throws -> ParsedSpec {

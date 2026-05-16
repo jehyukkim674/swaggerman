@@ -16,6 +16,7 @@ struct SpecCacheTests {
             info: SpecInfo(title: "Test", version: "1.0", description: nil),
             servers: ["https://api.test.com"],
             operations: [],
+            securitySchemes: [],
             rawOperationCount: 0
         )
     }

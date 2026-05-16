@@ -9,6 +9,13 @@ struct SidebarView: View {
         VStack(spacing: 0) {
             SearchBarView(text: $operationStore.searchText)
 
+            if !operationStore.availableTags.isEmpty {
+                TagFilterView(
+                    tags: operationStore.availableTags,
+                    selectedTag: $operationStore.selectedTag
+                )
+            }
+
             MethodFilterView(selectedMethods: $operationStore.selectedMethods)
 
             Divider()
@@ -38,12 +45,15 @@ struct SidebarView: View {
                     List(operationStore.operationsByTag, id: \.tag) { group in
                         Section(group.tag) {
                             ForEach(group.operations) { op in
-                                OperationRowView(
-                                    operation: op,
-                                    isSelected: op.id == selectedOperationID
-                                )
-                                .contentShape(Rectangle())
-                                .onTapGesture { onSelectOperation(op) }
+                                Button {
+                                    onSelectOperation(op)
+                                } label: {
+                                    OperationRowView(
+                                        operation: op,
+                                        isSelected: op.id == selectedOperationID
+                                    )
+                                }
+                                .buttonStyle(.plain)
                                 .listRowInsets(EdgeInsets(top: 2, leading: 8, bottom: 2, trailing: 8))
                                 .listRowBackground(Color.clear)
                             }
@@ -82,6 +92,66 @@ private struct SearchBarView: View {
         .padding(.vertical, 6)
         .background(Color(.textBackgroundColor).opacity(0.4))
         .clipShape(.rect(cornerRadius: 8))
+        .padding(.horizontal, 8)
+        .padding(.vertical, 4)
+    }
+}
+
+// MARK: - Tag Filter
+
+private struct TagFilterView: View {
+    let tags: [String]
+    @Binding var selectedTag: String?
+
+    var body: some View {
+        HStack(spacing: 6) {
+            Text("Tag")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .frame(width: 28, alignment: .leading)
+
+            Menu {
+                Button("All") { selectedTag = nil }
+                Divider()
+                ForEach(tags, id: \.self) { tag in
+                    Button(tag) { selectedTag = tag }
+                }
+            } label: {
+                HStack(spacing: 4) {
+                    Text(selectedTag ?? "All")
+                        .font(.caption)
+                        .lineLimit(1)
+                    Spacer()
+                    Image(systemName: "chevron.up.chevron.down")
+                        .font(.system(size: 9))
+                        .foregroundStyle(.secondary)
+                }
+                .padding(.horizontal, 8)
+                .padding(.vertical, 4)
+                .background(Color(.textBackgroundColor).opacity(0.4))
+                .clipShape(.rect(cornerRadius: 6))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 6)
+                        .stroke(
+                            selectedTag != nil ? Color.accentColor.opacity(0.7) : Color(.separatorColor),
+                            lineWidth: 1
+                        )
+                )
+            }
+            .menuStyle(.borderlessButton)
+            .fixedSize(horizontal: false, vertical: true)
+
+            if selectedTag != nil {
+                Button {
+                    selectedTag = nil
+                } label: {
+                    Image(systemName: "xmark.circle.fill")
+                        .foregroundStyle(.secondary)
+                        .font(.system(size: 13))
+                }
+                .buttonStyle(.plain)
+            }
+        }
         .padding(.horizontal, 8)
         .padding(.vertical, 4)
     }

@@ -68,9 +68,28 @@ final class EnvironmentStore {
     }
 
     func onProjectChanged(_ project: Project) {
+        if project.environments.isEmpty {
+            let baseURL = Self.deriveBaseURL(from: project.swaggerURL)
+            let env = APIEnvironment(name: "Default", baseURL: baseURL, project: project)
+            modelContext.insert(env)
+            project.environments.append(env)
+            try? save()
+            log.info("Auto-created default environment for project: \(project.alias)")
+        }
         if activeEnvironments[project.id] == nil {
             activeEnvironments[project.id] = project.environments.first?.id
         }
+    }
+
+    private static func deriveBaseURL(from swaggerURL: String) -> String {
+        guard let url = URL(string: swaggerURL),
+              var components = URLComponents(url: url, resolvingAgainstBaseURL: false) else {
+            return swaggerURL
+        }
+        components.path = ""
+        components.query = nil
+        components.fragment = nil
+        return components.url?.absoluteString ?? swaggerURL
     }
 
     // MARK: - Private
