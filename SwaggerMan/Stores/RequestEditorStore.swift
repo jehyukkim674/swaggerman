@@ -30,10 +30,21 @@ final class RequestEditorStore {
     private(set) var currentBaseURL: String = ""
     private(set) var currentEnvID: UUID = .init()
 
-    var pathParams: [String: String] = [:]
-    var queryParams: [RequestParam] = []
-    var requestHeaders: [RequestParam] = []
-    var bodyJSON: String = ""
+    var pathParams: [String: String] = [:] {
+        didSet { if !isLoadingOperation { persistCurrentState() } }
+    }
+
+    var queryParams: [RequestParam] = [] {
+        didSet { if !isLoadingOperation { persistCurrentState() } }
+    }
+
+    var requestHeaders: [RequestParam] = [] {
+        didSet { if !isLoadingOperation { persistCurrentState() } }
+    }
+
+    var bodyJSON: String = "" {
+        didSet { if !isLoadingOperation { persistCurrentState() } }
+    }
 
     private(set) var isSending = false
     private(set) var response: HTTPResponse?
@@ -47,6 +58,7 @@ final class RequestEditorStore {
 
     private let httpClient: HTTPClientProtocol
     @ObservationIgnored private var stateLoadedFromHistory = false
+    @ObservationIgnored private var isLoadingOperation = false
 
     init(httpClient: HTTPClientProtocol = HTTPClient()) {
         self.httpClient = httpClient
@@ -62,6 +74,9 @@ final class RequestEditorStore {
             persistEditorState(projectID: pid, operationID: cur.id)
         }
         stateLoadedFromHistory = false
+
+        isLoadingOperation = true
+        defer { isLoadingOperation = false }
 
         if let pid = projectID { currentProjectID = pid }
         selectedOperation = op
@@ -82,7 +97,7 @@ final class RequestEditorStore {
 
         // Restore persisted user edits for this operation
         if let pid = currentProjectID {
-            _ = restoreEditorState(projectID: pid, operationID: op.id)
+            restoreEditorState(projectID: pid, operationID: op.id)
         }
     }
 
@@ -92,6 +107,9 @@ final class RequestEditorStore {
             persistEditorState(projectID: pid, operationID: op.id)
         }
         stateLoadedFromHistory = false
+
+        isLoadingOperation = true
+        defer { isLoadingOperation = false }
 
         selectedOperation = nil
         currentBaseURL = ""
@@ -107,6 +125,7 @@ final class RequestEditorStore {
     }
 
     func persistCurrentState() {
+        guard !isLoadingOperation else { return }
         guard let pid = currentProjectID, let op = selectedOperation else { return }
         persistEditorState(projectID: pid, operationID: op.id)
     }
@@ -159,6 +178,8 @@ final class RequestEditorStore {
     {
         loadOperation(operation, baseURL: environment.baseURL, environment: environment,
                       securityHeaders: securityHeaders, projectID: projectID)
+        isLoadingOperation = true
+        defer { isLoadingOperation = false }
         restoreParams(from: item)
         stateLoadedFromHistory = true
         response = HTTPResponse(
@@ -299,6 +320,7 @@ final class RequestEditorStore {
         if let data = try? JSONEncoder().encode(state) {
             UserDefaults.standard.set(data, forKey: key)
             UserDefaults.standard.synchronize()
+            log.debug("PERSIST [\(operationID)] headers=\(state.headers.map(\.key))")
         }
     }
 
@@ -308,8 +330,10 @@ final class RequestEditorStore {
         guard let data = UserDefaults.standard.data(forKey: key),
               let state = try? JSONDecoder().decode(PersistedEditorState.self, from: data)
         else {
+            log.debug("RESTORE [\(operationID)] — no saved state")
             return false
         }
+        log.debug("RESTORE [\(operationID)] headers=\(state.headers.map(\.key))")
         requestHeaders = state.headers.map {
             RequestParam(key: $0.key, value: $0.value, enabled: $0.enabled)
         }

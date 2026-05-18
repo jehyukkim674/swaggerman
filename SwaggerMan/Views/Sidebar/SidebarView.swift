@@ -53,6 +53,7 @@ struct SidebarView: View {
                         systemImage: "doc.text.magnifyingglass",
                         description: Text("프로젝트를 선택하거나 검색어를 바꿔보세요.")
                     )
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
                 } else {
                     List {
                         // ── Favorites section (only if non-empty) ──
