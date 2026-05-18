@@ -11,6 +11,7 @@ settings:
     SWIFT_VERSION: "5.9"
     MACOSX_DEPLOYMENT_TARGET: "14.0"
     ENABLE_HARDENED_RUNTIME: YES
+    SWIFT_STRICT_CONCURRENCY: complete
 
 targets:
   SwaggerMan:
@@ -43,6 +44,15 @@ targets:
         product: Yams
       - package: KeychainAccess
         product: KeychainAccess
+    postBuildScripts:
+      - name: SwiftLint
+        script: |
+          if which swiftlint > /dev/null; then
+            swiftlint --config "${SRCROOT}/.swiftlint.yml"
+          else
+            echo "warning: SwiftLint not installed. Run: brew install swiftlint"
+          fi
+        basedOnDependencyAnalysis: false
 
   SwaggerManTests:
     type: bundle.unit-test
