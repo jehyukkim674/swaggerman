@@ -104,8 +104,6 @@ struct ResponseDetailView: View {
                     } label: {
                         Label("Code", systemImage: "chevron.left.forwardslash.chevron.right")
                     }
-                    .menuStyle(.borderlessButton)
-                    .fixedSize()
                     .buttonStyle(.bordered)
                     .controlSize(.small)
                     .help("코드 스니펫을 언어를 선택하여 클립보드에 복사합니다.")
