@@ -62,7 +62,8 @@ struct RootView: View {
                                 historyStore: historyStore,
                                 onSelectHistory: { _ in },
                                 onReplayHistory: { _ in },
-                                onDeleteHistory: { _ in }
+                                onDeleteHistory: { _ in },
+                                onClearHistory: {}
                             )
                             .frame(width: sidebarWidth)
                             PanelDivider { delta in

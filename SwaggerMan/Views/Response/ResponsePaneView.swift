@@ -128,12 +128,7 @@ struct ResponseDetailView: View {
     }
 
     private var statusColor: Color {
-        switch response.statusCode {
-        case 200 ..< 300: .green
-        case 300 ..< 400: .yellow
-        case 400 ..< 500: .orange
-        default: .red
-        }
+        .httpStatus(response.statusCode)
     }
 
     private func formatSize(_ bytes: Int) -> String {

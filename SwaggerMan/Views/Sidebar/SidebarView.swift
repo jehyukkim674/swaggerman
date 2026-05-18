@@ -1,4 +1,3 @@
-// swiftlint:disable file_length
 import SwiftUI
 
 struct SidebarView: View {
@@ -16,6 +15,7 @@ struct SidebarView: View {
     let onSelectHistory: (HistoryItem) -> Void
     let onReplayHistory: (HistoryItem) -> Void
     let onDeleteHistory: (HistoryItem) -> Void
+    let onClearHistory: () -> Void
 
     var body: some View {
         VStack(spacing: 0) {
@@ -122,7 +122,7 @@ struct SidebarView: View {
                                     .contextMenu {
                                         Button("삭제", role: .destructive) { onDeleteHistory(item) }
                                         Button("히스토리 전체 삭제", role: .destructive) {
-                                            historyStore.clear(for: project)
+                                            onClearHistory()
                                         }
                                     }
                                 }
@@ -387,22 +387,10 @@ struct HistoryRowView: View {
     }
 
     private var methodColor: Color {
-        switch item.method {
-        case "GET": .green
-        case "POST": .blue
-        case "PUT": .orange
-        case "DELETE": .red
-        case "PATCH": .purple
-        default: .secondary
-        }
+        HTTPMethod.color(for: item.method)
     }
 
     private var statusColor: Color {
-        switch item.responseStatus {
-        case 200 ..< 300: .green
-        case 300 ..< 400: .yellow
-        case 400 ..< 500: .orange
-        default: .red
-        }
+        .httpStatus(item.responseStatus)
     }
 }

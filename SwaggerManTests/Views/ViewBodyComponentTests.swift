@@ -120,7 +120,8 @@ struct ViewBodyComponentTests {
             historyStore: HistoryStore(modelContext: container.mainContext),
             onSelectHistory: { _ in },
             onReplayHistory: { _ in },
-            onDeleteHistory: { _ in }
+            onDeleteHistory: { _ in },
+            onClearHistory: {}
         ).body
     }
 
@@ -145,7 +146,8 @@ struct ViewBodyComponentTests {
             historyStore: HistoryStore(modelContext: container.mainContext),
             onSelectHistory: { _ in },
             onReplayHistory: { _ in },
-            onDeleteHistory: { _ in }
+            onDeleteHistory: { _ in },
+            onClearHistory: {}
         ).body
     }
 

@@ -34,6 +34,10 @@ extension HTTPMethod {
         }
     }
 
+    static func color(for rawMethod: String) -> Color {
+        HTTPMethod(rawValue: rawMethod)?.swiftUIColor ?? .secondary
+    }
+
     var sfSymbol: String {
         switch self {
         case .get: "arrow.down.circle.fill"
