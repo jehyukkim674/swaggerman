@@ -123,9 +123,8 @@ final class RequestEditorStore {
         restoreParams(from: item)
         response = HTTPResponse(
             statusCode: item.responseStatus,
-            headers: (try? JSONDecoder().decode([String: String].self,
-                                                from: Data(item.responseHeadersJSON.utf8))) ?? [:],
-            body: Data(item.responseBody.utf8),
+            headers: decodeStringDict(item.responseHeadersJSON),
+            body: item.responseBody.data(using: .utf8) ?? Data(),
             durationMs: item.durationMs
         )
     }
@@ -134,11 +133,9 @@ final class RequestEditorStore {
         if let body = item.requestBody {
             bodyJSON = body
         }
-        let headers = (try? JSONDecoder().decode([String: String].self,
-                                                 from: Data(item.requestHeadersJSON.utf8))) ?? [:]
-        if !headers.isEmpty {
-            requestHeaders = headers.map { RequestParam(key: $0.key, value: $0.value, enabled: true) }
-        }
+        let headers = decodeStringDict(item.requestHeadersJSON)
+        // isFromSpec/isRequired metadata is not persisted in HistoryItem; restored headers appear as user-defined.
+        requestHeaders = headers.map { RequestParam(key: $0.key, value: $0.value, enabled: true) }
     }
 
     // MARK: - Private Methods
@@ -243,5 +240,9 @@ final class RequestEditorStore {
         guard let data = try? JSONSerialization.data(withJSONObject: dict, options: .sortedKeys),
               let str = String(data: data, encoding: .utf8) else { return "{}" }
         return str
+    }
+
+    private func decodeStringDict(_ json: String) -> [String: String] {
+        (try? JSONDecoder().decode([String: String].self, from: Data(json.utf8))) ?? [:]
     }
 }

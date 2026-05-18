@@ -6,10 +6,6 @@ import Testing
 @Suite("RequestEditorStore History Tests", .serialized)
 @MainActor
 struct RequestEditorStoreHistoryTests {
-    func makeContainer() throws -> ModelContainer {
-        try ModelContainerFactory.makeInMemory()
-    }
-
     func makeOp() -> ParsedOperation {
         ParsedOperation(
             id: "GET /users", method: .get, path: "/users",
