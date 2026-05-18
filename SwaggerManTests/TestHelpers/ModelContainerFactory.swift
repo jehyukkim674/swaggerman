@@ -1,5 +1,5 @@
-import SwiftData
 import Foundation
+import SwiftData
 @testable import SwaggerMan
 
 enum ModelContainerFactory {
@@ -8,12 +8,12 @@ enum ModelContainerFactory {
         let config = ModelConfiguration(isStoredInMemoryOnly: true)
         return try ModelContainer(
             for:
-                Project.self,
-                APIEnvironment.self,
-                FavoriteOperation.self,
-                RequestCollection.self,
-                SavedRequest.self,
-                HistoryItem.self,
+            Project.self,
+            APIEnvironment.self,
+            FavoriteOperation.self,
+            RequestCollection.self,
+            SavedRequest.self,
+            HistoryItem.self,
             configurations: config
         )
     }

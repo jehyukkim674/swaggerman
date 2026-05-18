@@ -1,12 +1,11 @@
-import Testing
-import SwiftData
 import Foundation
+import SwiftData
+import Testing
 @testable import SwaggerMan
 
 @Suite("RequestEditorStore Tests", .serialized)
 @MainActor
 struct RequestEditorStoreTests {
-
     func makeOperation(method: HTTPMethod = .get, path: String = "/users/{id}",
                        hasBody: Bool = false) -> ParsedOperation {
         ParsedOperation(
@@ -35,7 +34,7 @@ struct RequestEditorStoreTests {
     }
 
     @Test("loadOperation이 pathParams / queryParams 초기화")
-    func loadOperationSetsParams() async {
+    func loadOperationSetsParams() {
         let store = RequestEditorStore(httpClient: MockHTTPClient())
         let op = makeOperation()
         store.loadOperation(op, baseURL: "https://api.com", environment: makeEnv())
@@ -47,7 +46,7 @@ struct RequestEditorStoreTests {
     }
 
     @Test("loadOperation이 이전 응답 초기화")
-    func loadOperationClearsResponse() async {
+    func loadOperationClearsResponse() {
         let store = RequestEditorStore(httpClient: MockHTTPClient())
         let op = makeOperation()
         let env = makeEnv()
@@ -58,7 +57,7 @@ struct RequestEditorStoreTests {
     }
 
     @Test("hasBody일 때 bodyJSON 초기값 '{}'")
-    func loadOperationWithBodySetsJSON() async {
+    func loadOperationWithBodySetsJSON() {
         let store = RequestEditorStore(httpClient: MockHTTPClient())
         let op = makeOperation(method: .post, path: "/users", hasBody: true)
         store.loadOperation(op, baseURL: "https://api.com", environment: makeEnv())
@@ -72,9 +71,9 @@ struct RequestEditorStoreTests {
         _ = container
 
         let mockHTTP = MockHTTPClient()
-        await mockHTTP.setExecuteResult(.success(
+        try await mockHTTP.setExecuteResult(.success(
             HTTPResponse(statusCode: 201, headers: ["Content-Type": "application/json"],
-                         body: "{\"id\":1}".data(using: .utf8)!, durationMs: 55)
+                         body: Data("{\"id\":1}".utf8), durationMs: 55)
         ))
 
         let projectStore = ProjectStore(modelContext: ctx)

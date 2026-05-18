@@ -11,11 +11,11 @@ actor MockHTTPClient: HTTPClientProtocol {
         executeResult = result
     }
 
-    func get(_ url: URL, headers: [String: String]) async throws -> HTTPResponse {
+    func get(_: URL, headers _: [String: String]) async throws -> HTTPResponse {
         try getResult.get()
     }
 
-    func execute(_ request: HTTPRequest) async throws -> HTTPResponse {
+    func execute(_: HTTPRequest) async throws -> HTTPResponse {
         if let executeResult { return try executeResult.get() }
         return try getResult.get()
     }
@@ -45,11 +45,11 @@ final class MockOpenAPIParser: OpenAPIParserProtocol, @unchecked Sendable {
         rawOperationCount: 1
     )
 
-    func parse(_ data: Data) throws -> ParsedSpec {
+    func parse(_: Data) throws -> ParsedSpec {
         try parseResult.get()
     }
 
-    func parseYAML(_ string: String) throws -> ParsedSpec {
+    func parseYAML(_: String) throws -> ParsedSpec {
         try parseResult.get()
     }
 }

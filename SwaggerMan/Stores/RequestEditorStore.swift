@@ -1,6 +1,6 @@
-import SwiftUI
 import Foundation
 import os.log
+import SwiftUI
 
 private let log = Logger(subsystem: "com.swaggerman", category: "RequestEditorStore")
 
@@ -20,7 +20,7 @@ final class RequestEditorStore {
 
     private(set) var selectedOperation: ParsedOperation?
     private(set) var currentBaseURL: String = ""
-    private(set) var currentEnvID: UUID = UUID()
+    private(set) var currentEnvID: UUID = .init()
 
     var pathParams: [String: String] = [:]
     var queryParams: [RequestParam] = []
@@ -52,8 +52,7 @@ final class RequestEditorStore {
         lastCurlString = nil
 
         pathParams = Dictionary(uniqueKeysWithValues:
-            op.parameters.filter { $0.location == .path }.map { ($0.name, "") }
-        )
+            op.parameters.filter { $0.location == .path }.map { ($0.name, "") })
         queryParams = op.parameters
             .filter { $0.location == .query }
             .map { RequestParam(key: $0.name, value: "", enabled: true) }
@@ -138,15 +137,15 @@ final class RequestEditorStore {
         }
 
         var headers: [String: String] = [:]
-        for h in requestHeaders where h.enabled && !h.key.isEmpty {
-            headers[h.key] = h.value
+        for header in requestHeaders where header.enabled && !header.key.isEmpty {
+            headers[header.key] = header.value
         }
 
         var body: Data?
         let trimmedBody = bodyJSON.trimmingCharacters(in: .whitespacesAndNewlines)
         if !trimmedBody.isEmpty {
             body = trimmedBody.data(using: .utf8)
-            if headers["Content-Type"] == nil && op.requestBody != nil {
+            if headers["Content-Type"] == nil, op.requestBody != nil {
                 headers["Content-Type"] = "application/json"
             }
         }
@@ -166,32 +165,32 @@ final class RequestEditorStore {
         // Environment-level auth (only if no security scheme already set Authorization)
         let hasAuth = securityHeaders.keys.contains { $0.lowercased() == "authorization" }
         if !hasAuth {
-        switch environment.authScheme {
-        case .bearer:
-            let token = environment.bearerToken ?? ""
-            headers.append(RequestParam(
-                key: "Authorization",
-                value: token.isEmpty ? "Bearer " : "Bearer \(token)",
-                enabled: !token.isEmpty
-            ))
-        case .basic:
-            let user = environment.basicUsername ?? ""
-            let pass = environment.basicPassword ?? ""
-            let encoded = Data("\(user):\(pass)".utf8).base64EncodedString()
-            headers.append(RequestParam(
-                key: "Authorization",
-                value: user.isEmpty ? "Basic " : "Basic \(encoded)",
-                enabled: !user.isEmpty
-            ))
-        case .apiKey:
-            let keyName = environment.apiKeyHeaderName ?? "X-API-Key"
-            let keyValue = environment.apiKeyValue ?? ""
-            if environment.apiKeyInQuery != true {
-                headers.append(RequestParam(key: keyName, value: keyValue, enabled: !keyValue.isEmpty))
+            switch environment.authScheme {
+            case .bearer:
+                let token = environment.bearerToken ?? ""
+                headers.append(RequestParam(
+                    key: "Authorization",
+                    value: token.isEmpty ? "Bearer " : "Bearer \(token)",
+                    enabled: !token.isEmpty
+                ))
+            case .basic:
+                let user = environment.basicUsername ?? ""
+                let pass = environment.basicPassword ?? ""
+                let encoded = Data("\(user):\(pass)".utf8).base64EncodedString()
+                headers.append(RequestParam(
+                    key: "Authorization",
+                    value: user.isEmpty ? "Basic " : "Basic \(encoded)",
+                    enabled: !user.isEmpty
+                ))
+            case .apiKey:
+                let keyName = environment.apiKeyHeaderName ?? "X-API-Key"
+                let keyValue = environment.apiKeyValue ?? ""
+                if environment.apiKeyInQuery != true {
+                    headers.append(RequestParam(key: keyName, value: keyValue, enabled: !keyValue.isEmpty))
+                }
+            case .none:
+                break
             }
-        case .none:
-            break
-        }
         } // end if !hasAuth
 
         // Spec-defined header parameters

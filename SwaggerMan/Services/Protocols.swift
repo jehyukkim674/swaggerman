@@ -16,11 +16,13 @@ protocol OpenAPIParserProtocol: Sendable {
 
 // MARK: - SpecCache
 
-struct CachedEntry: Sendable {
+struct CachedEntry {
     let spec: ParsedSpec
     let etag: String?
     let cachedAt: Date
-    var isUsable: Bool { !spec.operations.isEmpty }
+    var isUsable: Bool {
+        !spec.operations.isEmpty
+    }
 }
 
 protocol SpecCacheProtocol: Sendable {

@@ -1,12 +1,12 @@
-import Testing
-import SwiftData
 import Foundation
+import SwiftData
+import Testing
 @testable import SwaggerMan
 
 @Suite("HistoryStore Tests", .serialized)
 @MainActor
 struct HistoryStoreTests {
-
+    // swiftlint:disable:next large_tuple
     func makeSetup() throws -> (HistoryStore, Project, _container: ModelContainer) {
         let container = try ModelContainerFactory.makeInMemory()
         let ctx = container.mainContext
@@ -50,8 +50,8 @@ struct HistoryStoreTests {
     func enforcesLimit() throws {
         let (store, project, _container) = try makeSetup()
         _ = _container
-        for i in 0..<501 {
-            store.append(makeItem(durationMs: i), to: project)
+        for index in 0 ..< 501 {
+            store.append(makeItem(durationMs: index), to: project)
         }
         #expect(project.history.count == 500)
         #expect(store.items.count == 500)
@@ -73,7 +73,7 @@ struct HistoryStoreTests {
         let (store, project, _container) = try makeSetup()
         _ = _container
         let earlier = Date(timeIntervalSince1970: 1_000_000)
-        let later   = Date(timeIntervalSince1970: 2_000_000)
+        let later = Date(timeIntervalSince1970: 2_000_000)
         let item1 = makeItem(durationMs: 10, executedAt: earlier)
         let item2 = makeItem(durationMs: 20, executedAt: later)
         store.append(item1, to: project)

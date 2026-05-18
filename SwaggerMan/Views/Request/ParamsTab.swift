@@ -4,7 +4,7 @@ struct ParamsTab: View {
     @Bindable var store: RequestEditorStore
 
     var body: some View {
-        if store.pathParams.isEmpty && store.queryParams.isEmpty {
+        if store.pathParams.isEmpty, store.queryParams.isEmpty {
             ContentUnavailableView("파라미터 없음", systemImage: "slash.circle")
         } else {
             ScrollView {

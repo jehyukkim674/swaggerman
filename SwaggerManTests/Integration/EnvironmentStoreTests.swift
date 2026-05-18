@@ -1,11 +1,11 @@
-import Testing
 import SwiftData
+import Testing
 @testable import SwaggerMan
 
 @Suite("EnvironmentStore Integration Tests", .serialized)
 @MainActor
 struct EnvironmentStoreTests {
-
+    // swiftlint:disable:next large_tuple
     func makeStores() throws -> (project: ProjectStore, env: EnvironmentStore, _container: ModelContainer) {
         let container = try ModelContainerFactory.makeInMemory()
         let ctx = container.mainContext
@@ -38,7 +38,7 @@ struct EnvironmentStoreTests {
         let project = projectStore.projects[0]
 
         try envStore.addEnvironment(name: "Prod", baseURL: "https://prod.api.com", to: project)
-        let prod = project.environments.first { $0.name == "Prod" }!
+        let prod = try #require(project.environments.first { $0.name == "Prod" })
         envStore.setActive(prod, for: project)
 
         #expect(envStore.activeEnvironment(for: project)?.name == "Prod")
@@ -53,7 +53,7 @@ struct EnvironmentStoreTests {
         let project = projectStore.projects[0]
 
         try envStore.addEnvironment(name: "ToDelete", baseURL: "https://x.com", to: project)
-        let toDelete = project.environments.first { $0.name == "ToDelete" }!
+        let toDelete = try #require(project.environments.first { $0.name == "ToDelete" })
 
         try envStore.deleteEnvironment(toDelete, from: project)
 
@@ -67,7 +67,7 @@ struct EnvironmentStoreTests {
 
         try projectStore.addProject(alias: "API", swaggerURL: "https://api.com/docs")
         let project = projectStore.projects[0]
-        let devEnv = project.environments.first!
+        let devEnv = try #require(project.environments.first)
 
         envStore.onProjectChanged(project)
 

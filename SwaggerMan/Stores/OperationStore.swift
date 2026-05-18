@@ -33,9 +33,9 @@ final class OperationStore {
             switch scheme.kind {
             case let .apiKey(name, location) where location == "header":
                 result[name] = value
-            case let .http(s) where s.lowercased() == "bearer":
+            case let .http(scheme) where scheme.lowercased() == "bearer":
                 result["Authorization"] = "Bearer \(value)"
-            case let .http(s) where s.lowercased() == "basic":
+            case let .http(scheme) where scheme.lowercased() == "basic":
                 result["Authorization"] = "Basic \(value)"
             default:
                 break
@@ -138,8 +138,7 @@ final class OperationStore {
     private func saveSecurityValues() {
         guard let project = currentProject else { return }
         if let data = try? JSONEncoder().encode(securityValues),
-           let json = String(data: data, encoding: .utf8)
-        {
+           let json = String(data: data, encoding: .utf8) {
             project.securityValuesJSON = json.isEmpty ? nil : json
         }
     }
@@ -184,8 +183,7 @@ final class OperationStore {
         log.info("HTML received — auto-discovering spec URL from \(url)")
 
         if let specURL = await swaggerConfigSpecURL(from: url),
-           let spec = try? await fetchAndParse(url: specURL)
-        {
+           let spec = try? await fetchAndParse(url: specURL) {
             log.info("Spec discovered via swagger-config: \(specURL)")
             return spec
         }

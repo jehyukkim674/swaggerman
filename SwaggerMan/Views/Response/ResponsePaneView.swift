@@ -1,5 +1,5 @@
-import SwiftUI
 import AppKit
+import SwiftUI
 
 struct ResponsePaneView: View {
     @Bindable var store: RequestEditorStore
@@ -116,7 +116,8 @@ private struct ResponseDetailView: View {
         guard let data = rawStr.data(using: .utf8),
               let obj = try? JSONSerialization.jsonObject(with: data),
               let pretty = try? JSONSerialization.data(withJSONObject: obj, options: .prettyPrinted),
-              let str = String(data: pretty, encoding: .utf8) else {
+              let str = String(data: pretty, encoding: .utf8)
+        else {
             return rawStr.count > 1_000_000
                 ? String(rawStr.prefix(1_000_000)) + "\n...(truncated)"
                 : rawStr
@@ -128,17 +129,17 @@ private struct ResponseDetailView: View {
 
     private var statusColor: Color {
         switch response.statusCode {
-        case 200..<300: return .green
-        case 300..<400: return .yellow
-        case 400..<500: return .orange
-        default: return .red
+        case 200 ..< 300: .green
+        case 300 ..< 400: .yellow
+        case 400 ..< 500: .orange
+        default: .red
         }
     }
 
     private func formatSize(_ bytes: Int) -> String {
-        if bytes < 1_024 { return "\(bytes) B" }
-        if bytes < 1_024 * 1_024 { return String(format: "%.1f KB", Double(bytes) / 1_024) }
-        return String(format: "%.1f MB", Double(bytes) / (1_024 * 1_024))
+        if bytes < 1024 { return "\(bytes) B" }
+        if bytes < 1024 * 1024 { return String(format: "%.1f KB", Double(bytes) / 1024) }
+        return String(format: "%.1f MB", Double(bytes) / (1024 * 1024))
     }
 }
 

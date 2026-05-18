@@ -1,5 +1,5 @@
-import SwiftUI
 import SwiftData
+import SwiftUI
 
 struct RootView: View {
     @Environment(\.modelContext) private var modelContext
@@ -39,46 +39,48 @@ struct RootView: View {
                     )
                     Divider()
                     HStack(spacing: 0) {
-                            if showSidebar {
-                                SidebarView(
-                                    operationStore: operationStore,
-                                    selectedOperationID: requestEditorStore.selectedOperation?.id,
-                                    onSelectOperation: { op in
-                                        guard let project = projectStore.selectedProject,
-                                              let env = environmentStore.activeEnvironment(for: project) else { return }
-                                        let baseURL = env.baseURL.trimmingCharacters(in: CharacterSet(charactersIn: "/"))
-                                        requestEditorStore.loadOperation(op, baseURL: baseURL, environment: env,
-                                            securityHeaders: operationStore.computedSecurityHeaders)
-                                        projectStore.saveLastOperationID(op.id, for: project)
-                                    }
-                                )
-                                .frame(width: sidebarWidth)
-                                PanelDivider { delta in
-                                    sidebarWidth = max(80, sidebarWidth + delta)
+                        if showSidebar {
+                            SidebarView(
+                                operationStore: operationStore,
+                                selectedOperationID: requestEditorStore.selectedOperation?.id,
+                                onSelectOperation: { op in
+                                    guard let project = projectStore.selectedProject,
+                                          let env = environmentStore.activeEnvironment(for: project) else { return }
+                                    let baseURL = env.baseURL.trimmingCharacters(in: CharacterSet(charactersIn: "/"))
+                                    requestEditorStore.loadOperation(op, baseURL: baseURL, environment: env,
+                                                                     securityHeaders: operationStore
+                                                                         .computedSecurityHeaders)
+                                    projectStore.saveLastOperationID(op.id, for: project)
                                 }
+                            )
+                            .frame(width: sidebarWidth)
+                            PanelDivider { delta in
+                                sidebarWidth = max(80, sidebarWidth + delta)
                             }
-                            if showRequest {
-                                RequestPaneView(
-                                    store: requestEditorStore,
-                                    activeEnvironment: projectStore.selectedProject.flatMap {
-                                        environmentStore.activeEnvironment(for: $0)
-                                    },
-                                    onSend: {
-                                        guard let project = projectStore.selectedProject else { return }
-                                        await requestEditorStore.send(project: project, historyStore: historyStore)
-                                    }
-                                )
-                                .frame(maxWidth: .infinity)
-                                if showResponse {
-                                    PanelDivider { delta in
-                                        responseWidth = max(80, responseWidth - delta)
-                                    }
+                        }
+                        if showRequest {
+                            RequestPaneView(
+                                store: requestEditorStore,
+                                operationStore: operationStore,
+                                activeEnvironment: projectStore.selectedProject.flatMap {
+                                    environmentStore.activeEnvironment(for: $0)
+                                },
+                                onSend: {
+                                    guard let project = projectStore.selectedProject else { return }
+                                    await requestEditorStore.send(project: project, historyStore: historyStore)
                                 }
-                            }
+                            )
+                            .frame(maxWidth: .infinity)
                             if showResponse {
-                                ResponsePaneView(store: requestEditorStore)
-                                    .frame(width: responseWidth)
+                                PanelDivider { delta in
+                                    responseWidth = max(80, responseWidth - delta)
+                                }
                             }
+                        }
+                        if showResponse {
+                            ResponsePaneView(store: requestEditorStore)
+                                .frame(width: responseWidth)
+                        }
                     }
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                 }
@@ -223,13 +225,13 @@ private struct PanelDivider: View {
 private struct NativeDividerView: NSViewRepresentable {
     let onDrag: (CGFloat) -> Void
 
-    func makeNSView(context: Context) -> DividerNSView {
+    func makeNSView(context _: Context) -> DividerNSView {
         let v = DividerNSView()
         v.onDrag = onDrag
         return v
     }
 
-    func updateNSView(_ nsView: DividerNSView, context: Context) {
+    func updateNSView(_ nsView: DividerNSView, context _: Context) {
         nsView.onDrag = onDrag
     }
 }
@@ -260,7 +262,7 @@ final class DividerNSView: NSView {
         }
     }
 
-    override func draw(_ dirtyRect: NSRect) {
+    override func draw(_: NSRect) {
         NSColor.separatorColor.setFill()
         NSRect(x: (bounds.width - 1) / 2, y: 0, width: 1, height: bounds.height).fill()
     }

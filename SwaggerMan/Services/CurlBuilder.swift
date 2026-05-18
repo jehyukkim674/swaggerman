@@ -1,6 +1,6 @@
 import Foundation
 
-struct CurlBuilder {
+enum CurlBuilder {
     struct Options {
         var maskAuthorization: Bool = true
         var insecure: Bool = false
@@ -16,11 +16,10 @@ struct CurlBuilder {
         }
 
         for (key, value) in request.headers.sorted(by: { $0.key < $1.key }) {
-            let displayValue: String
-            if options.maskAuthorization, key.lowercased() == "authorization" {
-                displayValue = maskAuthValue(value)
+            let displayValue: String = if options.maskAuthorization, key.lowercased() == "authorization" {
+                maskAuthValue(value)
             } else {
-                displayValue = value
+                value
             }
             parts.append("-H \"\(key): \(displayValue)\"")
         }

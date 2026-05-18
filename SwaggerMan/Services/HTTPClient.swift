@@ -34,8 +34,8 @@ actor HTTPClient: HTTPClientProtocol {
             }
 
             var headers: [String: String] = [:]
-            httpResponse.allHeaderFields.forEach { k, v in
-                if let key = k as? String, let val = v as? String {
+            for (rawKey, rawValue) in httpResponse.allHeaderFields {
+                if let key = rawKey as? String, let val = rawValue as? String {
                     headers[key] = val
                 }
             }
@@ -55,15 +55,15 @@ actor HTTPClient: HTTPClientProtocol {
     private func mapURLError(_ error: URLError, host: String) -> SwaggerManError {
         switch error.code {
         case .timedOut:
-            return .network(.timeout)
+            .network(.timeout)
         case .notConnectedToInternet, .networkConnectionLost:
-            return .network(.offline)
+            .network(.offline)
         case .cannotFindHost, .cannotConnectToHost:
-            return .network(.dnsFailure(host: host))
+            .network(.dnsFailure(host: host))
         case .serverCertificateUntrusted, .serverCertificateHasUnknownRoot:
-            return .network(.tlsFailure(detail: error.localizedDescription))
+            .network(.tlsFailure(detail: error.localizedDescription))
         default:
-            return .network(.unexpectedStatus(-1, body: error.localizedDescription))
+            .network(.unexpectedStatus(-1, body: error.localizedDescription))
         }
     }
 }

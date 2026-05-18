@@ -6,6 +6,11 @@ struct HTTPResponse {
     let body: Data
     let durationMs: Int
 
-    var isSuccess: Bool { (200..<300).contains(statusCode) }
-    var bodyString: String? { String(data: body, encoding: .utf8) }
+    var isSuccess: Bool {
+        (200 ..< 300).contains(statusCode)
+    }
+
+    var bodyString: String? {
+        String(data: body, encoding: .utf8)
+    }
 }

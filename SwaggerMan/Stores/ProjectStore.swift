@@ -1,6 +1,6 @@
+import os.log
 import SwiftData
 import SwiftUI
-import os.log
 
 private let log = Logger(subsystem: "com.swaggerman", category: "ProjectStore")
 

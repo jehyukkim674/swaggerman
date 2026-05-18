@@ -1,12 +1,11 @@
-import Testing
-import SwiftData
 import Foundation
+import SwiftData
+import Testing
 @testable import SwaggerMan
 
 @Suite("ProjectStore Integration Tests", .serialized)
 @MainActor
 struct ProjectStoreTests {
-
     func makeStore() throws -> (store: ProjectStore, container: ModelContainer) {
         let container = try ModelContainerFactory.makeInMemory()
         let store = ProjectStore(modelContext: container.mainContext)
@@ -16,7 +15,7 @@ struct ProjectStoreTests {
     @Test("프로젝트 추가 시 기본 환경 자동 생성")
     func addsProjectWithDefaultEnvironment() throws {
         let (store, _container) = try makeStore()
-        _ = _container  // keep container alive
+        _ = _container // keep container alive
 
         try store.addProject(alias: "My API", swaggerURL: "https://api.example.com/docs")
 
@@ -80,8 +79,8 @@ struct ProjectStoreTests {
         let store1 = ProjectStore(modelContext: ctx)
         try store1.addProject(alias: "First", swaggerURL: "https://a.com/docs")
         try store1.addProject(alias: "Second", swaggerURL: "https://b.com/docs")
-        let second = store1.projects.first { $0.alias == "Second" }!
-        store1.selectProject(second)  // lastUsedAt 갱신
+        let second = try #require(store1.projects.first { $0.alias == "Second" })
+        store1.selectProject(second) // lastUsedAt 갱신
 
         // 새 ProjectStore 인스턴스 (앱 재시작 시뮬레이션)
         let store2 = ProjectStore(modelContext: ctx)

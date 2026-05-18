@@ -1,6 +1,6 @@
+import os.log
 import SwiftData
 import SwiftUI
-import os.log
 
 private let log = Logger(subsystem: "com.swaggerman", category: "HistoryStore")
 
@@ -41,7 +41,9 @@ final class HistoryStore {
     }
 
     func clear(for project: Project) {
-        for item in project.history { modelContext.delete(item) }
+        for item in project.history {
+            modelContext.delete(item)
+        }
         project.history.removeAll()
         save()
         items = []

@@ -49,7 +49,7 @@ struct ParsedRequestBody {
 }
 
 struct ParsedOperation: Identifiable {
-    let id: String                  // "\(method.rawValue) \(path)"
+    let id: String // "\(method.rawValue) \(path)"
     let method: HTTPMethod
     let path: String
     let operationId: String?
@@ -58,5 +58,5 @@ struct ParsedOperation: Identifiable {
     let tags: [String]
     let parameters: [ParsedParameter]
     let requestBody: ParsedRequestBody?
-    let responseDescriptions: [String: String]   // statusCode → description
+    let responseDescriptions: [String: String] // statusCode → description
 }

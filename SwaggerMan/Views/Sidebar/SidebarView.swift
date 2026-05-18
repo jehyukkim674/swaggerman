@@ -180,8 +180,7 @@ private struct MethodFilterView: View {
                     .background(selected ? method.swiftUIColor : method.swiftUIColor.opacity(0.12))
                     .clipShape(.rect(cornerRadius: 5))
                     .onTapGesture {
-                        if selected { selectedMethods.remove(method) }
-                        else { selectedMethods.insert(method) }
+                        if selected { selectedMethods.remove(method) } else { selectedMethods.insert(method) }
                     }
                     .help("Filter by \(method.rawValue)")
                 }

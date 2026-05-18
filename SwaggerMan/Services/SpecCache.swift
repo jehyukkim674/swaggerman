@@ -3,7 +3,7 @@ import os.log
 
 private let log = Logger(subsystem: "com.swaggerman", category: "SpecCache")
 
-// Codable wrapper for persistence
+/// Codable wrapper for persistence
 private struct CachedEnvelope: Codable {
     let infoTitle: String
     let infoVersion: String
@@ -31,12 +31,17 @@ actor SpecCache: SpecCacheProtocol {
 
         let file = cacheFile(for: urlString)
         guard let data = try? Data(contentsOf: file),
-              let envelope = try? JSONDecoder().decode(CachedEnvelope.self, from: data) else {
+              let envelope = try? JSONDecoder().decode(CachedEnvelope.self, from: data)
+        else {
             return nil
         }
 
         let spec = ParsedSpec(
-            info: SpecInfo(title: envelope.infoTitle, version: envelope.infoVersion, description: envelope.infoDescription),
+            info: SpecInfo(
+                title: envelope.infoTitle,
+                version: envelope.infoVersion,
+                description: envelope.infoDescription
+            ),
             servers: envelope.servers,
             operations: [],
             securitySchemes: [],
@@ -81,7 +86,9 @@ actor SpecCache: SpecCacheProtocol {
         // Simple hash: use djb2 hash of URL UTF-8 bytes
         let bytes = Array(urlString.utf8)
         var hash = 5381
-        for byte in bytes { hash = ((hash << 5) &+ hash) &+ Int(byte) }
+        for byte in bytes {
+            hash = ((hash << 5) &+ hash) &+ Int(byte)
+        }
         let filename = "spec_\(abs(hash)).json"
         return cacheDirectory.appendingPathComponent(filename)
     }

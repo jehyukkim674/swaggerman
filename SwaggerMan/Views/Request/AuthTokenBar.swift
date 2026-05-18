@@ -1,17 +1,21 @@
-import SwiftUI
 import AppKit
+import SwiftUI
 
 struct AuthTokenBar: View {
     @Bindable var operationStore: OperationStore
     @State private var showValues = false
 
-    var schemes: [ParsedSecurityScheme] { operationStore.securitySchemes }
+    var schemes: [ParsedSecurityScheme] {
+        operationStore.securitySchemes
+    }
 
     private func isAuthorized(_ scheme: ParsedSecurityScheme) -> Bool {
         !(operationStore.securityValues[scheme.name] ?? "").isEmpty
     }
 
-    var authorizedCount: Int { schemes.filter { isAuthorized($0) }.count }
+    var authorizedCount: Int {
+        schemes.filter { isAuthorized($0) }.count
+    }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -79,10 +83,10 @@ struct AuthTokenRow: View {
 
     var schemeShortLabel: String {
         switch scheme.kind {
-        case .apiKey(let name, _): return name
-        case .http(let s): return s.capitalized
-        case .oauth2: return "OAuth2"
-        case .unknown: return "Token"
+        case let .apiKey(name, _): name
+        case let .http(scheme): scheme.capitalized
+        case .oauth2: "OAuth2"
+        case .unknown: "Token"
         }
     }
 
@@ -142,17 +146,21 @@ struct NativeSecureField: NSViewRepresentable {
         return field
     }
 
-    func updateNSView(_ nsView: NSSecureTextField, context: Context) {
+    func updateNSView(_ nsView: NSSecureTextField, context _: Context) {
         if nsView.stringValue != text {
             nsView.stringValue = text
         }
     }
 
-    func makeCoordinator() -> Coordinator { Coordinator(text: $text) }
+    func makeCoordinator() -> Coordinator {
+        Coordinator(text: $text)
+    }
 
     final class Coordinator: NSObject, NSTextFieldDelegate {
         var text: Binding<String>
-        init(text: Binding<String>) { self.text = text }
+        init(text: Binding<String>) {
+            self.text = text
+        }
 
         func controlTextDidChange(_ obj: Notification) {
             guard let field = obj.object as? NSSecureTextField else { return }

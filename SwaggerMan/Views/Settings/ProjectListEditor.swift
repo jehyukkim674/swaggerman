@@ -28,8 +28,8 @@ struct ProjectListEditor: View {
                 }
                 ToolbarItem {
                     Button {
-                        if let p = selectedProject {
-                            try? store.deleteProject(p)
+                        if let project = selectedProject {
+                            try? store.deleteProject(project)
                             selectedProject = nil
                         }
                     } label: {

@@ -1,5 +1,5 @@
-import SwiftData
 import Foundation
+import SwiftData
 
 @Model
 final class Project {
@@ -9,6 +9,7 @@ final class Project {
     var createdAt: Date
     var lastUsedAt: Date
     var lastOperationID: String?
+    var securityValuesJSON: String? // JSON-encoded [String: String]
 
     @Relationship(deleteRule: .cascade, inverse: \APIEnvironment.project)
     var environments: [APIEnvironment]

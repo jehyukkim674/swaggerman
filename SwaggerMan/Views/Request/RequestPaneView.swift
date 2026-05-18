@@ -72,7 +72,7 @@ struct RequestPaneView: View {
 
 private struct RequestSection<Content: View>: View {
     let title: String
-    var badge: String? = nil
+    var badge: String?
     let defaultExpanded: Bool
     @ViewBuilder let content: () -> Content
     @State private var isExpanded: Bool
@@ -123,4 +123,3 @@ private struct RequestSection<Content: View>: View {
         }
     }
 }
-

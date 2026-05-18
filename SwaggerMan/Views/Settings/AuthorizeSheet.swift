@@ -6,7 +6,9 @@ struct AuthorizeSheet: View {
 
     @State private var draftValues: [String: String] = [:]
 
-    var schemes: [ParsedSecurityScheme] { operationStore.securitySchemes }
+    var schemes: [ParsedSecurityScheme] {
+        operationStore.securitySchemes
+    }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -41,7 +43,8 @@ struct AuthorizeSheet: View {
                             SchemeRow(
                                 scheme: scheme,
                                 value: Binding(
-                                    get: { draftValues[scheme.name] ?? operationStore.securityValues[scheme.name] ?? "" },
+                                    get: { draftValues[scheme.name] ?? operationStore.securityValues[scheme.name] ?? ""
+                                    },
                                     set: { draftValues[scheme.name] = $0 }
                                 ),
                                 isAuthorized: !(operationStore.securityValues[scheme.name] ?? "").isEmpty,
@@ -87,19 +90,19 @@ private struct SchemeRow: View {
 
     var schemeLabel: String {
         switch scheme.kind {
-        case .apiKey(let name, let loc): return "apiKey — \(name) (\(loc))"
-        case .http(let s): return "http (\(s))"
-        case .oauth2: return "oauth2"
-        case .unknown: return "unknown"
+        case let .apiKey(name, loc): "apiKey — \(name) (\(loc))"
+        case let .http(scheme): "http (\(scheme))"
+        case .oauth2: "oauth2"
+        case .unknown: "unknown"
         }
     }
 
     var headerKeyName: String? {
         switch scheme.kind {
-        case .apiKey(let name, _): return name
-        case .http(let s) where s.lowercased() == "bearer": return "Authorization"
-        case .http(let s) where s.lowercased() == "basic": return "Authorization"
-        default: return nil
+        case let .apiKey(name, _): name
+        case let .http(scheme) where scheme.lowercased() == "bearer": "Authorization"
+        case let .http(scheme) where scheme.lowercased() == "basic": "Authorization"
+        default: nil
         }
     }
 
@@ -131,7 +134,7 @@ private struct SchemeRow: View {
                 HStack {
                     Text("In:").font(.caption).foregroundStyle(.secondary)
                     switch scheme.kind {
-                    case .apiKey(_, let loc):
+                    case let .apiKey(_, loc):
                         Text(loc).font(.system(.caption, design: .monospaced))
                     default:
                         Text("header").font(.system(.caption, design: .monospaced))

@@ -39,8 +39,13 @@ struct ParamsSectionContent: View {
 struct HeadersSectionContent: View {
     @Bindable var store: RequestEditorStore
 
-    var specHeaders: [RequestParam] { store.requestHeaders.filter { $0.isFromSpec } }
-    var userHeaders: [RequestParam] { store.requestHeaders.filter { !$0.isFromSpec } }
+    var specHeaders: [RequestParam] {
+        store.requestHeaders.filter(\.isFromSpec)
+    }
+
+    var userHeaders: [RequestParam] {
+        store.requestHeaders.filter { !$0.isFromSpec }
+    }
 
     var body: some View {
         VStack(spacing: 4) {
@@ -49,8 +54,8 @@ struct HeadersSectionContent: View {
                     header: Binding(
                         get: { store.requestHeaders.first(where: { $0.id == header.id }) ?? header },
                         set: { new in
-                            if let i = store.requestHeaders.firstIndex(where: { $0.id == header.id }) {
-                                store.requestHeaders[i] = new
+                            if let idx = store.requestHeaders.firstIndex(where: { $0.id == header.id }) {
+                                store.requestHeaders[idx] = new
                             }
                         }
                     ),

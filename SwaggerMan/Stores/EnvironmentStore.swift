@@ -1,13 +1,13 @@
+import os.log
 import SwiftData
 import SwiftUI
-import os.log
 
 private let log = Logger(subsystem: "com.swaggerman", category: "EnvironmentStore")
 
 @Observable
 @MainActor
 final class EnvironmentStore {
-    private var activeEnvironments: [UUID: UUID] = [:]  // projectID → environmentID
+    private var activeEnvironments: [UUID: UUID] = [:] // projectID → environmentID
     private let modelContext: ModelContext
 
     init(modelContext: ModelContext) {
@@ -83,7 +83,8 @@ final class EnvironmentStore {
 
     private static func deriveBaseURL(from swaggerURL: String) -> String {
         guard let url = URL(string: swaggerURL),
-              var components = URLComponents(url: url, resolvingAgainstBaseURL: false) else {
+              var components = URLComponents(url: url, resolvingAgainstBaseURL: false)
+        else {
             return swaggerURL
         }
         components.path = ""

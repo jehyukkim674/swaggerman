@@ -1,12 +1,11 @@
-import Testing
-import SwiftData
 import Foundation
+import SwiftData
+import Testing
 @testable import SwaggerMan
 
 @Suite("Persistence Model Tests")
 @MainActor
 struct PersistenceTests {
-
     @Test("Project 생성 후 조회 가능")
     func createsProject() throws {
         let container = try ModelContainerFactory.makeInMemory()

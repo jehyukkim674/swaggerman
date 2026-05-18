@@ -1,10 +1,9 @@
-import Testing
 import Foundation
+import Testing
 @testable import SwaggerMan
 
 @Suite("SpecCache Tests", .serialized)
 struct SpecCacheTests {
-
     func makeCache() -> SpecCache {
         let tempDir = FileManager.default.temporaryDirectory
             .appendingPathComponent("SwaggerManCacheTests-\(UUID().uuidString)")

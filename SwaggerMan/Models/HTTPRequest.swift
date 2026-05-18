@@ -12,12 +12,12 @@ enum HTTPMethod: String, Codable, CaseIterable {
 
     var color: String {
         switch self {
-        case .get: return "green"
-        case .post: return "blue"
-        case .put: return "orange"
-        case .delete: return "red"
-        case .patch: return "purple"
-        case .options, .head: return "gray"
+        case .get: "green"
+        case .post: "blue"
+        case .put: "orange"
+        case .delete: "red"
+        case .patch: "purple"
+        case .options, .head: "gray"
         }
     }
 }
@@ -25,24 +25,24 @@ enum HTTPMethod: String, Codable, CaseIterable {
 extension HTTPMethod {
     var swiftUIColor: Color {
         switch self {
-        case .get: return .green
-        case .post: return .blue
-        case .put: return .orange
-        case .delete: return .red
-        case .patch: return .purple
-        case .options, .head: return .gray
+        case .get: .green
+        case .post: .blue
+        case .put: .orange
+        case .delete: .red
+        case .patch: .purple
+        case .options, .head: .gray
         }
     }
 
     var sfSymbol: String {
         switch self {
-        case .get:     return "arrow.down.circle.fill"
-        case .post:    return "plus.circle.fill"
-        case .put:     return "arrow.up.circle.fill"
-        case .delete:  return "trash.fill"
-        case .patch:   return "pencil.circle.fill"
-        case .options: return "ellipsis.circle.fill"
-        case .head:    return "eye.circle.fill"
+        case .get: "arrow.down.circle.fill"
+        case .post: "plus.circle.fill"
+        case .put: "arrow.up.circle.fill"
+        case .delete: "trash.fill"
+        case .patch: "pencil.circle.fill"
+        case .options: "ellipsis.circle.fill"
+        case .head: "eye.circle.fill"
         }
     }
 }

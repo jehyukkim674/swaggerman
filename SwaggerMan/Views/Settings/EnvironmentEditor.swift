@@ -29,8 +29,8 @@ struct EnvironmentEditor: View {
                 }
                 ToolbarItem {
                     Button {
-                        if let e = selectedEnv {
-                            try? store.deleteEnvironment(e, from: project)
+                        if let env = selectedEnv {
+                            try? store.deleteEnvironment(env, from: project)
                             selectedEnv = nil
                         }
                     } label: {

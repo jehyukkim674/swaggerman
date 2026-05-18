@@ -1,5 +1,5 @@
-import Testing
 import Foundation
+import Testing
 @testable import SwaggerMan
 
 // MARK: - Fixtures
@@ -80,7 +80,7 @@ struct OpenAPIParserTests {
 
     @Test("유효한 OpenAPI 3.0 JSON 파싱 → 오퍼레이션 3개")
     func parsesValidJSON() throws {
-        let data = validOpenAPI30JSON.data(using: .utf8)!
+        let data = try #require(validOpenAPI30JSON.data(using: .utf8))
         let spec = try parser.parse(data)
 
         #expect(spec.operations.count == 3)
@@ -90,7 +90,7 @@ struct OpenAPIParserTests {
 
     @Test("GET /users 오퍼레이션 필드 검증")
     func parsesGetOperation() throws {
-        let data = validOpenAPI30JSON.data(using: .utf8)!
+        let data = try #require(validOpenAPI30JSON.data(using: .utf8))
         let spec = try parser.parse(data)
 
         let getUsers = spec.operations.first { $0.method == .get && $0.path == "/users" }
@@ -103,7 +103,7 @@ struct OpenAPIParserTests {
 
     @Test("POST /users requestBody 파싱")
     func parsesRequestBody() throws {
-        let data = validOpenAPI30JSON.data(using: .utf8)!
+        let data = try #require(validOpenAPI30JSON.data(using: .utf8))
         let spec = try parser.parse(data)
 
         let post = spec.operations.first { $0.method == .post && $0.path == "/users" }
@@ -113,7 +113,7 @@ struct OpenAPIParserTests {
 
     @Test("path 파라미터 location = .path")
     func parsesPathParameter() throws {
-        let data = validOpenAPI30JSON.data(using: .utf8)!
+        let data = try #require(validOpenAPI30JSON.data(using: .utf8))
         let spec = try parser.parse(data)
 
         let getUser = spec.operations.first { $0.path == "/users/{id}" }
@@ -124,7 +124,7 @@ struct OpenAPIParserTests {
 
     @Test("OpenAPI 2.0 입력 시 SwaggerManError throw")
     func rejectsOpenAPI20() throws {
-        let data = openAPI20JSON.data(using: .utf8)!
+        let data = try #require(openAPI20JSON.data(using: .utf8))
 
         #expect(throws: SwaggerManError.self) {
             _ = try parser.parse(data)
@@ -133,7 +133,7 @@ struct OpenAPIParserTests {
 
     @Test("잘못된 JSON 입력 시 SwaggerManError throw")
     func throwsOnInvalidJSON() throws {
-        let data = "{ invalid json }".data(using: .utf8)!
+        let data = Data("{ invalid json }".utf8)
 
         #expect(throws: SwaggerManError.self) {
             _ = try parser.parse(data)

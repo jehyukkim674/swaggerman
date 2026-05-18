@@ -1,5 +1,5 @@
-import SwiftUI
 import SwiftData
+import SwiftUI
 
 @main
 struct SwaggerManApp: App {
@@ -9,12 +9,12 @@ struct SwaggerManApp: App {
         do {
             container = try ModelContainer(
                 for:
-                    Project.self,
-                    APIEnvironment.self,
-                    FavoriteOperation.self,
-                    RequestCollection.self,
-                    SavedRequest.self,
-                    HistoryItem.self
+                Project.self,
+                APIEnvironment.self,
+                FavoriteOperation.self,
+                RequestCollection.self,
+                SavedRequest.self,
+                HistoryItem.self
             )
         } catch {
             fatalError("SwiftData ModelContainer 초기화 실패: \(error)")

@@ -7,14 +7,14 @@ struct SpecInfo {
 }
 
 enum SecuritySchemeKind {
-    case apiKey(name: String, location: String)   // name=header key, location=header/query/cookie
-    case http(scheme: String)                     // scheme=bearer/basic
+    case apiKey(name: String, location: String) // name=header key, location=header/query/cookie
+    case http(scheme: String) // scheme=bearer/basic
     case oauth2
     case unknown
 }
 
 struct ParsedSecurityScheme: Identifiable {
-    let id: String          // scheme name in spec (e.g. "systemTokenAuth")
+    let id: String // scheme name in spec (e.g. "systemTokenAuth")
     let name: String
     let kind: SecuritySchemeKind
     let description: String?
