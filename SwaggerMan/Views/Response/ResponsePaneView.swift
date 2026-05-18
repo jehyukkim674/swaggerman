@@ -12,7 +12,7 @@ struct ResponsePaneView: View {
             } else if let err = store.sendError {
                 SendErrorView(error: err)
             } else if let response = store.response {
-                ResponseDetailView(response: response, curlString: store.lastCurlString)
+                ResponseDetailView(response: response, curlString: store.lastCurlString, lastRequest: store.lastRequest)
             } else {
                 ContentUnavailableView(
                     "응답 없음",
@@ -51,6 +51,7 @@ struct SendErrorView: View {
 struct ResponseDetailView: View {
     let response: HTTPResponse
     let curlString: String?
+    let lastRequest: HTTPRequest?
 
     var body: some View {
         VStack(spacing: 0) {
@@ -87,6 +88,27 @@ struct ResponseDetailView: View {
                     .buttonStyle(.bordered)
                     .controlSize(.small)
                     .help("요청에 해당하는 cURL 명령을 클립보드에 복사합니다.")
+                }
+
+                if let request = lastRequest {
+                    Menu {
+                        ForEach(SnippetLanguage.allCases, id: \.self) { language in
+                            Button {
+                                let snippet = SnippetBuilder.build(request, language: language)
+                                NSPasteboard.general.clearContents()
+                                NSPasteboard.general.setString(snippet, forType: .string)
+                            } label: {
+                                Label(language.rawValue, systemImage: language.sfSymbol)
+                            }
+                        }
+                    } label: {
+                        Label("Code", systemImage: "chevron.left.forwardslash.chevron.right")
+                    }
+                    .menuStyle(.borderlessButton)
+                    .fixedSize()
+                    .buttonStyle(.bordered)
+                    .controlSize(.small)
+                    .help("코드 스니펫을 언어를 선택하여 클립보드에 복사합니다.")
                 }
             }
             .padding(.horizontal, 12)

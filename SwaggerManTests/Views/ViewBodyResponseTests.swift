@@ -28,61 +28,61 @@ struct ViewBodyResponseTests {
             body: Data(#"{"ok":true}"#.utf8),
             durationMs: 42
         )
-        _ = ResponseDetailView(response: response, curlString: "curl -X GET https://api.com").body
+        _ = ResponseDetailView(response: response, curlString: "curl -X GET https://api.com", lastRequest: nil).body
     }
 
     @Test("ResponseDetailView — 200, no headers, no curl")
     func responseDetailView200NoHeaders() {
         let response = HTTPResponse(statusCode: 200, headers: [:],
                                     body: Data("plain text".utf8), durationMs: 5)
-        _ = ResponseDetailView(response: response, curlString: nil).body
+        _ = ResponseDetailView(response: response, curlString: nil, lastRequest: nil).body
     }
 
     @Test("ResponseDetailView — 301 redirect (yellow statusColor)")
     func responseDetailView301() {
         let response = HTTPResponse(statusCode: 301, headers: [:], body: Data(), durationMs: 3)
-        _ = ResponseDetailView(response: response, curlString: nil).body
+        _ = ResponseDetailView(response: response, curlString: nil, lastRequest: nil).body
     }
 
     @Test("ResponseDetailView — 404 client error (orange statusColor)")
     func responseDetailView404() {
         let response = HTTPResponse(statusCode: 404, headers: [:],
                                     body: Data(#"{"error":"Not found"}"#.utf8), durationMs: 12)
-        _ = ResponseDetailView(response: response, curlString: nil).body
+        _ = ResponseDetailView(response: response, curlString: nil, lastRequest: nil).body
     }
 
     @Test("ResponseDetailView — 500 server error (red statusColor)")
     func responseDetailView500() {
         let response = HTTPResponse(statusCode: 500, headers: [:],
                                     body: Data("Server Error".utf8), durationMs: 200)
-        _ = ResponseDetailView(response: response, curlString: nil).body
+        _ = ResponseDetailView(response: response, curlString: nil, lastRequest: nil).body
     }
 
     @Test("ResponseDetailView — body > 1MB truncation")
     func responseDetailViewLargeBodyTruncation() {
         let largeBody = Data(String(repeating: "x", count: 1_100_000).utf8)
         let response = HTTPResponse(statusCode: 200, headers: [:], body: largeBody, durationMs: 1000)
-        _ = ResponseDetailView(response: response, curlString: nil).body
+        _ = ResponseDetailView(response: response, curlString: nil, lastRequest: nil).body
     }
 
     @Test("ResponseDetailView — formatSize KB range")
     func responseDetailViewKBSize() {
         let body = Data(String(repeating: "a", count: 2048).utf8)
         let response = HTTPResponse(statusCode: 200, headers: [:], body: body, durationMs: 10)
-        _ = ResponseDetailView(response: response, curlString: nil).body
+        _ = ResponseDetailView(response: response, curlString: nil, lastRequest: nil).body
     }
 
     @Test("ResponseDetailView — formatSize MB range")
     func responseDetailViewMBSize() {
         let body = Data(String(repeating: "a", count: 2_097_152).utf8)
         let response = HTTPResponse(statusCode: 200, headers: [:], body: body, durationMs: 300)
-        _ = ResponseDetailView(response: response, curlString: nil).body
+        _ = ResponseDetailView(response: response, curlString: nil, lastRequest: nil).body
     }
 
     @Test("ResponseDetailView — formatSize B range")
     func responseDetailViewBSize() {
         let response = HTTPResponse(statusCode: 200, headers: [:], body: Data("hi".utf8), durationMs: 1)
-        _ = ResponseDetailView(response: response, curlString: nil).body
+        _ = ResponseDetailView(response: response, curlString: nil, lastRequest: nil).body
     }
 
     // MARK: - SendErrorView
