@@ -1,9 +1,21 @@
+// swiftlint:disable file_length
 import SwiftUI
 
 struct SidebarView: View {
     @Bindable var operationStore: OperationStore
     let selectedOperationID: String?
     let onSelectOperation: (ParsedOperation) -> Void
+
+    // Favorites
+    let favoriteStore: FavoriteStore
+    let project: Project
+    let onToggleFavorite: (ParsedOperation) -> Void
+
+    // History
+    let historyStore: HistoryStore
+    let onSelectHistory: (HistoryItem) -> Void
+    let onReplayHistory: (HistoryItem) -> Void
+    let onDeleteHistory: (HistoryItem) -> Void
 
     var body: some View {
         VStack(spacing: 0) {
@@ -42,20 +54,84 @@ struct SidebarView: View {
                         description: Text("프로젝트를 선택하거나 검색어를 바꿔보세요.")
                     )
                 } else {
-                    List(operationStore.operationsByTag, id: \.tag) { group in
-                        Section(group.tag) {
-                            ForEach(group.operations) { op in
-                                Button {
-                                    onSelectOperation(op)
-                                } label: {
-                                    OperationRowView(
-                                        operation: op,
-                                        isSelected: op.id == selectedOperationID
-                                    )
+                    List {
+                        // ── Favorites section (only if non-empty) ──
+                        if !favoriteStore.favorites.isEmpty {
+                            Section {
+                                ForEach(favoriteStore.favorites) { fav in
+                                    if let op = operationStore.operations.first(where: {
+                                        $0.method.rawValue == fav.method && $0.path == fav.path
+                                    }) {
+                                        Button { onSelectOperation(op) } label: {
+                                            OperationRowView(
+                                                operation: op,
+                                                isSelected: op.id == selectedOperationID,
+                                                isFavorite: true,
+                                                onToggleFavorite: { onToggleFavorite(op) }
+                                            )
+                                        }
+                                        .buttonStyle(.plain)
+                                        .listRowInsets(EdgeInsets(top: 2, leading: 8, bottom: 2, trailing: 8))
+                                        .listRowBackground(Color.clear)
+                                    }
                                 }
-                                .buttonStyle(.plain)
-                                .listRowInsets(EdgeInsets(top: 2, leading: 8, bottom: 2, trailing: 8))
-                                .listRowBackground(Color.clear)
+                                .onMove { source, dest in favoriteStore.move(from: source, to: dest) }
+                            } header: {
+                                Label("즐겨찾기", systemImage: "star.fill")
+                                    .foregroundStyle(.yellow)
+                                    .font(.caption.weight(.semibold))
+                            }
+                        }
+
+                        // ── Operations section ──
+                        ForEach(operationStore.operationsByTag, id: \.tag) { group in
+                            Section(group.tag) {
+                                ForEach(group.operations) { op in
+                                    Button { onSelectOperation(op) } label: {
+                                        OperationRowView(
+                                            operation: op,
+                                            isSelected: op.id == selectedOperationID,
+                                            isFavorite: favoriteStore.isFavorite(
+                                                method: op.method.rawValue,
+                                                path: op.path
+                                            ),
+                                            onToggleFavorite: { onToggleFavorite(op) }
+                                        )
+                                    }
+                                    .buttonStyle(.plain)
+                                    .listRowInsets(EdgeInsets(top: 2, leading: 8, bottom: 2, trailing: 8))
+                                    .listRowBackground(Color.clear)
+                                }
+                            }
+                        }
+
+                        // ── History section (only if non-empty) ──
+                        if !historyStore.items.isEmpty {
+                            Section {
+                                ForEach(historyStore.items.prefix(100)) { item in
+                                    HistoryRowView(
+                                        item: item,
+                                        onSelect: { onSelectHistory(item) },
+                                        onReplay: { onReplayHistory(item) }
+                                    )
+                                    .listRowInsets(EdgeInsets(top: 0, leading: 8, bottom: 0, trailing: 8))
+                                    .listRowBackground(Color.clear)
+                                    .contextMenu {
+                                        Button("삭제", role: .destructive) { onDeleteHistory(item) }
+                                        Button("히스토리 전체 삭제", role: .destructive) {
+                                            historyStore.clear(for: project)
+                                        }
+                                    }
+                                }
+                            } header: {
+                                HStack {
+                                    Label("히스토리", systemImage: "clock")
+                                        .font(.caption.weight(.semibold))
+                                    Spacer()
+                                    Text("\(historyStore.items.count)")
+                                        .font(.caption2)
+                                        .foregroundStyle(.tertiary)
+                                }
                             }
                         }
                     }
@@ -196,6 +272,10 @@ struct MethodFilterView: View {
 struct OperationRowView: View {
     let operation: ParsedOperation
     var isSelected: Bool = false
+    var isFavorite: Bool = false
+    var onToggleFavorite: (() -> Void)?
+
+    @State private var isHovered = false
 
     var body: some View {
         HStack(spacing: 6) {
@@ -211,7 +291,6 @@ struct OperationRowView: View {
             VStack(alignment: .leading, spacing: 1) {
                 Text(operation.path)
                     .font(.system(.caption, design: .monospaced))
-                    .foregroundStyle(isSelected ? .primary : .primary)
                     .lineLimit(1)
                 if let summary = operation.summary, !summary.isEmpty {
                     Text(summary)
@@ -219,6 +298,18 @@ struct OperationRowView: View {
                         .foregroundStyle(.secondary)
                         .lineLimit(1)
                 }
+            }
+
+            Spacer()
+
+            if isHovered || isFavorite, let onToggle = onToggleFavorite {
+                Button(action: onToggle) {
+                    Image(systemName: isFavorite ? "star.fill" : "star")
+                        .font(.system(size: 11))
+                        .foregroundStyle(isFavorite ? .yellow : .secondary)
+                }
+                .buttonStyle(.plain)
+                .help(isFavorite ? "즐겨찾기 제거" : "즐겨찾기 추가")
             }
         }
         .padding(.vertical, 4)
@@ -237,5 +328,78 @@ struct OperationRowView: View {
                     lineWidth: 1
                 )
         )
+        .onHover { isHovered = $0 }
+    }
+}
+
+// MARK: - History Row
+
+struct HistoryRowView: View {
+    let item: HistoryItem
+    let onSelect: () -> Void
+    let onReplay: () -> Void
+
+    @State private var isHovered = false
+
+    var body: some View {
+        HStack(spacing: 6) {
+            Text(item.method)
+                .font(.system(.caption2, design: .monospaced).bold())
+                .foregroundStyle(methodColor)
+                .padding(.horizontal, 4)
+                .padding(.vertical, 2)
+                .background(methodColor.opacity(0.12))
+                .clipShape(.rect(cornerRadius: 3))
+
+            VStack(alignment: .leading, spacing: 1) {
+                Text(item.path)
+                    .font(.system(.caption, design: .monospaced))
+                    .lineLimit(1)
+                Text(item.executedAt, style: .relative)
+                    .font(.caption2)
+                    .foregroundStyle(.tertiary)
+            }
+
+            Spacer()
+
+            Text("\(item.responseStatus)")
+                .font(.system(.caption2, design: .monospaced))
+                .foregroundStyle(statusColor)
+
+            if isHovered {
+                Button(action: onReplay) {
+                    Image(systemName: "arrow.clockwise")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                .buttonStyle(.plain)
+                .help("요청 에디터에 불러오기 (응답 초기화)")
+            }
+        }
+        .padding(.vertical, 4)
+        .padding(.horizontal, 2)
+        .contentShape(Rectangle())
+        .onTapGesture { onSelect() }
+        .onHover { isHovered = $0 }
+    }
+
+    private var methodColor: Color {
+        switch item.method {
+        case "GET": .green
+        case "POST": .blue
+        case "PUT": .orange
+        case "DELETE": .red
+        case "PATCH": .purple
+        default: .secondary
+        }
+    }
+
+    private var statusColor: Color {
+        switch item.responseStatus {
+        case 200 ..< 300: .green
+        case 300 ..< 400: .yellow
+        case 400 ..< 500: .orange
+        default: .red
+        }
     }
 }

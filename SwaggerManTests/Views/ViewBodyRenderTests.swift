@@ -57,12 +57,20 @@ struct ViewBodyRenderTests {
         render(SidebarView(
             operationStore: opStore,
             selectedOperationID: "GET /users",
-            onSelectOperation: { _ in }
+            onSelectOperation: { _ in },
+            favoriteStore: FavoriteStore(modelContext: container.mainContext),
+            project: project,
+            onToggleFavorite: { _ in },
+            historyStore: HistoryStore(modelContext: container.mainContext),
+            onSelectHistory: { _ in },
+            onReplayHistory: { _ in },
+            onDeleteHistory: { _ in }
         ))
     }
 
     @Test("SidebarView — 로딩 중 render")
-    func sidebarViewLoadingRender() {
+    func sidebarViewLoadingRender() throws {
+        let container = try makeContainer()
         let opStore = OperationStore(
             parser: MockOpenAPIParser(),
             httpClient: MockHTTPClient(),
@@ -71,7 +79,14 @@ struct ViewBodyRenderTests {
         render(SidebarView(
             operationStore: opStore,
             selectedOperationID: nil,
-            onSelectOperation: { _ in }
+            onSelectOperation: { _ in },
+            favoriteStore: FavoriteStore(modelContext: container.mainContext),
+            project: Project(alias: "T", swaggerURL: "https://api.com"),
+            onToggleFavorite: { _ in },
+            historyStore: HistoryStore(modelContext: container.mainContext),
+            onSelectHistory: { _ in },
+            onReplayHistory: { _ in },
+            onDeleteHistory: { _ in }
         ))
     }
 

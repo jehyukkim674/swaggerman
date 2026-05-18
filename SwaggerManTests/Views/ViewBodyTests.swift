@@ -424,16 +424,24 @@ struct ViewBodyTests {
     // MARK: - SidebarView
 
     @Test("SidebarView — 빈 spec body 실행")
-    func sidebarViewEmpty() {
+    func sidebarViewEmpty() throws {
         let opStore = OperationStore(
             parser: MockOpenAPIParser(),
             httpClient: MockHTTPClient(),
             cache: MockSpecCache()
         )
+        let container = try makeContainer()
         let view = SidebarView(
             operationStore: opStore,
             selectedOperationID: nil,
-            onSelectOperation: { _ in }
+            onSelectOperation: { _ in },
+            favoriteStore: FavoriteStore(modelContext: container.mainContext),
+            project: Project(alias: "T", swaggerURL: "https://api.com"),
+            onToggleFavorite: { _ in },
+            historyStore: HistoryStore(modelContext: container.mainContext),
+            onSelectHistory: { _ in },
+            onReplayHistory: { _ in },
+            onDeleteHistory: { _ in }
         )
         _ = view.body
     }
@@ -473,7 +481,14 @@ struct ViewBodyTests {
         let view = SidebarView(
             operationStore: opStore,
             selectedOperationID: "GET /users",
-            onSelectOperation: { _ in }
+            onSelectOperation: { _ in },
+            favoriteStore: FavoriteStore(modelContext: container.mainContext),
+            project: project,
+            onToggleFavorite: { _ in },
+            historyStore: HistoryStore(modelContext: container.mainContext),
+            onSelectHistory: { _ in },
+            onReplayHistory: { _ in },
+            onDeleteHistory: { _ in }
         )
         _ = view.body
     }

@@ -9,6 +9,7 @@ struct RootView: View {
     @State private var operationStore: OperationStore?
     @State private var requestEditorStore: RequestEditorStore?
     @State private var historyStore: HistoryStore?
+    @State private var favoriteStore: FavoriteStore?
 
     @State private var showSidebar = true
     @State private var showRequest = true
@@ -23,7 +24,7 @@ struct RootView: View {
         VStack(spacing: 0) {
             if let projectStore, let environmentStore,
                let operationStore, let requestEditorStore,
-               let historyStore
+               let historyStore, let favoriteStore
             {
                 if projectStore.projects.isEmpty {
                     WelcomeView(projectStore: projectStore, environmentStore: environmentStore)
@@ -52,7 +53,16 @@ struct RootView: View {
                                                                      securityHeaders: operationStore
                                                                          .computedSecurityHeaders)
                                     projectStore.saveLastOperationID(op.id, for: project)
-                                }
+                                },
+                                favoriteStore: favoriteStore,
+                                project: projectStore.selectedProject ?? Project(
+                                    alias: "", swaggerURL: ""
+                                ),
+                                onToggleFavorite: { _ in },
+                                historyStore: historyStore,
+                                onSelectHistory: { _ in },
+                                onReplayHistory: { _ in },
+                                onDeleteHistory: { _ in }
                             )
                             .frame(width: sidebarWidth)
                             PanelDivider { delta in
@@ -102,11 +112,13 @@ struct RootView: View {
             let os = OperationStore()
             let res = RequestEditorStore()
             let hs = HistoryStore(modelContext: modelContext)
+            let fs = FavoriteStore(modelContext: modelContext)
             projectStore = ps
             environmentStore = es
             operationStore = os
             requestEditorStore = res
             historyStore = hs
+            favoriteStore = fs
             if let project = ps.selectedProject {
                 es.onProjectChanged(project)
                 Task {

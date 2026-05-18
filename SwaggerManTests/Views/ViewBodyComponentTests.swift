@@ -113,7 +113,14 @@ struct ViewBodyComponentTests {
         _ = SidebarView(
             operationStore: opStore,
             selectedOperationID: nil,
-            onSelectOperation: { _ in }
+            onSelectOperation: { _ in },
+            favoriteStore: FavoriteStore(modelContext: container.mainContext),
+            project: project,
+            onToggleFavorite: { _ in },
+            historyStore: HistoryStore(modelContext: container.mainContext),
+            onSelectHistory: { _ in },
+            onReplayHistory: { _ in },
+            onDeleteHistory: { _ in }
         ).body
     }
 
@@ -131,7 +138,14 @@ struct ViewBodyComponentTests {
         _ = SidebarView(
             operationStore: opStore,
             selectedOperationID: "GET /users",
-            onSelectOperation: { _ in }
+            onSelectOperation: { _ in },
+            favoriteStore: FavoriteStore(modelContext: container.mainContext),
+            project: project,
+            onToggleFavorite: { _ in },
+            historyStore: HistoryStore(modelContext: container.mainContext),
+            onSelectHistory: { _ in },
+            onReplayHistory: { _ in },
+            onDeleteHistory: { _ in }
         ).body
     }
 
