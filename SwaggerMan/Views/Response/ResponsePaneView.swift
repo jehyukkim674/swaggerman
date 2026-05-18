@@ -55,53 +55,48 @@ struct ResponseDetailView: View {
 
     @State private var searchText = ""
     @State private var isSearchActive = false
+    @FocusState private var isSearchFieldFocused: Bool
 
-    private var highlightedBody: AttributedString {
-        guard !searchText.isEmpty else { return AttributedString(prettyBody) }
+    private var searchResult: (body: AttributedString, count: Int) {
+        let text = prettyBody
+        guard !searchText.isEmpty else { return (AttributedString(text), 0) }
 
         var result = AttributedString()
-        var searchStart = prettyBody.startIndex
+        var count = 0
+        var searchStart = text.startIndex
 
-        while searchStart < prettyBody.endIndex,
-              let found = prettyBody.range(
+        while searchStart < text.endIndex,
+              let found = text.range(
                   of: searchText,
                   options: .caseInsensitive,
-                  range: searchStart ..< prettyBody.endIndex
+                  range: searchStart ..< text.endIndex
               )
         {
-            let prefix = String(prettyBody[searchStart ..< found.lowerBound])
+            let prefix = String(text[searchStart ..< found.lowerBound])
             if !prefix.isEmpty { result += AttributedString(prefix) }
 
-            var highlight = AttributedString(String(prettyBody[found]))
+            var highlight = AttributedString(String(text[found]))
             highlight.backgroundColor = Color.yellow
             highlight.foregroundColor = Color.black
             result += highlight
+            count += 1
 
             searchStart = found.upperBound
         }
 
-        if searchStart < prettyBody.endIndex {
-            result += AttributedString(String(prettyBody[searchStart...]))
+        if searchStart < text.endIndex {
+            result += AttributedString(String(text[searchStart...]))
         }
 
-        return result
+        return (result, count)
+    }
+
+    private var highlightedBody: AttributedString {
+        searchResult.body
     }
 
     private var matchCount: Int {
-        guard !searchText.isEmpty else { return 0 }
-        var count = 0
-        var searchStart = prettyBody.startIndex
-        while searchStart < prettyBody.endIndex,
-              let found = prettyBody.range(
-                  of: searchText,
-                  options: .caseInsensitive,
-                  range: searchStart ..< prettyBody.endIndex
-              )
-        {
-            count += 1
-            searchStart = found.upperBound
-        }
-        return count
+        searchResult.count
     }
 
     var body: some View {
@@ -174,6 +169,7 @@ struct ResponseDetailView: View {
                     TextField("검색...", text: $searchText)
                         .textFieldStyle(.plain)
                         .font(.system(.caption))
+                        .focused($isSearchFieldFocused)
                     if !searchText.isEmpty {
                         Text(matchCount == 0 ? "일치 없음" : "\(matchCount)개 일치")
                             .font(.caption2)
@@ -212,11 +208,16 @@ struct ResponseDetailView: View {
         .overlay(
             Button("") {
                 isSearchActive.toggle()
-                if !isSearchActive { searchText = "" }
+                if isSearchActive {
+                    isSearchFieldFocused = true
+                } else {
+                    searchText = ""
+                }
             }
             .keyboardShortcut("f", modifiers: .command)
             .opacity(0)
             .allowsHitTesting(false)
+            .accessibilityHidden(true)
         )
     }
 
