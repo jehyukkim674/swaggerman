@@ -87,6 +87,7 @@ struct SchemeRow: View {
     let onLogout: () -> Void
 
     @State private var showValue = false
+    @FocusState private var isFieldFocused: Bool
 
     var schemeLabel: String {
         switch scheme.kind {
@@ -149,16 +150,40 @@ struct SchemeRow: View {
 
                 HStack(spacing: 8) {
                     ZStack(alignment: .leading) {
-                        TextField("토큰 입력", text: $value)
+                        TextField("", text: $value)
                             .textFieldStyle(.roundedBorder)
                             .font(.system(.body, design: .monospaced))
-                            .foregroundColor(!showValue && !value.isEmpty ? .clear : .primary)
-                        if !showValue, !value.isEmpty {
-                            Text(String(repeating: "•", count: min(value.count, 64)))
-                                .font(.system(.body, design: .monospaced))
-                                .padding(.horizontal, 7)
-                                .padding(.vertical, 4)
-                                .allowsHitTesting(false)
+                            .focused($isFieldFocused)
+                            .opacity(showValue ? 1 : 0)
+
+                        if !showValue {
+                            HStack(spacing: 0) {
+                                Text(value.isEmpty
+                                    ? "토큰 입력"
+                                    : String(repeating: "•", count: min(value.count, 64)))
+                                    .font(.system(.body, design: .monospaced))
+                                    .foregroundStyle(value.isEmpty ? .secondary : .primary)
+                                    .lineLimit(1)
+                                Spacer(minLength: 0)
+                            }
+                            .padding(.horizontal, 7)
+                            .padding(.vertical, 4)
+                            .frame(maxWidth: .infinity)
+                            .background(
+                                RoundedRectangle(cornerRadius: 5)
+                                    .fill(Color(.textBackgroundColor))
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 5)
+                                            .stroke(
+                                                isFieldFocused
+                                                    ? Color.accentColor.opacity(0.7)
+                                                    : Color(.separatorColor).opacity(0.5),
+                                                lineWidth: isFieldFocused ? 2 : 1
+                                            )
+                                    )
+                            )
+                            .contentShape(Rectangle())
+                            .onTapGesture { isFieldFocused = true }
                         }
                     }
                     Button {
