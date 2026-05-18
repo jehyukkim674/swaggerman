@@ -12,7 +12,7 @@ struct ParamsTab: View {
                     if !store.pathParams.isEmpty {
                         ParamSection(title: "Path Parameters") {
                             ForEach(store.pathParams.keys.sorted(), id: \.self) { key in
-                                ParamInputRow(
+                                ParamsTabInputRow(
                                     label: "{\(key)}",
                                     placeholder: "값 입력",
                                     value: Binding(
@@ -27,7 +27,7 @@ struct ParamsTab: View {
                     if !store.queryParams.isEmpty {
                         ParamSection(title: "Query Parameters") {
                             ForEach($store.queryParams) { $param in
-                                QueryParamInputRow(param: $param)
+                                ParamsTabQueryInputRow(param: $param)
                             }
                         }
                     }
@@ -59,7 +59,7 @@ private struct ParamSection<Content: View>: View {
 
 // MARK: - Path param row
 
-private struct ParamInputRow: View {
+private struct ParamsTabInputRow: View {
     let label: String
     let placeholder: String
     @Binding var value: String
@@ -90,7 +90,7 @@ private struct ParamInputRow: View {
 
 // MARK: - Query param row
 
-private struct QueryParamInputRow: View {
+private struct ParamsTabQueryInputRow: View {
     @Binding var param: RequestParam
 
     var body: some View {

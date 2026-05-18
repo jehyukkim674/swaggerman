@@ -15,7 +15,7 @@ struct HeadersTab: View {
                 ScrollView {
                     VStack(spacing: 4) {
                         ForEach($store.requestHeaders) { $header in
-                            HeaderInputRow(header: $header) {
+                            HeadersTabInputRow(header: $header) {
                                 store.requestHeaders.removeAll { $0.id == header.id }
                             }
                         }
@@ -39,7 +39,7 @@ struct HeadersTab: View {
     }
 }
 
-private struct HeaderInputRow: View {
+private struct HeadersTabInputRow: View {
     @Binding var header: RequestParam
     let onDelete: () -> Void
 
