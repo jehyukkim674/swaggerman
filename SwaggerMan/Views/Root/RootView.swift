@@ -1,5 +1,8 @@
+import OSLog
 import SwiftData
 import SwiftUI
+
+private let log = Logger(subsystem: "com.swaggerman", category: "RootView")
 
 struct RootView: View {
     @Environment(\.modelContext) private var modelContext
@@ -60,19 +63,13 @@ struct RootView: View {
                                 },
                                 historyStore: historyStore,
                                 onSelectHistory: { item in
-                                    guard let op = operationStore.operations.first(where: {
-                                        $0.method.rawValue == item.method && $0.path == item.path
-                                    }),
-                                        let env = environmentStore.activeEnvironment(for: project) else { return }
+                                    guard let (op, env) = resolveHistory(item, project: project) else { return }
                                     requestEditorStore.loadFromHistory(item, operation: op, environment: env,
                                                                        securityHeaders: operationStore
                                                                            .computedSecurityHeaders)
                                 },
                                 onReplayHistory: { item in
-                                    guard let op = operationStore.operations.first(where: {
-                                        $0.method.rawValue == item.method && $0.path == item.path
-                                    }),
-                                        let env = environmentStore.activeEnvironment(for: project) else { return }
+                                    guard let (op, env) = resolveHistory(item, project: project) else { return }
                                     let baseURL = env.baseURL.trimmingCharacters(in: CharacterSet(charactersIn: "/"))
                                     requestEditorStore.loadOperation(op, baseURL: baseURL, environment: env,
                                                                      securityHeaders: operationStore
@@ -179,6 +176,18 @@ struct RootView: View {
                 EnvironmentEditor(project: project, store: es)
             }
         }
+    }
+
+    private func resolveHistory(_ item: HistoryItem, project: Project) -> (op: ParsedOperation, env: APIEnvironment)? {
+        guard let operationStore, let environmentStore else { return nil }
+        guard let op = operationStore.operations.first(where: {
+            $0.method.rawValue == item.method && $0.path == item.path
+        }) else { return nil }
+        guard let env = environmentStore.activeEnvironment(for: project) else {
+            log.warning("resolveHistory: no active environment for project \(project.id)")
+            return nil
+        }
+        return (op, env)
     }
 
     @MainActor
