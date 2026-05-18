@@ -41,13 +41,12 @@ struct RootView: View {
                     )
                     Divider()
                     HStack(spacing: 0) {
-                        if showSidebar {
+                        if showSidebar, let project = projectStore.selectedProject {
                             SidebarView(
                                 operationStore: operationStore,
                                 selectedOperationID: requestEditorStore.selectedOperation?.id,
                                 onSelectOperation: { op in
-                                    guard let project = projectStore.selectedProject,
-                                          let env = environmentStore.activeEnvironment(for: project) else { return }
+                                    guard let env = environmentStore.activeEnvironment(for: project) else { return }
                                     let baseURL = env.baseURL.trimmingCharacters(in: CharacterSet(charactersIn: "/"))
                                     requestEditorStore.loadOperation(op, baseURL: baseURL, environment: env,
                                                                      securityHeaders: operationStore
@@ -55,15 +54,37 @@ struct RootView: View {
                                     projectStore.saveLastOperationID(op.id, for: project)
                                 },
                                 favoriteStore: favoriteStore,
-                                project: projectStore.selectedProject ?? Project(
-                                    alias: "", swaggerURL: ""
-                                ),
-                                onToggleFavorite: { _ in },
+                                project: project,
+                                onToggleFavorite: { op in
+                                    favoriteStore.toggle(method: op.method.rawValue, path: op.path, for: project)
+                                },
                                 historyStore: historyStore,
-                                onSelectHistory: { _ in },
-                                onReplayHistory: { _ in },
-                                onDeleteHistory: { _ in },
-                                onClearHistory: {}
+                                onSelectHistory: { item in
+                                    guard let op = operationStore.operations.first(where: {
+                                        $0.method.rawValue == item.method && $0.path == item.path
+                                    }),
+                                        let env = environmentStore.activeEnvironment(for: project) else { return }
+                                    requestEditorStore.loadFromHistory(item, operation: op, environment: env,
+                                                                       securityHeaders: operationStore
+                                                                           .computedSecurityHeaders)
+                                },
+                                onReplayHistory: { item in
+                                    guard let op = operationStore.operations.first(where: {
+                                        $0.method.rawValue == item.method && $0.path == item.path
+                                    }),
+                                        let env = environmentStore.activeEnvironment(for: project) else { return }
+                                    let baseURL = env.baseURL.trimmingCharacters(in: CharacterSet(charactersIn: "/"))
+                                    requestEditorStore.loadOperation(op, baseURL: baseURL, environment: env,
+                                                                     securityHeaders: operationStore
+                                                                         .computedSecurityHeaders)
+                                    requestEditorStore.restoreParams(from: item)
+                                },
+                                onDeleteHistory: { item in
+                                    historyStore.delete(item, from: project)
+                                },
+                                onClearHistory: {
+                                    historyStore.clear(for: project)
+                                }
                             )
                             .frame(width: sidebarWidth)
                             PanelDivider { delta in
@@ -121,6 +142,8 @@ struct RootView: View {
             historyStore = hs
             favoriteStore = fs
             if let project = ps.selectedProject {
+                fs.load(for: project)
+                hs.loadHistory(for: project)
                 es.onProjectChanged(project)
                 Task {
                     try? await os.loadSpec(for: project)
@@ -134,6 +157,8 @@ struct RootView: View {
                   let os = operationStore,
                   let es = environmentStore,
                   let res = requestEditorStore else { return }
+            favoriteStore?.load(for: project)
+            historyStore?.loadHistory(for: project)
             es.onProjectChanged(project)
             os.clearSpec()
             res.clearSelection()
