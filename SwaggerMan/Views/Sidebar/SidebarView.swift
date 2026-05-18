@@ -69,7 +69,7 @@ struct SidebarView: View {
 
 // MARK: - Search Bar
 
-private struct SearchBarView: View {
+struct SearchBarView: View {
     @Binding var text: String
 
     var body: some View {
@@ -99,7 +99,7 @@ private struct SearchBarView: View {
 
 // MARK: - Tag Filter
 
-private struct TagFilterView: View {
+struct TagFilterView: View {
     let tags: [String]
     @Binding var selectedTag: String?
 
@@ -159,7 +159,7 @@ private struct TagFilterView: View {
 
 // MARK: - Method Filter Pills
 
-private struct MethodFilterView: View {
+struct MethodFilterView: View {
     @Binding var selectedMethods: Set<HTTPMethod>
 
     var body: some View {

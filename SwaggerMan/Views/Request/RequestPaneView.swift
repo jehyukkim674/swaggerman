@@ -70,7 +70,7 @@ struct RequestPaneView: View {
 
 // MARK: - Collapsible Section
 
-private struct RequestSection<Content: View>: View {
+struct RequestSection<Content: View>: View {
     let title: String
     var badge: String?
     let defaultExpanded: Bool
@@ -78,7 +78,8 @@ private struct RequestSection<Content: View>: View {
     @State private var isExpanded: Bool
 
     init(title: String, badge: String? = nil, defaultExpanded: Bool = true,
-         @ViewBuilder content: @escaping () -> Content) {
+         @ViewBuilder content: @escaping () -> Content)
+    {
         self.title = title
         self.badge = badge
         self.defaultExpanded = defaultExpanded

@@ -7,7 +7,8 @@ import Testing
 @MainActor
 struct RequestEditorStoreTests {
     func makeOperation(method: HTTPMethod = .get, path: String = "/users/{id}",
-                       hasBody: Bool = false) -> ParsedOperation {
+                       hasBody: Bool = false) -> ParsedOperation
+    {
         ParsedOperation(
             id: "\(method.rawValue) \(path)",
             method: method,

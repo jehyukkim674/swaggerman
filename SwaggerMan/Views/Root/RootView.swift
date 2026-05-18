@@ -23,7 +23,8 @@ struct RootView: View {
         VStack(spacing: 0) {
             if let projectStore, let environmentStore,
                let operationStore, let requestEditorStore,
-               let historyStore {
+               let historyStore
+            {
                 if projectStore.projects.isEmpty {
                     WelcomeView(projectStore: projectStore, environmentStore: environmentStore)
                 } else {
@@ -130,15 +131,17 @@ struct RootView: View {
         }
         .sheet(isPresented: $showEnvironmentEditor) {
             if let project = projectStore?.selectedProject,
-               let es = environmentStore {
+               let es = environmentStore
+            {
                 EnvironmentEditor(project: project, store: es)
             }
         }
     }
 
     @MainActor
-    private func restoreLastOperation(project: Project, os: OperationStore,
-                                      es: EnvironmentStore, res: RequestEditorStore) {
+    func restoreLastOperation(project: Project, os: OperationStore,
+                              es: EnvironmentStore, res: RequestEditorStore)
+    {
         guard let lastID = project.lastOperationID,
               let op = os.operations.first(where: { $0.id == lastID }),
               let env = es.activeEnvironment(for: project) else { return }
@@ -150,7 +153,7 @@ struct RootView: View {
 
 // MARK: - Welcome / Onboarding
 
-private struct WelcomeView: View {
+struct WelcomeView: View {
     let projectStore: ProjectStore
     let environmentStore: EnvironmentStore
 
@@ -197,7 +200,7 @@ private struct WelcomeView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
-    private func addProject() {
+    func addProject() {
         do {
             try projectStore.addProject(alias: alias, swaggerURL: swaggerURL)
             if let project = projectStore.projects.first {
@@ -213,7 +216,7 @@ private struct WelcomeView: View {
 
 // MARK: - Draggable Panel Divider (native AppKit for smooth tracking)
 
-private struct PanelDivider: View {
+struct PanelDivider: View {
     let onDrag: (CGFloat) -> Void
 
     var body: some View {
@@ -222,7 +225,7 @@ private struct PanelDivider: View {
     }
 }
 
-private struct NativeDividerView: NSViewRepresentable {
+struct NativeDividerView: NSViewRepresentable {
     let onDrag: (CGFloat) -> Void
 
     func makeNSView(context _: Context) -> DividerNSView {

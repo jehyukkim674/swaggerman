@@ -79,7 +79,7 @@ struct AuthorizeSheet: View {
 
 // MARK: - Scheme Row
 
-private struct SchemeRow: View {
+struct SchemeRow: View {
     let scheme: ParsedSecurityScheme
     @Binding var value: String
     let isAuthorized: Bool

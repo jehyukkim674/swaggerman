@@ -39,7 +39,7 @@ struct HeadersTab: View {
     }
 }
 
-private struct HeadersTabInputRow: View {
+struct HeadersTabInputRow: View {
     @Binding var header: RequestParam
     let onDelete: () -> Void
 

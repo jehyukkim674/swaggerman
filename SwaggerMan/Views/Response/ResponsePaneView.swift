@@ -26,7 +26,7 @@ struct ResponsePaneView: View {
 
 // MARK: - Error State
 
-private struct SendErrorView: View {
+struct SendErrorView: View {
     let error: Error
 
     var body: some View {
@@ -48,7 +48,7 @@ private struct SendErrorView: View {
 
 // MARK: - Response Detail
 
-private struct ResponseDetailView: View {
+struct ResponseDetailView: View {
     let response: HTTPResponse
     let curlString: String?
 
@@ -145,7 +145,7 @@ private struct ResponseDetailView: View {
 
 // MARK: - Headers Section
 
-private struct ResponseHeadersSection: View {
+struct ResponseHeadersSection: View {
     let headers: [String: String]
     @State private var isExpanded = true
 

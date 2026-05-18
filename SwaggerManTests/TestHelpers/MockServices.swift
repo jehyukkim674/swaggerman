@@ -6,13 +6,21 @@ actor MockHTTPClient: HTTPClientProtocol {
         HTTPResponse(statusCode: 200, headers: [:], body: Data(), durationMs: 0)
     )
     var executeResult: Result<HTTPResponse, Error>?
+    var urlBasedResults: [String: Result<HTTPResponse, Error>] = [:]
 
     func setExecuteResult(_ result: Result<HTTPResponse, Error>) {
         executeResult = result
     }
 
-    func get(_: URL, headers _: [String: String]) async throws -> HTTPResponse {
-        try getResult.get()
+    func setURLResult(for urlString: String, _ result: Result<HTTPResponse, Error>) {
+        urlBasedResults[urlString] = result
+    }
+
+    func get(_ url: URL, headers _: [String: String]) async throws -> HTTPResponse {
+        if let result = urlBasedResults[url.absoluteString] {
+            return try result.get()
+        }
+        return try getResult.get()
     }
 
     func execute(_: HTTPRequest) async throws -> HTTPResponse {

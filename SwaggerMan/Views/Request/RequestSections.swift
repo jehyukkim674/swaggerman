@@ -115,7 +115,7 @@ struct BodySectionContent: View {
         }
     }
 
-    private func formatJSON() {
+    func formatJSON() {
         guard let data = store.bodyJSON.data(using: .utf8),
               let obj = try? JSONSerialization.jsonObject(with: data),
               let pretty = try? JSONSerialization.data(withJSONObject: obj, options: .prettyPrinted),

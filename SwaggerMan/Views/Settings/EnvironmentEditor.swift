@@ -59,7 +59,7 @@ struct EnvironmentEditor: View {
 
 // MARK: - Detail form
 
-private struct EnvironmentDetailForm: View {
+struct EnvironmentDetailForm: View {
     let env: APIEnvironment
     let project: Project
     @Bindable var store: EnvironmentStore
@@ -143,7 +143,7 @@ private struct EnvironmentDetailForm: View {
         .navigationTitle(env.name)
     }
 
-    private func save() {
+    func save() {
         do {
             try store.updateEnvironment(
                 env,
@@ -167,7 +167,7 @@ private struct EnvironmentDetailForm: View {
 
 // MARK: - Add sheet
 
-private struct AddEnvironmentSheet: View {
+struct AddEnvironmentSheet: View {
     let project: Project
     @Bindable var store: EnvironmentStore
     @Environment(\.dismiss) private var dismiss
@@ -204,7 +204,7 @@ private struct AddEnvironmentSheet: View {
         .frame(width: 400)
     }
 
-    private func addEnvironment() {
+    func addEnvironment() {
         do {
             try store.addEnvironment(name: name, baseURL: baseURL, to: project)
             dismiss()

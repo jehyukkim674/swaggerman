@@ -4,7 +4,7 @@
 --disable redundantSelf
 --enable isEmpty
 --enable sortImports
---enable trailingCommas
+--disable trailingCommas
 --trimwhitespace always
 --wrapcollections before-first
 --maxwidth 120

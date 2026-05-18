@@ -9,7 +9,8 @@ struct OperationStoreTests {
     func makeStore(parser: OpenAPIParserProtocol = MockOpenAPIParser(),
                    httpClient: (any HTTPClientProtocol)? = nil,
                    cache: (any SpecCacheProtocol)? = nil) throws // swiftlint:disable:next large_tuple
-        -> (OperationStore, ProjectStore, _container: ModelContainer) {
+        -> (OperationStore, ProjectStore, _container: ModelContainer)
+    {
         let container = try ModelContainerFactory.makeInMemory()
         let ctx = container.mainContext
         let projectStore = ProjectStore(modelContext: ctx)

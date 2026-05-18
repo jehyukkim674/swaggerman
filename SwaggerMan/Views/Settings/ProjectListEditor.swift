@@ -58,7 +58,7 @@ struct ProjectListEditor: View {
 
 // MARK: - Detail form
 
-private struct ProjectDetailForm: View {
+struct ProjectDetailForm: View {
     let project: Project
     let store: ProjectStore
     @State private var alias: String
@@ -86,7 +86,7 @@ private struct ProjectDetailForm: View {
         .navigationTitle(project.alias)
     }
 
-    private func save() {
+    func save() {
         do {
             try store.updateProject(project, alias: alias, swaggerURL: swaggerURL)
             validationError = nil
@@ -98,7 +98,7 @@ private struct ProjectDetailForm: View {
 
 // MARK: - Add sheet
 
-private struct AddProjectSheet: View {
+struct AddProjectSheet: View {
     let store: ProjectStore
     @Environment(\.dismiss) private var dismiss
     @State private var alias = ""
@@ -132,7 +132,7 @@ private struct AddProjectSheet: View {
         .frame(width: 420)
     }
 
-    private func addProject() {
+    func addProject() {
         do {
             try store.addProject(alias: alias, swaggerURL: swaggerURL)
             dismiss()

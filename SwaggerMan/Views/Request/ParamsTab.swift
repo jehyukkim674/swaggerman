@@ -40,7 +40,7 @@ struct ParamsTab: View {
 
 // MARK: - Section
 
-private struct ParamSection<Content: View>: View {
+struct ParamSection<Content: View>: View {
     let title: String
     @ViewBuilder let content: () -> Content
 
@@ -59,7 +59,7 @@ private struct ParamSection<Content: View>: View {
 
 // MARK: - Path param row
 
-private struct ParamsTabInputRow: View {
+struct ParamsTabInputRow: View {
     let label: String
     let placeholder: String
     @Binding var value: String
@@ -90,7 +90,7 @@ private struct ParamsTabInputRow: View {
 
 // MARK: - Query param row
 
-private struct ParamsTabQueryInputRow: View {
+struct ParamsTabQueryInputRow: View {
     @Binding var param: RequestParam
 
     var body: some View {
