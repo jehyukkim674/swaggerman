@@ -115,6 +115,32 @@ final class RequestEditorStore {
         }
     }
 
+    func loadFromHistory(_ item: HistoryItem, operation: ParsedOperation,
+                         environment: APIEnvironment, securityHeaders: [String: String])
+    {
+        loadOperation(operation, baseURL: environment.baseURL, environment: environment,
+                      securityHeaders: securityHeaders)
+        restoreParams(from: item)
+        response = HTTPResponse(
+            statusCode: item.responseStatus,
+            headers: (try? JSONDecoder().decode([String: String].self,
+                                                from: Data(item.responseHeadersJSON.utf8))) ?? [:],
+            body: Data(item.responseBody.utf8),
+            durationMs: item.durationMs
+        )
+    }
+
+    func restoreParams(from item: HistoryItem) {
+        if let body = item.requestBody {
+            bodyJSON = body
+        }
+        let headers = (try? JSONDecoder().decode([String: String].self,
+                                                 from: Data(item.requestHeadersJSON.utf8))) ?? [:]
+        if !headers.isEmpty {
+            requestHeaders = headers.map { RequestParam(key: $0.key, value: $0.value, enabled: true) }
+        }
+    }
+
     // MARK: - Private Methods
 
     private func buildRequest(op: ParsedOperation) throws -> HTTPRequest {
