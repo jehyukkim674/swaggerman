@@ -9,8 +9,10 @@ fi
 
 # SwiftFormat: staged .swift 파일 자동 포맷 후 재스테이징
 if which swiftformat > /dev/null; then
-  echo "$STAGED" | xargs swiftformat --config "$REPO_ROOT/.swiftformat" --quiet
-  echo "$STAGED" | xargs git add
+  while IFS= read -r file; do
+    swiftformat "$file" --config "$REPO_ROOT/.swiftformat" --quiet
+    git add "$file"
+  done <<< "$STAGED"
 else
   echo "warning: SwiftFormat not installed. Run: brew install swiftformat"
 fi
