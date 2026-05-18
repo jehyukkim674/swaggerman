@@ -391,6 +391,38 @@ struct RequestEditorStoreAdditionalTests {
         #expect(store.response != nil)
     }
 
+    @Test("send — disableTLS true가 HTTPClient로 전달됨")
+    func sendPassesDisableTLS() async throws {
+        let container = try ModelContainerFactory.makeInMemory()
+        let ctx = container.mainContext
+        _ = container
+
+        let mockClient = MockHTTPClient()
+        await mockClient.setExecuteResult(.success(
+            HTTPResponse(statusCode: 200, headers: [:], body: Data(), durationMs: 5)
+        ))
+
+        let projectStore = ProjectStore(modelContext: ctx)
+        try projectStore.addProject(alias: "API", swaggerURL: "https://api.com/docs")
+        let project = projectStore.projects[0]
+        let historyStore = HistoryStore(modelContext: ctx)
+
+        let store = RequestEditorStore(httpClient: mockClient)
+        let op = ParsedOperation(
+            id: "GET /test", method: .get, path: "/test",
+            operationId: nil, summary: nil, description: nil,
+            tags: [], parameters: [], requestBody: nil,
+            responseDescriptions: [:]
+        )
+        let env = APIEnvironment(name: "Dev", baseURL: "https://api.test")
+        store.loadOperation(op, baseURL: env.baseURL, environment: env, securityHeaders: [:])
+
+        await store.send(project: project, historyStore: historyStore, disableTLS: true)
+
+        let disableTLSUsed = await mockClient.lastDisableTLS
+        #expect(disableTLSUsed == true)
+    }
+
     @Test("send without selectedOperation — 빠른 리턴")
     func sendWithoutSelectedOperationNoop() async throws {
         let container = try ModelContainerFactory.makeInMemory()

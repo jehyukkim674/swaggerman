@@ -182,7 +182,10 @@ struct RootView: View {
         guard let operationStore, let environmentStore else { return nil }
         guard let op = operationStore.operations.first(where: {
             $0.method.rawValue == item.method && $0.path == item.path
-        }) else { return nil }
+        }) else {
+            log.warning("resolveHistory: operation not found for \(item.method) \(item.path)")
+            return nil
+        }
         guard let env = environmentStore.activeEnvironment(for: project) else {
             log.warning("resolveHistory: no active environment for project \(project.id)")
             return nil
