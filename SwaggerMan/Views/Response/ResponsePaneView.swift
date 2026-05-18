@@ -5,22 +5,62 @@ struct ResponsePaneView: View {
     @Bindable var store: RequestEditorStore
 
     var body: some View {
-        Group {
-            if store.isSending {
-                ProgressView("요청 중...")
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-            } else if let err = store.sendError {
-                SendErrorView(error: err)
-            } else if let response = store.response {
-                ResponseDetailView(response: response, curlString: store.lastCurlString, lastRequest: store.lastRequest)
-            } else {
-                ContentUnavailableView(
-                    "응답 없음",
-                    systemImage: "arrow.up.arrow.down",
-                    description: Text("Send를 눌러 요청을 실행하세요.")
-                )
+        VStack(spacing: 0) {
+            if store.selectedOperation != nil {
+                // Tab bar
+                HStack(spacing: 4) {
+                    tabButton(.docs, label: "Docs")
+                    tabButton(.response, label: "Response")
+                    Spacer()
+                }
+                .padding(.horizontal, 10)
+                .padding(.vertical, 5)
+                .background(Color(.textBackgroundColor).opacity(0.4))
+
+                Divider()
+            }
+
+            // Content
+            Group {
+                if store.isSending {
+                    ProgressView("요청 중...")
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                } else if store.responseTab == .docs, let op = store.selectedOperation {
+                    DocsPaneView(operation: op)
+                } else if let err = store.sendError {
+                    SendErrorView(error: err)
+                } else if let response = store.response {
+                    ResponseDetailView(
+                        response: response,
+                        curlString: store.lastCurlString,
+                        lastRequest: store.lastRequest
+                    )
+                } else {
+                    ContentUnavailableView(
+                        "응답 없음",
+                        systemImage: "arrow.up.arrow.down",
+                        description: Text("Send를 눌러 요청을 실행하세요.")
+                    )
+                }
             }
         }
+    }
+
+    @ViewBuilder
+    private func tabButton(_ tab: ResponseTab, label: String) -> some View {
+        let selected = store.responseTab == tab
+        Button {
+            store.responseTab = tab
+        } label: {
+            Text(label)
+                .font(.system(.caption).weight(selected ? .semibold : .regular))
+                .foregroundStyle(selected ? .primary : .secondary)
+                .padding(.horizontal, 9)
+                .padding(.vertical, 4)
+                .background(selected ? Color.primary.opacity(0.08) : Color.clear)
+                .clipShape(.rect(cornerRadius: 5))
+        }
+        .buttonStyle(.plain)
     }
 }
 
