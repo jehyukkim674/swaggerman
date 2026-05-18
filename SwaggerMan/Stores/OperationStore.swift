@@ -138,7 +138,8 @@ final class OperationStore {
     private func saveSecurityValues() {
         guard let project = currentProject else { return }
         if let data = try? JSONEncoder().encode(securityValues),
-           let json = String(data: data, encoding: .utf8) {
+           let json = String(data: data, encoding: .utf8)
+        {
             project.securityValuesJSON = json.isEmpty ? nil : json
         }
     }
@@ -156,7 +157,7 @@ final class OperationStore {
     // MARK: - Private
 
     private func fetchAndParse(url: URL) async throws -> ParsedSpec {
-        let response = try await httpClient.get(url, headers: [:])
+        let response = try await httpClient.get(url, headers: [:], disableTLS: false)
         let bodyStr = String(data: response.body, encoding: .utf8) ?? ""
 
         if bodyStr.trimmingCharacters(in: .whitespacesAndNewlines).hasPrefix("<") {
@@ -183,7 +184,8 @@ final class OperationStore {
         log.info("HTML received — auto-discovering spec URL from \(url)")
 
         if let specURL = await swaggerConfigSpecURL(from: url),
-           let spec = try? await fetchAndParse(url: specURL) {
+           let spec = try? await fetchAndParse(url: specURL)
+        {
             log.info("Spec discovered via swagger-config: \(specURL)")
             return spec
         }
@@ -213,7 +215,7 @@ final class OperationStore {
         base.path = "/swagger-ui/swagger-config"
         base.query = nil
         guard let configURL = base.url,
-              let response = try? await httpClient.get(configURL, headers: [:]) else { return nil }
+              let response = try? await httpClient.get(configURL, headers: [:], disableTLS: false) else { return nil }
 
         struct SwaggerUIConfig: Decodable { var url: String? }
         guard let config = try? JSONDecoder().decode(SwaggerUIConfig.self, from: response.body),

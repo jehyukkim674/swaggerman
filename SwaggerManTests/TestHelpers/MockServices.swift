@@ -7,6 +7,7 @@ actor MockHTTPClient: HTTPClientProtocol {
     )
     var executeResult: Result<HTTPResponse, Error>?
     var urlBasedResults: [String: Result<HTTPResponse, Error>] = [:]
+    var lastDisableTLS: Bool = false
 
     func setExecuteResult(_ result: Result<HTTPResponse, Error>) {
         executeResult = result
@@ -16,14 +17,16 @@ actor MockHTTPClient: HTTPClientProtocol {
         urlBasedResults[urlString] = result
     }
 
-    func get(_ url: URL, headers _: [String: String]) async throws -> HTTPResponse {
+    func get(_ url: URL, headers _: [String: String], disableTLS: Bool = false) async throws -> HTTPResponse {
+        lastDisableTLS = disableTLS
         if let result = urlBasedResults[url.absoluteString] {
             return try result.get()
         }
         return try getResult.get()
     }
 
-    func execute(_: HTTPRequest) async throws -> HTTPResponse {
+    func execute(_: HTTPRequest, disableTLS: Bool = false) async throws -> HTTPResponse {
+        lastDisableTLS = disableTLS
         if let executeResult { return try executeResult.get() }
         return try getResult.get()
     }

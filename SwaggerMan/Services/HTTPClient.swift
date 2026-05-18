@@ -4,18 +4,18 @@ import os.log
 private let log = Logger(subsystem: "com.swaggerman", category: "HTTPClient")
 
 actor HTTPClient: HTTPClientProtocol {
-    private let session: URLSession
+    private let defaultSession: URLSession
 
     nonisolated init(session: URLSession = .shared) {
-        self.session = session
+        defaultSession = session
     }
 
-    func get(_ url: URL, headers: [String: String] = [:]) async throws -> HTTPResponse {
+    func get(_ url: URL, headers: [String: String] = [:], disableTLS: Bool = false) async throws -> HTTPResponse {
         let req = HTTPRequest(method: .get, url: url, headers: headers)
-        return try await execute(req)
+        return try await execute(req, disableTLS: disableTLS)
     }
 
-    func execute(_ request: HTTPRequest) async throws -> HTTPResponse {
+    func execute(_ request: HTTPRequest, disableTLS: Bool = false) async throws -> HTTPResponse {
         var urlRequest = URLRequest(url: request.url)
         urlRequest.httpMethod = request.method.rawValue
         urlRequest.timeoutInterval = 30
@@ -23,6 +23,10 @@ actor HTTPClient: HTTPClientProtocol {
         urlRequest.httpBody = request.body
 
         log.debug("→ \(request.method.rawValue) \(request.url)")
+
+        let session = disableTLS
+            ? URLSession(configuration: .default, delegate: TLSBypassDelegate(), delegateQueue: nil)
+            : defaultSession
 
         do {
             let start = Date()
@@ -54,16 +58,28 @@ actor HTTPClient: HTTPClientProtocol {
 
     private func mapURLError(_ error: URLError, host: String) -> SwaggerManError {
         switch error.code {
-        case .timedOut:
-            .network(.timeout)
-        case .notConnectedToInternet, .networkConnectionLost:
-            .network(.offline)
-        case .cannotFindHost, .cannotConnectToHost:
-            .network(.dnsFailure(host: host))
+        case .timedOut: .network(.timeout)
+        case .notConnectedToInternet, .networkConnectionLost: .network(.offline)
+        case .cannotFindHost, .cannotConnectToHost: .network(.dnsFailure(host: host))
         case .serverCertificateUntrusted, .serverCertificateHasUnknownRoot:
             .network(.tlsFailure(detail: error.localizedDescription))
-        default:
-            .network(.unexpectedStatus(-1, body: error.localizedDescription))
+        default: .network(.unexpectedStatus(-1, body: error.localizedDescription))
         }
+    }
+}
+
+private final class TLSBypassDelegate: NSObject, URLSessionDelegate, @unchecked Sendable {
+    func urlSession(
+        _: URLSession,
+        didReceive challenge: URLAuthenticationChallenge,
+        completionHandler: @escaping (URLSession.AuthChallengeDisposition, URLCredential?) -> Void
+    ) {
+        guard challenge.protectionSpace.authenticationMethod == NSURLAuthenticationMethodServerTrust,
+              let trust = challenge.protectionSpace.serverTrust
+        else {
+            completionHandler(.performDefaultHandling, nil)
+            return
+        }
+        completionHandler(.useCredential, URLCredential(trust: trust))
     }
 }

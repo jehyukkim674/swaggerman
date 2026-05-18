@@ -3,8 +3,8 @@ import Foundation
 // MARK: - HTTPClient
 
 protocol HTTPClientProtocol: Sendable {
-    func get(_ url: URL, headers: [String: String]) async throws -> HTTPResponse
-    func execute(_ request: HTTPRequest) async throws -> HTTPResponse
+    func get(_ url: URL, headers: [String: String], disableTLS: Bool) async throws -> HTTPResponse
+    func execute(_ request: HTTPRequest, disableTLS: Bool) async throws -> HTTPResponse
 }
 
 // MARK: - OpenAPIParser

@@ -67,8 +67,13 @@ struct RootView: View {
                                     environmentStore.activeEnvironment(for: $0)
                                 },
                                 onSend: {
-                                    guard let project = projectStore.selectedProject else { return }
-                                    await requestEditorStore.send(project: project, historyStore: historyStore)
+                                    guard let project = projectStore.selectedProject,
+                                          let env = environmentStore.activeEnvironment(for: project) else { return }
+                                    await requestEditorStore.send(
+                                        project: project,
+                                        historyStore: historyStore,
+                                        disableTLS: env.disableTLSValidation
+                                    )
                                 }
                             )
                             .frame(maxWidth: .infinity)

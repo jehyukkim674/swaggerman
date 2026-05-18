@@ -43,7 +43,8 @@ final class RequestEditorStore {
     // MARK: - Public Methods
 
     func loadOperation(_ op: ParsedOperation, baseURL: String, environment: APIEnvironment,
-                       securityHeaders: [String: String] = [:]) {
+                       securityHeaders: [String: String] = [:])
+    {
         selectedOperation = op
         currentBaseURL = baseURL
         currentEnvID = environment.id
@@ -73,7 +74,7 @@ final class RequestEditorStore {
         lastCurlString = nil
     }
 
-    func send(project: Project, historyStore: HistoryStore) async {
+    func send(project: Project, historyStore: HistoryStore, disableTLS: Bool = false) async {
         guard let op = selectedOperation else { return }
         isSending = true
         defer { isSending = false }
@@ -82,7 +83,7 @@ final class RequestEditorStore {
         do {
             let request = try buildRequest(op: op)
             lastCurlString = CurlBuilder.build(request)
-            let res = try await httpClient.execute(request)
+            let res = try await httpClient.execute(request, disableTLS: disableTLS)
             response = res
 
             let reqHeadersJSON = jsonString(from: request.headers)
@@ -154,7 +155,8 @@ final class RequestEditorStore {
     }
 
     private func buildDefaultHeaders(for op: ParsedOperation, environment: APIEnvironment,
-                                     securityHeaders: [String: String] = [:]) -> [RequestParam] {
+                                     securityHeaders: [String: String] = [:]) -> [RequestParam]
+    {
         var headers: [RequestParam] = []
 
         // Security scheme values (from Authorize dialog) take priority
