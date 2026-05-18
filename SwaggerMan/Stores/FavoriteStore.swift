@@ -46,7 +46,6 @@ final class FavoriteStore {
         let nextOrder = (favorites.map(\.sortOrder).max() ?? -1) + 1
         let fav = FavoriteOperation(method: method, path: path, sortOrder: nextOrder, project: project)
         modelContext.insert(fav)
-        project.favorites.append(fav)
         save()
         load(for: project)
         log.debug("Favorite added: \(method) \(path)")
