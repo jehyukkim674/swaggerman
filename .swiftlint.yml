@@ -1,0 +1,58 @@
+disabled_rules:
+  - trailing_whitespace
+
+opt_in_rules:
+  - force_unwrapping
+  - force_try
+  - force_cast
+  - empty_count
+  - explicit_init
+  - closure_spacing
+  - overridden_super_call
+  - prohibited_super_call
+  - vertical_parameter_alignment_on_call
+  - unneeded_parentheses_in_closure_argument
+  - redundant_nil_coalescing
+
+analyzer_rules:
+  - explicit_self
+  - unused_import
+
+line_length:
+  warning: 120
+  error: 200
+  ignores_comments: true
+  ignores_urls: true
+
+type_body_length:
+  warning: 300
+  error: 500
+
+file_length:
+  warning: 400
+  error: 600
+
+function_body_length:
+  warning: 60
+  error: 100
+
+cyclomatic_complexity:
+  warning: 10
+  error: 20
+
+identifier_name:
+  min_length: 2
+  excluded:
+    - id
+    - op
+    - os
+    - es
+    - ps
+    - hs
+    - v
+    - x
+    - y
+
+excluded:
+  - SwaggerMan.xcodeproj
+  - SwaggerManTests/Mocks

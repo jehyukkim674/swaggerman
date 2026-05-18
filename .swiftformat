@@ -1,0 +1,11 @@
+--indent 4
+--tabwidth 4
+--swiftversion 5.9
+--disable redundantSelf
+--enable isEmpty
+--enable sortImports
+--enable trailingCommas
+--trimwhitespace always
+--wrapcollections before-first
+--maxwidth 120
+--importgrouping testable-bottom
