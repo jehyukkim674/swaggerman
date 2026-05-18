@@ -1,0 +1,26 @@
+#!/bin/bash
+
+REPO_ROOT="$(git rev-parse --show-toplevel)"
+STAGED=$(git diff --cached --name-only --diff-filter=ACM | grep "\.swift$" || true)
+
+if [ -z "$STAGED" ]; then
+  exit 0
+fi
+
+# SwiftFormat: staged .swift 파일 자동 포맷 후 재스테이징
+if which swiftformat > /dev/null; then
+  echo "$STAGED" | xargs swiftformat --config "$REPO_ROOT/.swiftformat" --quiet
+  echo "$STAGED" | xargs git add
+else
+  echo "warning: SwiftFormat not installed. Run: brew install swiftformat"
+fi
+
+# SwiftLint: 위반 시 커밋 차단
+if which swiftlint > /dev/null; then
+  if ! swiftlint --config "$REPO_ROOT/.swiftlint.yml" --strict; then
+    echo "❌ SwiftLint 위반 발견. 커밋이 차단됩니다."
+    exit 1
+  fi
+else
+  echo "warning: SwiftLint not installed. Run: brew install swiftlint"
+fi
