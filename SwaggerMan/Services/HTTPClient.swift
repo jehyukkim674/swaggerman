@@ -10,6 +10,12 @@ actor HTTPClient: HTTPClientProtocol {
         defaultSession = session
     }
 
+    private lazy var bypassSession: URLSession = .init(
+        configuration: .default,
+        delegate: TLSBypassDelegate(),
+        delegateQueue: nil
+    )
+
     func get(_ url: URL, headers: [String: String] = [:], disableTLS: Bool = false) async throws -> HTTPResponse {
         let req = HTTPRequest(method: .get, url: url, headers: headers)
         return try await execute(req, disableTLS: disableTLS)
@@ -24,9 +30,7 @@ actor HTTPClient: HTTPClientProtocol {
 
         log.debug("→ \(request.method.rawValue) \(request.url)")
 
-        let session = disableTLS
-            ? URLSession(configuration: .default, delegate: TLSBypassDelegate(), delegateQueue: nil)
-            : defaultSession
+        let session = disableTLS ? bypassSession : defaultSession
 
         do {
             let start = Date()
@@ -68,6 +72,7 @@ actor HTTPClient: HTTPClientProtocol {
     }
 }
 
+/// Stateless — no mutable storage; @unchecked Sendable is safe.
 private final class TLSBypassDelegate: NSObject, URLSessionDelegate, @unchecked Sendable {
     func urlSession(
         _: URLSession,
