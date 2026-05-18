@@ -1,0 +1,32 @@
+# SwaggerMan
+
+macOS용 OpenAPI / Swagger 탐색기 앱.
+
+## 개발 환경 설정
+
+### 필수 툴 설치
+
+```bash
+brew install swiftlint swiftformat xcodegen
+```
+
+### 초기 설정 (클론 후 1회)
+
+```bash
+make setup      # pre-commit hook 설치
+make generate   # Xcode 프로젝트 재생성 (project.yml 수정 후)
+```
+
+### 수동 실행
+
+```bash
+make lint       # SwiftLint 검사
+make format     # SwiftFormat 자동 포맷
+make analyze    # SwiftLint 정적 분석 (unused imports 등)
+```
+
+### 커밋 시 자동 실행
+
+`make setup` 후 커밋할 때 자동으로:
+- **SwiftFormat**: staged `.swift` 파일 자동 포맷 후 재스테이징
+- **SwiftLint**: 위반 시 커밋 차단
