@@ -41,7 +41,7 @@ final class HistoryStore {
     }
 
     func delete(_ item: HistoryItem, from project: Project) {
-        project.history.removeAll { $0.id == item.id }
+        project.history.removeAll { $0.persistentModelID == item.persistentModelID }
         modelContext.delete(item)
         save()
         loadHistory(for: project)

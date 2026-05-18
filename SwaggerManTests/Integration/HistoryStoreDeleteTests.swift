@@ -50,6 +50,8 @@ struct HistoryStoreDeleteTests {
 
         #expect(historyStore.items.count == 1)
         #expect(historyStore.items[0].id == item2.id)
+        #expect(project.history.count == 1)
+        #expect(project.history[0].id == item2.id)
     }
 
     @Test("delete — 없는 항목 삭제 시 크래시 없음")
