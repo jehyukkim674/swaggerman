@@ -19,6 +19,7 @@
 		1F84E3CBD50ED66A52725671 /* SpecCacheTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 762FE19D5939DB9E9FFD4A78 /* SpecCacheTests.swift */; };
 		240CB85AD76A5918462F95D2 /* AuthorizeSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6FCDE48D3285F986E4DBC9D8 /* AuthorizeSheet.swift */; };
 		2481D731871FB71DEA6F3B6B /* ParsedSpec.swift in Sources */ = {isa = PBXBuildFile; fileRef = 64F1D6EF1D66D8B90F47B7BC /* ParsedSpec.swift */; };
+		248E8A934D1D13E6A88F672B /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = DCCDF9E50D5C28F78BE52593 /* Assets.xcassets */; };
 		25EC3ACDAF7D3361B9594DC7 /* ModelContainerFactory.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8D4498D6A072185815FC0CB6 /* ModelContainerFactory.swift */; };
 		2964399335E1DA9F9CEDDBA3 /* EnvironmentStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5969A4F5BD5921F28DF68692 /* EnvironmentStore.swift */; };
 		2B9AC3557B4252D7BE49D0CB /* SpecCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = AC0C1004E596254D3341DD1B /* SpecCache.swift */; };
@@ -147,6 +148,7 @@
 		D0C551C1B3F50B78FE0EA360 /* PersistenceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PersistenceTests.swift; sourceTree = "<group>"; };
 		DC8516FD82630ADE4A4D3DDE /* Protocols.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Protocols.swift; sourceTree = "<group>"; };
 		DC86D6254F4B11874D1419A7 /* HTTPRequest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HTTPRequest.swift; sourceTree = "<group>"; };
+		DCCDF9E50D5C28F78BE52593 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		DECCE7EFD5AB5AAB04D2D054 /* APIEnvironment.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIEnvironment.swift; sourceTree = "<group>"; };
 		DF6A36E4B2D1D1C940AA296B /* HistoryStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HistoryStore.swift; sourceTree = "<group>"; };
 		E217CB648EEB5FE2DA71880D /* SwaggerMan.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = SwaggerMan.entitlements; sourceTree = "<group>"; };
@@ -342,6 +344,7 @@
 		B6E9E64D063AF3A7E7685FA8 /* Resources */ = {
 			isa = PBXGroup;
 			children = (
+				DCCDF9E50D5C28F78BE52593 /* Assets.xcassets */,
 				FAA358F4C373334FF032AD94 /* Info.plist */,
 			);
 			path = Resources;
@@ -461,6 +464,7 @@
 			buildConfigurationList = EC992A59EB0EE6324999BBC4 /* Build configuration list for PBXNativeTarget "SwaggerMan" */;
 			buildPhases = (
 				A86A36C07F6FFFCA31816CEE /* Sources */,
+				39D7A818CA004A5896C58750 /* Resources */,
 				74A64BF8B431BE6102D7D10C /* Frameworks */,
 				47FB2F3B8A183AC8A351D21F /* SwiftLint */,
 			);
@@ -518,6 +522,17 @@
 			);
 		};
 /* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		39D7A818CA004A5896C58750 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				248E8A934D1D13E6A88F672B /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
 
 /* Begin PBXShellScriptBuildPhase section */
 		47FB2F3B8A183AC8A351D21F /* SwiftLint */ = {
