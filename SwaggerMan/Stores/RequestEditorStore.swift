@@ -31,6 +31,7 @@ final class RequestEditorStore {
     private(set) var response: HTTPResponse?
     private(set) var sendError: Error?
     private(set) var lastCurlString: String?
+    private(set) var lastRequest: HTTPRequest?
 
     // MARK: - Private
 
@@ -51,6 +52,7 @@ final class RequestEditorStore {
         response = nil
         sendError = nil
         lastCurlString = nil
+        lastRequest = nil
 
         pathParams = Dictionary(uniqueKeysWithValues:
             op.parameters.filter { $0.location == .path }.map { ($0.name, "") })
@@ -72,6 +74,7 @@ final class RequestEditorStore {
         response = nil
         sendError = nil
         lastCurlString = nil
+        lastRequest = nil
     }
 
     func send(project: Project, historyStore: HistoryStore, disableTLS: Bool = false) async {
@@ -83,6 +86,7 @@ final class RequestEditorStore {
         do {
             let request = try buildRequest(op: op)
             lastCurlString = CurlBuilder.build(request)
+            lastRequest = request
             let res = try await httpClient.execute(request, disableTLS: disableTLS)
             response = res
 

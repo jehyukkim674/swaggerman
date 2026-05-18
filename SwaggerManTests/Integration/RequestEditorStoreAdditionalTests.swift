@@ -441,6 +441,46 @@ struct RequestEditorStoreAdditionalTests {
         #expect(store.response == nil)
         #expect(store.sendError == nil)
     }
+
+    @Test("send — lastRequest가 실행된 요청으로 설정됨")
+    func sendSetsLastRequest() async throws {
+        let container = try ModelContainerFactory.makeInMemory()
+        let ctx = container.mainContext
+        let projectStore = ProjectStore(modelContext: ctx)
+        try projectStore.addProject(alias: "Test", swaggerURL: "https://api.test")
+        let project = projectStore.projects[0]
+        let mockClient = MockHTTPClient()
+        let store = RequestEditorStore(httpClient: mockClient)
+        let historyStore = HistoryStore(modelContext: ctx)
+
+        let op = makeOp(method: .post, path: "/users")
+        store.loadOperation(op, baseURL: "https://api.test", environment: makeEnv())
+
+        await store.send(project: project, historyStore: historyStore, disableTLS: false)
+
+        #expect(store.lastRequest != nil)
+        #expect(store.lastRequest?.method == .post)
+    }
+
+    @Test("loadOperation — lastRequest가 nil로 초기화됨")
+    func loadOperationClearsLastRequest() async throws {
+        let mockClient = MockHTTPClient()
+        let store = RequestEditorStore(httpClient: mockClient)
+        let container = try ModelContainerFactory.makeInMemory()
+        let ctx = container.mainContext
+        let projectStore = ProjectStore(modelContext: ctx)
+        try projectStore.addProject(alias: "Test", swaggerURL: "https://api.test")
+        let project = projectStore.projects[0]
+        let historyStore = HistoryStore(modelContext: ctx)
+
+        let op = makeOp(method: .get, path: "/users")
+        store.loadOperation(op, baseURL: "https://api.test", environment: makeEnv())
+        await store.send(project: project, historyStore: historyStore, disableTLS: false)
+        #expect(store.lastRequest != nil)
+
+        store.loadOperation(makeOp(method: .post, path: "/items"), baseURL: "https://api.test", environment: makeEnv())
+        #expect(store.lastRequest == nil)
+    }
 }
 
 // swiftlint:enable file_length type_body_length
