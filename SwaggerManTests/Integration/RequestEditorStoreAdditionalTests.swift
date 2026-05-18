@@ -61,6 +61,8 @@ struct RequestEditorStoreAdditionalTests {
         #expect(store.bodyJSON == "")
         #expect(store.response == nil)
         #expect(store.sendError == nil)
+        #expect(store.lastCurlString == nil)
+        #expect(store.lastRequest == nil)
     }
 
     @Test("Bearer auth → Authorization 헤더 자동 추가")
@@ -450,6 +452,9 @@ struct RequestEditorStoreAdditionalTests {
         try projectStore.addProject(alias: "Test", swaggerURL: "https://api.test")
         let project = projectStore.projects[0]
         let mockClient = MockHTTPClient()
+        await mockClient.setExecuteResult(.success(
+            HTTPResponse(statusCode: 200, headers: [:], body: Data(), durationMs: 5)
+        ))
         let store = RequestEditorStore(httpClient: mockClient)
         let historyStore = HistoryStore(modelContext: ctx)
 
@@ -460,6 +465,8 @@ struct RequestEditorStoreAdditionalTests {
 
         #expect(store.lastRequest != nil)
         #expect(store.lastRequest?.method == .post)
+        #expect(store.lastRequest?.url.absoluteString.contains("/users") == true)
+        #expect(store.sendError == nil)
     }
 
     @Test("loadOperation — lastRequest가 nil로 초기화됨")
