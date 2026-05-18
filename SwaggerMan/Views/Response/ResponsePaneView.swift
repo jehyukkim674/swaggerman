@@ -53,6 +53,57 @@ struct ResponseDetailView: View {
     let curlString: String?
     let lastRequest: HTTPRequest?
 
+    @State private var searchText = ""
+    @State private var isSearchActive = false
+
+    private var highlightedBody: AttributedString {
+        guard !searchText.isEmpty else { return AttributedString(prettyBody) }
+
+        var result = AttributedString()
+        var searchStart = prettyBody.startIndex
+
+        while searchStart < prettyBody.endIndex,
+              let found = prettyBody.range(
+                  of: searchText,
+                  options: .caseInsensitive,
+                  range: searchStart ..< prettyBody.endIndex
+              )
+        {
+            let prefix = String(prettyBody[searchStart ..< found.lowerBound])
+            if !prefix.isEmpty { result += AttributedString(prefix) }
+
+            var highlight = AttributedString(String(prettyBody[found]))
+            highlight.backgroundColor = Color.yellow
+            highlight.foregroundColor = Color.black
+            result += highlight
+
+            searchStart = found.upperBound
+        }
+
+        if searchStart < prettyBody.endIndex {
+            result += AttributedString(String(prettyBody[searchStart...]))
+        }
+
+        return result
+    }
+
+    private var matchCount: Int {
+        guard !searchText.isEmpty else { return 0 }
+        var count = 0
+        var searchStart = prettyBody.startIndex
+        while searchStart < prettyBody.endIndex,
+              let found = prettyBody.range(
+                  of: searchText,
+                  options: .caseInsensitive,
+                  range: searchStart ..< prettyBody.endIndex
+              )
+        {
+            count += 1
+            searchStart = found.upperBound
+        }
+        return count
+    }
+
     var body: some View {
         VStack(spacing: 0) {
             // Status bar
@@ -114,6 +165,35 @@ struct ResponseDetailView: View {
 
             Divider()
 
+            // Search bar (visible when isSearchActive)
+            if isSearchActive {
+                HStack(spacing: 8) {
+                    Image(systemName: "magnifyingglass")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    TextField("검색...", text: $searchText)
+                        .textFieldStyle(.plain)
+                        .font(.system(.caption))
+                    if !searchText.isEmpty {
+                        Text(matchCount == 0 ? "일치 없음" : "\(matchCount)개 일치")
+                            .font(.caption2)
+                            .foregroundStyle(matchCount == 0 ? .red : .secondary)
+                    }
+                    Button {
+                        searchText = ""
+                        isSearchActive = false
+                    } label: {
+                        Image(systemName: "xmark.circle.fill")
+                            .foregroundStyle(.secondary)
+                    }
+                    .buttonStyle(.plain)
+                }
+                .padding(.horizontal, 12)
+                .padding(.vertical, 6)
+                .background(.bar)
+                Divider()
+            }
+
             // Response Headers (fixed at top)
             if !response.headers.isEmpty {
                 ResponseHeadersSection(headers: response.headers)
@@ -122,13 +202,22 @@ struct ResponseDetailView: View {
 
             // Response Body (scrollable, fills remaining space)
             ScrollView {
-                Text(prettyBody)
+                Text(highlightedBody)
                     .font(.system(.caption, design: .monospaced))
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .textSelection(.enabled)
                     .padding(12)
             }
         }
+        .overlay(
+            Button("") {
+                isSearchActive.toggle()
+                if !isSearchActive { searchText = "" }
+            }
+            .keyboardShortcut("f", modifiers: .command)
+            .opacity(0)
+            .allowsHitTesting(false)
+        )
     }
 
     private var prettyBody: String {
