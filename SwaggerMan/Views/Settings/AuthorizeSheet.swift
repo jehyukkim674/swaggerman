@@ -148,14 +148,18 @@ struct SchemeRow: View {
                     .foregroundStyle(.secondary)
 
                 HStack(spacing: 8) {
-                    if showValue {
+                    ZStack(alignment: .leading) {
                         TextField("토큰 입력", text: $value)
                             .textFieldStyle(.roundedBorder)
                             .font(.system(.body, design: .monospaced))
-                    } else {
-                        SecureField("토큰 입력", text: $value)
-                            .textFieldStyle(.roundedBorder)
-                            .font(.system(.body, design: .monospaced))
+                            .foregroundColor(!showValue && !value.isEmpty ? .clear : .primary)
+                        if !showValue, !value.isEmpty {
+                            Text(String(repeating: "•", count: min(value.count, 64)))
+                                .font(.system(.body, design: .monospaced))
+                                .padding(.horizontal, 7)
+                                .padding(.vertical, 4)
+                                .allowsHitTesting(false)
+                        }
                     }
                     Button {
                         showValue.toggle()
