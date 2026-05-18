@@ -11,7 +11,7 @@ struct RequestEditorStoreHistoryTests {
             id: "GET /users", method: .get, path: "/users",
             operationId: nil, summary: nil, description: nil,
             tags: [], parameters: [], requestBody: nil,
-            responseDescriptions: [:]
+            responses: []
         )
     }
 

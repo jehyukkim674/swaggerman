@@ -14,7 +14,11 @@ struct ViewBodyResponseTests {
         ParsedOperation(
             id: "\(method.rawValue) \(path)", method: method, path: path,
             operationId: nil, summary: "Test", description: nil,
-            tags: [], parameters: [], requestBody: nil, responseDescriptions: ["200": "OK"]
+            tags: [], parameters: [], requestBody: nil, responses: [ParsedResponse(
+                statusCode: "200",
+                description: "OK",
+                schema: nil
+            )]
         )
     }
 

@@ -26,7 +26,7 @@ struct RequestEditorStoreTests {
             requestBody: hasBody
                 ? ParsedRequestBody(required: true, contentType: "application/json", schema: nil)
                 : nil,
-            responseDescriptions: ["200": "Success"]
+            responses: [ParsedResponse(statusCode: "200", description: "Success", schema: nil)]
         )
     }
 

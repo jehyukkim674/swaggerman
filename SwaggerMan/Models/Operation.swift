@@ -26,7 +26,8 @@ final class ParsedSchema {
     init(type: SchemaType, properties: [String: ParsedSchema]? = nil,
          items: ParsedSchema? = nil, enumValues: [String]? = nil,
          required: [String]? = nil, defaultValue: String? = nil,
-         example: String? = nil, description: String? = nil) {
+         example: String? = nil, description: String? = nil)
+    {
         self.type = type
         self.properties = properties
         self.items = items
@@ -48,6 +49,12 @@ struct ParsedRequestBody {
     let schema: ParsedSchema?
 }
 
+struct ParsedResponse {
+    let statusCode: String // "200", "404", "default"
+    let description: String?
+    let schema: ParsedSchema?
+}
+
 struct ParsedOperation: Identifiable {
     let id: String // "\(method.rawValue) \(path)"
     let method: HTTPMethod
@@ -58,5 +65,5 @@ struct ParsedOperation: Identifiable {
     let tags: [String]
     let parameters: [ParsedParameter]
     let requestBody: ParsedRequestBody?
-    let responseDescriptions: [String: String] // statusCode → description
+    let responses: [ParsedResponse]
 }

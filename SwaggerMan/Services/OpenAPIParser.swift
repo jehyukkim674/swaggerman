@@ -6,7 +6,8 @@ struct OpenAPIParser: OpenAPIParserProtocol {
     func parse(_ data: Data) throws -> ParsedSpec {
         // Detect OpenAPI 2.0 (swagger field present) before attempting decode.
         if let dict = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-           let swaggerVersion = dict["swagger"] {
+           let swaggerVersion = dict["swagger"]
+        {
             throw SwaggerManError.parsing(.unsupportedVersion(String(describing: swaggerVersion)))
         }
 
@@ -23,7 +24,8 @@ struct OpenAPIParser: OpenAPIParserProtocol {
     func parseYAML(_ string: String) throws -> ParsedSpec {
         // Detect OpenAPI 2.0 (swagger key) in YAML before attempting decode.
         if let yamlAny = try? Yams.load(yaml: string) as? [String: Any],
-           let swaggerVersion = yamlAny["swagger"] {
+           let swaggerVersion = yamlAny["swagger"]
+        {
             throw SwaggerManError.parsing(.unsupportedVersion(String(describing: swaggerVersion)))
         }
 
@@ -76,7 +78,6 @@ struct OpenAPIParser: OpenAPIParserProtocol {
                 let parsedRequestBody = op.requestBody.flatMap {
                     convertRequestBody($0, components: document.components)
                 }
-                let responseDescriptions = buildResponseDescriptions(op.responses, components: document.components)
                 operations.append(ParsedOperation(
                     id: "\(mappedMethod.rawValue) \(pathString)",
                     method: mappedMethod,
@@ -87,7 +88,7 @@ struct OpenAPIParser: OpenAPIParserProtocol {
                     tags: op.tags ?? [],
                     parameters: parsedParameters,
                     requestBody: parsedRequestBody,
-                    responseDescriptions: responseDescriptions
+                    responses: []
                 ))
             }
         }
@@ -122,7 +123,7 @@ struct OpenAPIParser: OpenAPIParserProtocol {
     private func mapSecuritySchemeKind(_ type: OpenAPI.SecurityScheme.SecurityType) -> SecuritySchemeKind {
         switch type {
         case let .apiKey(name, location):
-            let loc: String = switch location {
+            let loc = switch location {
             case .header: "header"
             case .query: "query"
             case .cookie: "cookie"

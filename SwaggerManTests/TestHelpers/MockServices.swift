@@ -49,7 +49,7 @@ final class MockOpenAPIParser: OpenAPIParserProtocol, @unchecked Sendable {
                 tags: ["Users"],
                 parameters: [],
                 requestBody: nil,
-                responseDescriptions: ["200": "Success"]
+                responses: [ParsedResponse(statusCode: "200", description: "Success", schema: nil)]
             )
         ],
         securitySchemes: [],

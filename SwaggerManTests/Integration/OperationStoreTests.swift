@@ -84,15 +84,15 @@ struct OperationStoreTests {
                 ParsedOperation(id: "GET /users", method: .get, path: "/users",
                                 operationId: nil, summary: nil, description: nil,
                                 tags: ["Users"], parameters: [], requestBody: nil,
-                                responseDescriptions: [:]),
+                                responses: []),
                 ParsedOperation(id: "GET /orders", method: .get, path: "/orders",
                                 operationId: nil, summary: nil, description: nil,
                                 tags: ["Orders"], parameters: [], requestBody: nil,
-                                responseDescriptions: [:]),
+                                responses: []),
                 ParsedOperation(id: "POST /orders", method: .post, path: "/orders",
                                 operationId: nil, summary: nil, description: nil,
                                 tags: ["Orders"], parameters: [], requestBody: nil,
-                                responseDescriptions: [:])
+                                responses: [])
             ],
             securitySchemes: [],
             rawOperationCount: 3

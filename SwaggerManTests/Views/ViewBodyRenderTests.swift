@@ -26,7 +26,11 @@ struct ViewBodyRenderTests {
         ParsedOperation(
             id: "\(method.rawValue) \(path)", method: method, path: path,
             operationId: nil, summary: "Test \(method.rawValue)", description: nil,
-            tags: [tag], parameters: [], requestBody: nil, responseDescriptions: ["200": "OK"]
+            tags: [tag], parameters: [], requestBody: nil, responses: [ParsedResponse(
+                statusCode: "200",
+                description: "OK",
+                schema: nil
+            )]
         )
     }
 

@@ -62,7 +62,7 @@ struct ViewBodyTests {
             requestBody: hasBody
                 ? ParsedRequestBody(required: true, contentType: "application/json", schema: nil)
                 : nil,
-            responseDescriptions: ["200": "OK"]
+            responses: [ParsedResponse(statusCode: "200", description: "OK", schema: nil)]
         )
     }
 
@@ -458,13 +458,13 @@ struct ViewBodyTests {
                     id: "GET /users", method: .get, path: "/users",
                     operationId: "listUsers", summary: "List users", description: nil,
                     tags: ["Users"], parameters: [], requestBody: nil,
-                    responseDescriptions: ["200": "OK"]
+                    responses: [ParsedResponse(statusCode: "200", description: "OK", schema: nil)]
                 ),
                 ParsedOperation(
                     id: "POST /users", method: .post, path: "/users",
                     operationId: "createUser", summary: "Create user", description: nil,
                     tags: ["Users"], parameters: [], requestBody: nil,
-                    responseDescriptions: ["201": "Created"]
+                    responses: [ParsedResponse(statusCode: "201", description: "Created", schema: nil)]
                 )
             ],
             securitySchemes: [],

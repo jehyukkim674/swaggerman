@@ -24,7 +24,7 @@ struct ViewBodyComponentTests {
         ParsedOperation(
             id: "\(method.rawValue) \(path)", method: method, path: path,
             operationId: nil, summary: summary, description: nil,
-            tags: [], parameters: [], requestBody: nil, responseDescriptions: [:]
+            tags: [], parameters: [], requestBody: nil, responses: []
         )
     }
 

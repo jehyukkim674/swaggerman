@@ -226,11 +226,11 @@ struct OperationStoreAdditionalTests {
                 ParsedOperation(id: "GET /users", method: .get, path: "/users",
                                 operationId: nil, summary: nil, description: nil,
                                 tags: ["Users"], parameters: [], requestBody: nil,
-                                responseDescriptions: [:]),
+                                responses: []),
                 ParsedOperation(id: "GET /orders", method: .get, path: "/orders",
                                 operationId: nil, summary: nil, description: nil,
                                 tags: ["Orders"], parameters: [], requestBody: nil,
-                                responseDescriptions: [:])
+                                responses: [])
             ],
             securitySchemes: [],
             rawOperationCount: 2
@@ -264,11 +264,11 @@ struct OperationStoreAdditionalTests {
                 ParsedOperation(id: "GET /api/v1", method: .get, path: "/api/v1",
                                 operationId: nil, summary: "List all users", description: nil,
                                 tags: ["Users"], parameters: [], requestBody: nil,
-                                responseDescriptions: [:]),
+                                responses: []),
                 ParsedOperation(id: "GET /api/v2", method: .get, path: "/api/v2",
                                 operationId: nil, summary: "Get orders", description: nil,
                                 tags: ["Orders"], parameters: [], requestBody: nil,
-                                responseDescriptions: [:])
+                                responses: [])
             ],
             securitySchemes: [],
             rawOperationCount: 2
@@ -297,11 +297,11 @@ struct OperationStoreAdditionalTests {
                 ParsedOperation(id: "GET /a", method: .get, path: "/a",
                                 operationId: nil, summary: nil, description: nil,
                                 tags: ["Payments"], parameters: [], requestBody: nil,
-                                responseDescriptions: [:]),
+                                responses: []),
                 ParsedOperation(id: "GET /b", method: .get, path: "/b",
                                 operationId: nil, summary: nil, description: nil,
                                 tags: ["Users"], parameters: [], requestBody: nil,
-                                responseDescriptions: [:])
+                                responses: [])
             ],
             securitySchemes: [],
             rawOperationCount: 2
@@ -329,15 +329,15 @@ struct OperationStoreAdditionalTests {
                 ParsedOperation(id: "GET /users", method: .get, path: "/users",
                                 operationId: nil, summary: nil, description: nil,
                                 tags: ["Users"], parameters: [], requestBody: nil,
-                                responseDescriptions: [:]),
+                                responses: []),
                 ParsedOperation(id: "POST /users", method: .post, path: "/users",
                                 operationId: nil, summary: nil, description: nil,
                                 tags: ["Users"], parameters: [], requestBody: nil,
-                                responseDescriptions: [:]),
+                                responses: []),
                 ParsedOperation(id: "GET /orders", method: .get, path: "/orders",
                                 operationId: nil, summary: nil, description: nil,
                                 tags: ["Orders"], parameters: [], requestBody: nil,
-                                responseDescriptions: [:])
+                                responses: [])
             ],
             securitySchemes: [],
             rawOperationCount: 3
@@ -369,7 +369,7 @@ struct OperationStoreAdditionalTests {
                 ParsedOperation(id: "GET /health", method: .get, path: "/health",
                                 operationId: nil, summary: nil, description: nil,
                                 tags: [], parameters: [], requestBody: nil,
-                                responseDescriptions: [:])
+                                responses: [])
             ],
             securitySchemes: [],
             rawOperationCount: 1

@@ -23,7 +23,7 @@ struct RequestEditorStoreAdditionalTests {
             requestBody: hasBody
                 ? ParsedRequestBody(required: true, contentType: "application/json", schema: nil)
                 : nil,
-            responseDescriptions: [:]
+            responses: []
         )
     }
 
@@ -250,7 +250,7 @@ struct RequestEditorStoreAdditionalTests {
                                 required: false, schema: nil, description: nil)
             ],
             requestBody: nil,
-            responseDescriptions: [:]
+            responses: []
         )
 
         let store = RequestEditorStore(httpClient: mockHTTP)
@@ -292,7 +292,7 @@ struct RequestEditorStoreAdditionalTests {
                                 required: false, schema: nil, description: nil)
             ],
             requestBody: nil,
-            responseDescriptions: [:]
+            responses: []
         )
 
         let store = RequestEditorStore(httpClient: mockHTTP)
@@ -326,7 +326,7 @@ struct RequestEditorStoreAdditionalTests {
         let op = ParsedOperation(
             id: "GET /ping", method: .get, path: "/ping",
             operationId: nil, summary: nil, description: nil,
-            tags: [], parameters: [], requestBody: nil, responseDescriptions: [:]
+            tags: [], parameters: [], requestBody: nil, responses: []
         )
         store.loadOperation(op, baseURL: "https://api.com",
                             environment: APIEnvironment(name: "T", baseURL: "https://api.com"))
@@ -355,7 +355,7 @@ struct RequestEditorStoreAdditionalTests {
         let op = ParsedOperation(
             id: "GET /ping", method: .get, path: "/ping",
             operationId: nil, summary: nil, description: nil,
-            tags: [], parameters: [], requestBody: nil, responseDescriptions: [:]
+            tags: [], parameters: [], requestBody: nil, responses: []
         )
         store.loadOperation(op, baseURL: "https://api.com",
                             environment: APIEnvironment(name: "T", baseURL: "https://api.com"))
@@ -414,7 +414,7 @@ struct RequestEditorStoreAdditionalTests {
             id: "GET /test", method: .get, path: "/test",
             operationId: nil, summary: nil, description: nil,
             tags: [], parameters: [], requestBody: nil,
-            responseDescriptions: [:]
+            responses: []
         )
         let env = APIEnvironment(name: "Dev", baseURL: "https://api.test")
         store.loadOperation(op, baseURL: env.baseURL, environment: env, securityHeaders: [:])
