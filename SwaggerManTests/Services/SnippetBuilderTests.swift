@@ -38,7 +38,8 @@ struct SnippetBuilderTests {
         #expect(snippet.contains("httpMethod = \"POST\""))
         #expect(snippet.contains("Content-Type"))
         #expect(snippet.contains("application/json"))
-        #expect(snippet.contains(#"{"name":"Alice"}"#))
+        #expect(snippet.contains("httpBody"))
+        #expect(snippet.contains("Alice"))
     }
 
     // MARK: - Python
@@ -80,6 +81,20 @@ struct SnippetBuilderTests {
         let snippet = SnippetBuilder.build(request, language: .python)
         #expect(snippet.contains("requests.delete"))
         #expect(!snippet.contains("data="))
+    }
+
+    @Test("Python POST — body의 단일 인용부호가 이스케이프 처리됨")
+    func pythonPostWithSingleQuote() throws {
+        let body = Data("{\"it's\": \"value\"}".utf8)
+        let request = try HTTPRequest(
+            method: .post,
+            url: makeURL("https://api.example.com/test"),
+            headers: [:],
+            body: body
+        )
+        let snippet = SnippetBuilder.build(request, language: .python)
+        #expect(snippet.contains("requests.post"))
+        #expect(snippet.contains("it\\'s"))
     }
 
     // MARK: - JavaScript

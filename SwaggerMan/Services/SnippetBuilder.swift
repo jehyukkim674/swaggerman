@@ -49,7 +49,10 @@ enum SnippetBuilder {
         }
 
         if let body = request.body, let bodyString = String(data: body, encoding: .utf8) {
-            lines.append("request.httpBody = #\"\(bodyString)\"#.data(using: .utf8)")
+            let escaped = bodyString
+                .replacingOccurrences(of: "\\", with: "\\\\")
+                .replacingOccurrences(of: "\"", with: "\\\"")
+            lines.append("request.httpBody = Data(\"\(escaped)\".utf8)")
         }
 
         lines += [
@@ -79,7 +82,10 @@ enum SnippetBuilder {
         }
 
         if let body = request.body, let bodyString = String(data: body, encoding: .utf8) {
-            args.append("    data='\(bodyString)'")
+            let escaped = bodyString
+                .replacingOccurrences(of: "\\", with: "\\\\")
+                .replacingOccurrences(of: "'", with: "\\'")
+            args.append("    data='\(escaped)'")
         }
 
         let argsJoined = args.joined(separator: ",\n")
