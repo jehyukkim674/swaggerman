@@ -12,7 +12,7 @@ private struct PersistedEditorState: Codable {
     var bodyJSON: String
 }
 
-struct RequestParam: Identifiable {
+struct RequestParam: Identifiable, Equatable {
     var id = UUID()
     var key: String
     var value: String
@@ -298,6 +298,7 @@ final class RequestEditorStore {
         let key = "editorState-\(projectID.uuidString)-\(operationID)"
         if let data = try? JSONEncoder().encode(state) {
             UserDefaults.standard.set(data, forKey: key)
+            UserDefaults.standard.synchronize()
         }
     }
 

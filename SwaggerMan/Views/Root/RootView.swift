@@ -172,6 +172,18 @@ struct RootView: View {
             guard newPhase == .inactive || newPhase == .background else { return }
             requestEditorStore?.persistCurrentState()
         }
+        .onChange(of: requestEditorStore?.requestHeaders) { _, _ in
+            requestEditorStore?.persistCurrentState()
+        }
+        .onChange(of: requestEditorStore?.queryParams) { _, _ in
+            requestEditorStore?.persistCurrentState()
+        }
+        .onChange(of: requestEditorStore?.bodyJSON) { _, _ in
+            requestEditorStore?.persistCurrentState()
+        }
+        .onChange(of: requestEditorStore?.pathParams) { _, _ in
+            requestEditorStore?.persistCurrentState()
+        }
         .sheet(isPresented: $showProjectListEditor) {
             if let ps = projectStore {
                 ProjectListEditor(store: ps)
