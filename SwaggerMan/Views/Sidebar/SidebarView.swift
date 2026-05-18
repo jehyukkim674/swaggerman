@@ -73,6 +73,9 @@ struct SidebarView: View {
                                         .buttonStyle(.plain)
                                         .listRowInsets(EdgeInsets(top: 2, leading: 8, bottom: 2, trailing: 8))
                                         .listRowBackground(Color.clear)
+                                        .contextMenu {
+                                            Button("즐겨찾기 제거", role: .destructive) { onToggleFavorite(op) }
+                                        }
                                     }
                                 }
                                 .onMove { source, dest in favoriteStore.move(from: source, to: dest) }
