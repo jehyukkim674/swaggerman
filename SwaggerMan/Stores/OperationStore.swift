@@ -1,5 +1,5 @@
-import SwiftUI
 import os.log
+import SwiftUI
 
 private let log = Logger(subsystem: "com.swaggerman", category: "OperationStore")
 
@@ -12,24 +12,30 @@ final class OperationStore {
 
     var searchText: String = ""
     var selectedMethods: Set<HTTPMethod> = []
-    var selectedTag: String? = nil
+    var selectedTag: String?
 
-    // Security scheme values entered by user (scheme name → token/value)
-    var securityValues: [String: String] = [:]
+    /// Security scheme values entered by user (scheme name → token/value)
+    var securityValues: [String: String] = [:] {
+        didSet { saveSecurityValues() }
+    }
 
-    var securitySchemes: [ParsedSecurityScheme] { currentSpec?.securitySchemes ?? [] }
+    private var currentProject: Project?
 
-    // Maps header-name → value, computed from securityValues + scheme definitions
+    var securitySchemes: [ParsedSecurityScheme] {
+        currentSpec?.securitySchemes ?? []
+    }
+
+    /// Maps header-name → value, computed from securityValues + scheme definitions
     var computedSecurityHeaders: [String: String] {
         var result: [String: String] = [:]
         for scheme in securitySchemes {
             guard let value = securityValues[scheme.name], !value.isEmpty else { continue }
             switch scheme.kind {
-            case .apiKey(let name, let location) where location == "header":
+            case let .apiKey(name, location) where location == "header":
                 result[name] = value
-            case .http(let s) where s.lowercased() == "bearer":
+            case let .http(s) where s.lowercased() == "bearer":
                 result["Authorization"] = "Bearer \(value)"
-            case .http(let s) where s.lowercased() == "basic":
+            case let .http(s) where s.lowercased() == "basic":
                 result["Authorization"] = "Basic \(value)"
             default:
                 break
@@ -38,7 +44,9 @@ final class OperationStore {
         return result
     }
 
-    var operations: [ParsedOperation] { currentSpec?.operations ?? [] }
+    var operations: [ParsedOperation] {
+        currentSpec?.operations ?? []
+    }
 
     var availableTags: [String] {
         var seen = Set<String>()
@@ -57,11 +65,10 @@ final class OperationStore {
                 || op.path.localizedCaseInsensitiveContains(searchText)
                 || (op.summary ?? "").localizedCaseInsensitiveContains(searchText)
                 || op.tags.contains { $0.localizedCaseInsensitiveContains(searchText) }
-            let matchesTag: Bool
-            if let tag = selectedTag {
-                matchesTag = (op.tags.first ?? "Other") == tag
+            let matchesTag: Bool = if let tag = selectedTag {
+                (op.tags.first ?? "Other") == tag
             } else {
-                matchesTag = true
+                true
             }
             return matchesMethod && matchesSearch && matchesTag
         }
@@ -91,6 +98,7 @@ final class OperationStore {
     }
 
     func loadSpec(for project: Project) async throws {
+        currentProject = project
         isLoading = true
         loadError = nil
         defer { isLoading = false }
@@ -112,6 +120,7 @@ final class OperationStore {
             await cache.store(CachedEntry(spec: spec, etag: nil, cachedAt: Date()),
                               for: project.swaggerURL)
             currentSpec = spec
+            loadSecurityValues(from: project)
             log.info("Spec loaded: \(spec.info.title) (\(spec.rawOperationCount) ops)")
         } catch {
             loadError = error
@@ -119,7 +128,24 @@ final class OperationStore {
         }
     }
 
+    private func loadSecurityValues(from project: Project) {
+        guard let json = project.securityValuesJSON,
+              let data = json.data(using: .utf8),
+              let values = try? JSONDecoder().decode([String: String].self, from: data) else { return }
+        securityValues = values
+    }
+
+    private func saveSecurityValues() {
+        guard let project = currentProject else { return }
+        if let data = try? JSONEncoder().encode(securityValues),
+           let json = String(data: data, encoding: .utf8)
+        {
+            project.securityValuesJSON = json.isEmpty ? nil : json
+        }
+    }
+
     func clearSpec() {
+        currentProject = nil
         currentSpec = nil
         searchText = ""
         selectedMethods = []
@@ -153,17 +179,21 @@ final class OperationStore {
         return try parser.parse(data)
     }
 
-    // Swagger UI URL → try swagger-config, then common spec paths
+    /// Swagger UI URL → try swagger-config, then common spec paths
     private func discoverSpec(from url: URL) async throws -> ParsedSpec {
         log.info("HTML received — auto-discovering spec URL from \(url)")
 
         if let specURL = await swaggerConfigSpecURL(from: url),
-           let spec = try? await fetchAndParse(url: specURL) {
+           let spec = try? await fetchAndParse(url: specURL)
+        {
             log.info("Spec discovered via swagger-config: \(specURL)")
             return spec
         }
 
-        var base = URLComponents(url: url, resolvingAgainstBaseURL: false)!
+        guard var base = URLComponents(url: url, resolvingAgainstBaseURL: false)
+        else {
+            throw SwaggerManError.parsing(.invalidJSON("URL 파싱 실패: \(url)"))
+        }
         base.query = nil
         let candidates = ["/v3/api-docs", "/openapi.json", "/api/schema/", "/api-docs", "/swagger.json"]
         for path in candidates {
@@ -181,7 +211,7 @@ final class OperationStore {
     }
 
     private func swaggerConfigSpecURL(from url: URL) async -> URL? {
-        var base = URLComponents(url: url, resolvingAgainstBaseURL: false)!
+        guard var base = URLComponents(url: url, resolvingAgainstBaseURL: false) else { return nil }
         base.path = "/swagger-ui/swagger-config"
         base.query = nil
         guard let configURL = base.url,
