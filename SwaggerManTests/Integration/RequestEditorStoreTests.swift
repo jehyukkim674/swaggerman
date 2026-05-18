@@ -149,4 +149,48 @@ struct RequestEditorStoreTests {
 
         #expect(project.history.first?.fullURL.contains("/users/42") == true)
     }
+
+    @Test("responseTab — starts as .docs")
+    @MainActor
+    func responseTabDefault() {
+        let store = RequestEditorStore(httpClient: MockHTTPClient())
+        #expect(store.responseTab == .docs)
+    }
+
+    @Test("responseTab — resets to .docs on loadOperation")
+    @MainActor
+    func responseTabResetsOnLoad() {
+        let store = RequestEditorStore(httpClient: MockHTTPClient())
+        let env = APIEnvironment(name: "Dev", baseURL: "https://api.test")
+        let op = ParsedOperation(id: "GET /x", method: .get, path: "/x",
+                                 operationId: nil, summary: nil, description: nil,
+                                 tags: [], parameters: [], requestBody: nil, responses: [])
+        store.responseTab = .response
+        store.loadOperation(op, baseURL: "https://api.test", environment: env)
+        #expect(store.responseTab == .docs)
+    }
+
+    @Test("responseTab — switches to .response after send")
+    @MainActor
+    func responseTabAfterSend() async throws {
+        let mockClient = MockHTTPClient()
+        let store = RequestEditorStore(httpClient: mockClient)
+        let env = APIEnvironment(name: "Dev", baseURL: "https://api.test")
+        let op = ParsedOperation(id: "GET /x", method: .get, path: "/x",
+                                 operationId: nil, summary: nil, description: nil,
+                                 tags: [], parameters: [], requestBody: nil, responses: [])
+        store.loadOperation(op, baseURL: "https://api.test", environment: env,
+                            projectID: UUID())
+        #expect(store.responseTab == .docs)
+
+        let container = try ModelContainerFactory.makeInMemory()
+        let ctx = container.mainContext
+        let projectStore = ProjectStore(modelContext: ctx)
+        try projectStore.addProject(alias: "T", swaggerURL: "https://api.test")
+        let project = projectStore.projects[0]
+        let historyStore = HistoryStore(modelContext: ctx)
+
+        await store.send(project: project, historyStore: historyStore)
+        #expect(store.responseTab == .response)
+    }
 }

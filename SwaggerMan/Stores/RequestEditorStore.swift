@@ -21,6 +21,8 @@ struct RequestParam: Identifiable, Equatable {
     var isRequired: Bool = false
 }
 
+enum ResponseTab { case docs, response }
+
 @Observable
 @MainActor
 final class RequestEditorStore {
@@ -53,6 +55,7 @@ final class RequestEditorStore {
     private(set) var lastRequest: HTTPRequest?
 
     private(set) var currentProjectID: UUID?
+    var responseTab: ResponseTab = .docs
 
     // MARK: - Private
 
@@ -76,6 +79,7 @@ final class RequestEditorStore {
         stateLoadedFromHistory = false
 
         isLoadingOperation = true
+        responseTab = .docs
         defer { isLoadingOperation = false }
 
         if let pid = projectID { currentProjectID = pid }
@@ -142,6 +146,7 @@ final class RequestEditorStore {
             lastRequest = request
             let res = try await httpClient.execute(request, disableTLS: disableTLS)
             response = res
+            responseTab = .response
 
             let reqHeadersJSON = jsonString(from: request.headers)
             let resHeadersJSON = jsonString(from: res.headers)
@@ -168,6 +173,7 @@ final class RequestEditorStore {
             log.info("Request sent: \(op.method.rawValue) \(op.path) → \(res.statusCode)")
         } catch {
             sendError = error
+            responseTab = .response
             log.error("Request failed: \(error.localizedDescription)")
         }
     }
