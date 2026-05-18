@@ -160,4 +160,71 @@ struct OpenAPIParserTests {
         #expect(spec.operations.count == 1)
         #expect(spec.operations.first?.path == "/health")
     }
+
+    @Test("parse — response body schema is captured")
+    func responseSchema() throws {
+        let json = """
+        {
+          "openapi": "3.0.0",
+          "info": { "title": "T", "version": "1" },
+          "paths": {
+            "/users": {
+              "get": {
+                "responses": {
+                  "200": {
+                    "description": "OK",
+                    "content": {
+                      "application/json": {
+                        "schema": {
+                          "type": "object",
+                          "properties": {
+                            "id": { "type": "integer" },
+                            "name": { "type": "string" }
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "404": { "description": "Not found" }
+                }
+              }
+            }
+          }
+        }
+        """
+        let spec = try OpenAPIParser().parse(Data(json.utf8))
+        let op = try #require(spec.operations.first)
+        #expect(op.responses.count == 2)
+        let ok = try #require(op.responses.first { $0.statusCode == "200" })
+        #expect(ok.description == "OK")
+        #expect(ok.schema?.type == .object)
+        #expect(ok.schema?.properties?["id"]?.type == .integer)
+        #expect(ok.schema?.properties?["name"]?.type == .string)
+        let notFound = try #require(op.responses.first { $0.statusCode == "404" })
+        #expect(notFound.schema == nil)
+    }
+
+    @Test("parse — responses sorted numerically")
+    func responsesSorted() throws {
+        let json = """
+        {
+          "openapi": "3.0.0",
+          "info": { "title": "T", "version": "1" },
+          "paths": {
+            "/x": {
+              "get": {
+                "responses": {
+                  "404": { "description": "Not found" },
+                  "200": { "description": "OK" },
+                  "500": { "description": "Error" }
+                }
+              }
+            }
+          }
+        }
+        """
+        let spec = try OpenAPIParser().parse(Data(json.utf8))
+        let op = try #require(spec.operations.first)
+        #expect(op.responses.map(\.statusCode) == ["200", "404", "500"])
+    }
 }

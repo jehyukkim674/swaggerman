@@ -88,24 +88,34 @@ struct OpenAPIParser: OpenAPIParserProtocol {
                     tags: op.tags ?? [],
                     parameters: parsedParameters,
                     requestBody: parsedRequestBody,
-                    responses: []
+                    responses: buildResponses(op.responses, components: document.components)
                 ))
             }
         }
         return operations
     }
 
-    private func buildResponseDescriptions(
+    private func buildResponses(
         _ responses: OpenAPI.Response.Map,
         components: OpenAPI.Components
-    ) -> [String: String] {
-        var result: [String: String] = [:]
+    ) -> [ParsedResponse] {
+        var result: [ParsedResponse] = []
         for (statusCode, responseEither) in responses {
-            if let response = try? components.lookup(responseEither) {
-                result[statusCode.rawValue] = response.description
+            guard let response = try? components.lookup(responseEither) else { continue }
+            let schema: ParsedSchema? = response.content.first.flatMap { _, mediaType in
+                guard let schemaEither = mediaType.schema else { return nil }
+                switch schemaEither {
+                case .a: return nil
+                case let .b(jsonSchema): return convertSchema(jsonSchema)
+                }
             }
+            result.append(ParsedResponse(
+                statusCode: statusCode.rawValue,
+                description: response.description,
+                schema: schema
+            ))
         }
-        return result
+        return result.sorted { (Int($0.statusCode) ?? 999) < (Int($1.statusCode) ?? 999) }
     }
 
     private func buildSecuritySchemes(from components: OpenAPI.Components) -> [ParsedSecurityScheme] {
