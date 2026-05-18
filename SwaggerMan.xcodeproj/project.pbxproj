@@ -46,6 +46,7 @@
 		AD8F794158DAC1B371F2F51F /* MockURLProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0232872888283B71F922CE78 /* MockURLProtocol.swift */; };
 		AE56BC7182358F8AD81BB630 /* TopBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F1310A65B8AD0EC02905F3A /* TopBar.swift */; };
 		AF4AD9BB0A8A980B23215DA3 /* Placeholder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6D44C6F0EA53F4BC29712C8D /* Placeholder.swift */; };
+		1C092176C5904587A1784D8A /* AuthTokenBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 33909AD8E8A84178B7B42927 /* AuthTokenBar.swift */; };
 		B8744B6BD3C46660A33B9838 /* RequestPaneView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 69361D4DB5BC006AB0B848EF /* RequestPaneView.swift */; };
 		C7104FC28C41526D383F0A01 /* ProjectStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 331D0CBD3D18384914C02DD8 /* ProjectStore.swift */; };
 		C9608399FDA21E4C3FE13110 /* MockServices.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7D271630BE62CEFBA75F5B93 /* MockServices.swift */; };
@@ -88,6 +89,7 @@
 		5FB0D71794C859F51DC455F4 /* OpenAPIParserTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OpenAPIParserTests.swift; sourceTree = "<group>"; };
 		62D0C3B971847E595DC46323 /* ProjectListEditor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProjectListEditor.swift; sourceTree = "<group>"; };
 		64F1D6EF1D66D8B90F47B7BC /* ParsedSpec.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ParsedSpec.swift; sourceTree = "<group>"; };
+		33909AD8E8A84178B7B42927 /* AuthTokenBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthTokenBar.swift; sourceTree = "<group>"; };
 		69361D4DB5BC006AB0B848EF /* RequestPaneView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RequestPaneView.swift; sourceTree = "<group>"; };
 		6B17EDA67B620F605EF7D167 /* SwaggerManError.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwaggerManError.swift; sourceTree = "<group>"; };
 		6D44C6F0EA53F4BC29712C8D /* Placeholder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Placeholder.swift; sourceTree = "<group>"; };
@@ -220,6 +222,7 @@
 		75DE33BE3F91144FFEFC51FB /* Request */ = {
 			isa = PBXGroup;
 			children = (
+				33909AD8E8A84178B7B42927 /* AuthTokenBar.swift */,
 				08A18BD636AA806BF227DEFD /* AuthTab.swift */,
 				703D49FC435639AE8C06D6E0 /* BodyTab.swift */,
 				3F9D1C30E3F0F4D175D0C4A7 /* HeadersTab.swift */,
@@ -472,6 +475,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				3E5BEB1EE17445418F53D426 /* APIEnvironment.swift in Sources */,
+				1C092176C5904587A1784D8A /* AuthTokenBar.swift in Sources */,
 				D161EB749901D339E7350BD7 /* AuthTab.swift in Sources */,
 				240CB85AD76A5918462F95D2 /* AuthorizeSheet.swift in Sources */,
 				F93A499E3B17E594E97B228C /* BodyTab.swift in Sources */,

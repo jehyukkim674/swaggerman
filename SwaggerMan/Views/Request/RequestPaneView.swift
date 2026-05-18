@@ -2,6 +2,7 @@ import SwiftUI
 
 struct RequestPaneView: View {
     @Bindable var store: RequestEditorStore
+    @Bindable var operationStore: OperationStore
     let activeEnvironment: APIEnvironment?
     let onSend: () async -> Void
 
@@ -13,6 +14,13 @@ struct RequestPaneView: View {
                     isSending: store.isSending,
                     onSend: { Task { await onSend() } }
                 )
+
+                // Inline auth token bar (if spec defines security schemes)
+                if !operationStore.securitySchemes.isEmpty {
+                    Divider()
+                    AuthTokenBar(operationStore: operationStore)
+                }
+
                 Divider()
 
                 ScrollView {
@@ -160,10 +168,18 @@ private struct HeadersSectionContent: View {
 
     var body: some View {
         VStack(spacing: 4) {
-            ForEach($store.requestHeaders) { $header in
-                HeaderInputRow(header: $header) {
-                    store.requestHeaders.removeAll { $0.id == header.id }
-                }
+            ForEach(store.requestHeaders, id: \.id) { header in
+                HeaderInputRow(
+                    header: Binding(
+                        get: { store.requestHeaders.first(where: { $0.id == header.id }) ?? header },
+                        set: { new in
+                            if let i = store.requestHeaders.firstIndex(where: { $0.id == header.id }) {
+                                store.requestHeaders[i] = new
+                            }
+                        }
+                    ),
+                    onDelete: { store.requestHeaders.removeAll { $0.id == header.id } }
+                )
             }
 
             HStack {
