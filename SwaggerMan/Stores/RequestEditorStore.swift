@@ -4,6 +4,14 @@ import SwiftUI
 
 private let log = Logger(subsystem: "com.swaggerman", category: "RequestEditorStore")
 
+private struct PersistedEditorState: Codable {
+    struct Param: Codable { var key: String; var value: String; var enabled: Bool }
+    var headers: [Param]
+    var queryParams: [Param]
+    var pathParams: [String: String]
+    var bodyJSON: String
+}
+
 struct RequestParam: Identifiable {
     var id = UUID()
     var key: String
@@ -33,9 +41,12 @@ final class RequestEditorStore {
     private(set) var lastCurlString: String?
     private(set) var lastRequest: HTTPRequest?
 
+    private(set) var currentProjectID: UUID?
+
     // MARK: - Private
 
     private let httpClient: HTTPClientProtocol
+    @ObservationIgnored private var stateLoadedFromHistory = false
 
     init(httpClient: HTTPClientProtocol = HTTPClient()) {
         self.httpClient = httpClient
@@ -44,8 +55,15 @@ final class RequestEditorStore {
     // MARK: - Public Methods
 
     func loadOperation(_ op: ParsedOperation, baseURL: String, environment: APIEnvironment,
-                       securityHeaders: [String: String] = [:])
+                       securityHeaders: [String: String] = [:], projectID: UUID? = nil)
     {
+        // Save current state before resetting (skip if state was loaded from history)
+        if !stateLoadedFromHistory, let pid = currentProjectID, let cur = selectedOperation {
+            persistEditorState(projectID: pid, operationID: cur.id)
+        }
+        stateLoadedFromHistory = false
+
+        if let pid = projectID { currentProjectID = pid }
         selectedOperation = op
         currentBaseURL = baseURL
         currentEnvID = environment.id
@@ -61,9 +79,20 @@ final class RequestEditorStore {
             .map { RequestParam(key: $0.name, value: "", enabled: true) }
         requestHeaders = buildDefaultHeaders(for: op, environment: environment, securityHeaders: securityHeaders)
         bodyJSON = op.requestBody != nil ? "{}" : ""
+
+        // Restore persisted user edits for this operation
+        if let pid = currentProjectID {
+            _ = restoreEditorState(projectID: pid, operationID: op.id)
+        }
     }
 
     func clearSelection() {
+        // Save before clearing (skip history state)
+        if !stateLoadedFromHistory, let pid = currentProjectID, let op = selectedOperation {
+            persistEditorState(projectID: pid, operationID: op.id)
+        }
+        stateLoadedFromHistory = false
+
         selectedOperation = nil
         currentBaseURL = ""
         currentEnvID = UUID()
@@ -75,6 +104,11 @@ final class RequestEditorStore {
         sendError = nil
         lastCurlString = nil
         lastRequest = nil
+    }
+
+    func persistCurrentState() {
+        guard let pid = currentProjectID, let op = selectedOperation else { return }
+        persistEditorState(projectID: pid, operationID: op.id)
     }
 
     func send(project: Project, historyStore: HistoryStore, disableTLS: Bool = false) async {
@@ -120,11 +154,13 @@ final class RequestEditorStore {
     }
 
     func loadFromHistory(_ item: HistoryItem, operation: ParsedOperation,
-                         environment: APIEnvironment, securityHeaders: [String: String])
+                         environment: APIEnvironment, securityHeaders: [String: String],
+                         projectID: UUID? = nil)
     {
         loadOperation(operation, baseURL: environment.baseURL, environment: environment,
-                      securityHeaders: securityHeaders)
+                      securityHeaders: securityHeaders, projectID: projectID)
         restoreParams(from: item)
+        stateLoadedFromHistory = true
         response = HTTPResponse(
             statusCode: item.responseStatus,
             headers: decodeStringDict(item.responseHeadersJSON),
@@ -248,5 +284,39 @@ final class RequestEditorStore {
 
     private func decodeStringDict(_ json: String) -> [String: String] {
         (try? JSONDecoder().decode([String: String].self, from: Data(json.utf8))) ?? [:]
+    }
+
+    // MARK: - Editor State Persistence
+
+    private func persistEditorState(projectID: UUID, operationID: String) {
+        let state = PersistedEditorState(
+            headers: requestHeaders.map { .init(key: $0.key, value: $0.value, enabled: $0.enabled) },
+            queryParams: queryParams.map { .init(key: $0.key, value: $0.value, enabled: $0.enabled) },
+            pathParams: pathParams,
+            bodyJSON: bodyJSON
+        )
+        let key = "editorState-\(projectID.uuidString)-\(operationID)"
+        if let data = try? JSONEncoder().encode(state) {
+            UserDefaults.standard.set(data, forKey: key)
+        }
+    }
+
+    @discardableResult
+    private func restoreEditorState(projectID: UUID, operationID: String) -> Bool {
+        let key = "editorState-\(projectID.uuidString)-\(operationID)"
+        guard let data = UserDefaults.standard.data(forKey: key),
+              let state = try? JSONDecoder().decode(PersistedEditorState.self, from: data)
+        else {
+            return false
+        }
+        requestHeaders = state.headers.map {
+            RequestParam(key: $0.key, value: $0.value, enabled: $0.enabled)
+        }
+        queryParams = state.queryParams.map {
+            RequestParam(key: $0.key, value: $0.value, enabled: $0.enabled)
+        }
+        pathParams = state.pathParams
+        bodyJSON = state.bodyJSON
+        return true
     }
 }

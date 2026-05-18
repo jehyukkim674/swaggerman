@@ -6,6 +6,7 @@ private let log = Logger(subsystem: "com.swaggerman", category: "RootView")
 
 struct RootView: View {
     @Environment(\.modelContext) private var modelContext
+    @Environment(\.scenePhase) private var scenePhase
 
     @State private var projectStore: ProjectStore?
     @State private var environmentStore: EnvironmentStore?
@@ -53,7 +54,8 @@ struct RootView: View {
                                     let baseURL = env.baseURL.trimmingCharacters(in: CharacterSet(charactersIn: "/"))
                                     requestEditorStore.loadOperation(op, baseURL: baseURL, environment: env,
                                                                      securityHeaders: operationStore
-                                                                         .computedSecurityHeaders)
+                                                                         .computedSecurityHeaders,
+                                                                     projectID: project.id)
                                     projectStore.saveLastOperationID(op.id, for: project)
                                 },
                                 favoriteStore: favoriteStore,
@@ -66,14 +68,16 @@ struct RootView: View {
                                     guard let (op, env) = resolveHistory(item, project: project) else { return }
                                     requestEditorStore.loadFromHistory(item, operation: op, environment: env,
                                                                        securityHeaders: operationStore
-                                                                           .computedSecurityHeaders)
+                                                                           .computedSecurityHeaders,
+                                                                       projectID: project.id)
                                 },
                                 onReplayHistory: { item in
                                     guard let (op, env) = resolveHistory(item, project: project) else { return }
                                     let baseURL = env.baseURL.trimmingCharacters(in: CharacterSet(charactersIn: "/"))
                                     requestEditorStore.loadOperation(op, baseURL: baseURL, environment: env,
                                                                      securityHeaders: operationStore
-                                                                         .computedSecurityHeaders)
+                                                                         .computedSecurityHeaders,
+                                                                     projectID: project.id)
                                     requestEditorStore.restoreParams(from: item)
                                 },
                                 onDeleteHistory: { item in
@@ -164,6 +168,10 @@ struct RootView: View {
                 restoreLastOperation(project: project, os: os, es: es, res: res)
             }
         }
+        .onChange(of: scenePhase) { _, newPhase in
+            guard newPhase == .inactive || newPhase == .background else { return }
+            requestEditorStore?.persistCurrentState()
+        }
         .sheet(isPresented: $showProjectListEditor) {
             if let ps = projectStore {
                 ProjectListEditor(store: ps)
@@ -202,7 +210,8 @@ struct RootView: View {
               let env = es.activeEnvironment(for: project) else { return }
         let baseURL = env.baseURL.trimmingCharacters(in: CharacterSet(charactersIn: "/"))
         res.loadOperation(op, baseURL: baseURL, environment: env,
-                          securityHeaders: os.computedSecurityHeaders)
+                          securityHeaders: os.computedSecurityHeaders,
+                          projectID: project.id)
     }
 }
 
