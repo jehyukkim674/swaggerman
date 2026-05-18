@@ -40,6 +40,13 @@ final class HistoryStore {
         log.debug("History appended — total: \(project.history.count)")
     }
 
+    func delete(_ item: HistoryItem, from project: Project) {
+        project.history.removeAll { $0.id == item.id }
+        modelContext.delete(item)
+        save()
+        loadHistory(for: project)
+    }
+
     func clear(for project: Project) {
         for item in project.history {
             modelContext.delete(item)
