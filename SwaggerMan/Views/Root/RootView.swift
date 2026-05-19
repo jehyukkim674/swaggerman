@@ -15,16 +15,41 @@ struct RootView: View {
     @State private var historyStore: HistoryStore?
     @State private var favoriteStore: FavoriteStore?
 
-    @State private var showSidebar = true
-    @State private var showRequest = true
-    @State private var showResponse = true
+    @AppStorage("showSidebar") private var showSidebar = true
+    @AppStorage("showRequest") private var showRequest = true
+    @AppStorage("showResponse") private var showResponse = true
     @State private var showProjectListEditor = false
     @State private var showEnvironmentEditor = false
 
-    @State private var sidebarWidth: CGFloat = 240
-    @State private var responseWidth: CGFloat = 420
+    @AppStorage("panelSidebarWidth") private var sidebarWidth: Double = 240
+    @AppStorage("panelResponseWidth") private var responseWidth: Double = 420
+    @AppStorage("appZoom") private var appZoom: Double = 1.0
+    private static let zoomRange: ClosedRange<Double> = 0.6 ... 2.0
+    private static let zoomStep: Double = 0.1
 
     var body: some View {
+        GeometryReader { geo in
+            mainContent
+                .frame(width: geo.size.width / appZoom,
+                       height: geo.size.height / appZoom)
+                .scaleEffect(appZoom, anchor: .topLeading)
+        }
+        .overlay(
+            Group {
+                Button("") { appZoom = min(Self.zoomRange.upperBound, round((appZoom + Self.zoomStep) * 10) / 10) }
+                    .keyboardShortcut("+", modifiers: .command)
+                Button("") { appZoom = min(Self.zoomRange.upperBound, round((appZoom + Self.zoomStep) * 10) / 10) }
+                    .keyboardShortcut("=", modifiers: .command)
+                Button("") { appZoom = max(Self.zoomRange.lowerBound, round((appZoom - Self.zoomStep) * 10) / 10) }
+                    .keyboardShortcut("-", modifiers: .command)
+                Button("") { appZoom = 1.0 }
+                    .keyboardShortcut("0", modifiers: .command)
+            }
+            .opacity(0).allowsHitTesting(false).accessibilityHidden(true)
+        )
+    }
+
+    private var mainContent: some View {
         VStack(spacing: 0) {
             if let projectStore, let environmentStore,
                let operationStore, let requestEditorStore,
@@ -85,6 +110,9 @@ struct RootView: View {
                                 },
                                 onClearHistory: {
                                     historyStore.clear(for: project)
+                                },
+                                onRefresh: {
+                                    Task { try? await operationStore.loadSpec(for: project) }
                                 }
                             )
                             .frame(width: sidebarWidth)
@@ -102,7 +130,7 @@ struct RootView: View {
                                 onSend: {
                                     guard let project = projectStore.selectedProject,
                                           let env = environmentStore.activeEnvironment(for: project) else { return }
-                                    await requestEditorStore.send(
+                                    requestEditorStore.send(
                                         project: project,
                                         historyStore: historyStore,
                                         disableTLS: env.disableTLSValidation
@@ -171,6 +199,9 @@ struct RootView: View {
         .onChange(of: scenePhase) { _, newPhase in
             guard newPhase == .inactive || newPhase == .background else { return }
             requestEditorStore?.persistCurrentState()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .openProjectSettings)) { _ in
+            showProjectListEditor = true
         }
         .sheet(isPresented: $showProjectListEditor) {
             if let ps = projectStore {

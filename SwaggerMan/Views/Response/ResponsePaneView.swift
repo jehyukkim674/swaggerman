@@ -93,12 +93,16 @@ struct ResponseDetailView: View {
     let curlString: String?
     let lastRequest: HTTPRequest?
 
+    @AppStorage("responseFontSize") private var fontSize: Double = 11.0
+    @State private var formattedBody: String = ""
     @State private var searchText = ""
     @State private var isSearchActive = false
     @FocusState private var isSearchFieldFocused: Bool
 
+    private static let fontSizeRange: ClosedRange<Double> = 8 ... 32
+
     private var searchResult: (body: AttributedString, count: Int) {
-        let text = prettyBody
+        let text = formattedBody
         guard !searchText.isEmpty else { return (AttributedString(text), 0) }
 
         var result = AttributedString()
@@ -198,6 +202,27 @@ struct ResponseDetailView: View {
             .padding(.horizontal, 12)
             .padding(.vertical, 8)
 
+            // Request URL row
+            if let request = lastRequest {
+                HStack(spacing: 6) {
+                    Text(request.method.rawValue)
+                        .font(.system(.caption2, design: .monospaced).bold())
+                        .foregroundStyle(request.method.swiftUIColor)
+                        .padding(.horizontal, 4)
+                        .padding(.vertical, 2)
+                        .background(request.method.swiftUIColor.opacity(0.12))
+                        .clipShape(.rect(cornerRadius: 3))
+                    Text(request.url.absoluteString)
+                        .font(.system(.caption, design: .monospaced))
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                        .truncationMode(.middle)
+                        .textSelection(.enabled)
+                }
+                .padding(.horizontal, 12)
+                .padding(.vertical, 5)
+            }
+
             Divider()
 
             // Search bar (visible when isSearchActive)
@@ -230,29 +255,38 @@ struct ResponseDetailView: View {
                 Divider()
             }
 
+            // Request Headers + Body (collapsible)
+            if let req = lastRequest {
+                SentRequestSection(request: req)
+                Divider()
+            }
+
             // Response Headers (fixed at top)
             if !response.headers.isEmpty {
-                ResponseHeadersSection(headers: response.headers)
+                ResponseHeadersSection(headers: response.headers, title: "Response Headers")
                 Divider()
             }
 
             // Response Body (scrollable, fills remaining space)
             ScrollView {
                 Text(highlightedBody)
-                    .font(.system(.caption, design: .monospaced))
+                    .font(.system(size: fontSize, design: .monospaced))
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .textSelection(.enabled)
                     .padding(12)
             }
         }
+        .task(id: response.body) {
+            let data = response.body
+            let result = await Task.detached(priority: .userInitiated) {
+                Self.formatBody(data)
+            }.value
+            formattedBody = result
+        }
         .overlay(
             Button("") {
                 isSearchActive.toggle()
-                if isSearchActive {
-                    isSearchFieldFocused = true
-                } else {
-                    searchText = ""
-                }
+                if isSearchActive { isSearchFieldFocused = true } else { searchText = "" }
             }
             .keyboardShortcut("f", modifiers: .command)
             .opacity(0)
@@ -261,10 +295,9 @@ struct ResponseDetailView: View {
         )
     }
 
-    private var prettyBody: String {
-        let rawStr = response.bodyString ?? ""
-        guard let data = rawStr.data(using: .utf8),
-              let obj = try? JSONSerialization.jsonObject(with: data),
+    private static func formatBody(_ data: Data) -> String {
+        let rawStr = String(data: data, encoding: .utf8) ?? ""
+        guard let obj = try? JSONSerialization.jsonObject(with: data),
               let pretty = try? JSONSerialization.data(withJSONObject: obj, options: .prettyPrinted),
               let str = String(data: pretty, encoding: .utf8)
         else {
@@ -288,10 +321,11 @@ struct ResponseDetailView: View {
     }
 }
 
-// MARK: - Headers Section
+// MARK: - Response Headers Section
 
 struct ResponseHeadersSection: View {
     let headers: [String: String]
+    var title: String = "Headers"
     @State private var isExpanded = true
 
     var sorted: [(key: String, value: String)] {
@@ -307,7 +341,7 @@ struct ResponseHeadersSection: View {
                     Image(systemName: isExpanded ? "chevron.down" : "chevron.right")
                         .font(.system(size: 10, weight: .semibold))
                         .foregroundStyle(.secondary)
-                    Text("Headers")
+                    Text(title)
                         .font(.caption.weight(.semibold))
                         .foregroundStyle(.secondary)
                     Text("\(headers.count)")

@@ -3,19 +3,11 @@ import os.log
 
 private let log = Logger(subsystem: "com.swaggerman", category: "SpecCache")
 
-/// Codable wrapper for persistence
-private struct CachedEnvelope: Codable {
-    let infoTitle: String
-    let infoVersion: String
-    let infoDescription: String?
-    let servers: [String]
-    let etag: String?
-    let cachedAt: Date
-}
-
 actor SpecCache: SpecCacheProtocol {
     private var memoryCache: [String: CachedEntry] = [:]
     private let cacheDirectory: URL
+    private let encoder = JSONEncoder()
+    private let decoder = JSONDecoder()
 
     init(cacheDirectory: URL = .defaultSpecCacheDirectory) {
         self.cacheDirectory = cacheDirectory
@@ -28,43 +20,22 @@ actor SpecCache: SpecCacheProtocol {
 
     func load(for urlString: String) -> CachedEntry? {
         if let cached = memoryCache[urlString] { return cached }
-
         let file = cacheFile(for: urlString)
         guard let data = try? Data(contentsOf: file),
-              let envelope = try? JSONDecoder().decode(CachedEnvelope.self, from: data)
-        else {
-            return nil
-        }
-
-        let spec = ParsedSpec(
-            info: SpecInfo(
-                title: envelope.infoTitle,
-                version: envelope.infoVersion,
-                description: envelope.infoDescription
-            ),
-            servers: envelope.servers,
-            operations: [],
-            securitySchemes: [],
-            rawOperationCount: 0
-        )
-        let entry = CachedEntry(spec: spec, etag: envelope.etag, cachedAt: envelope.cachedAt)
+              let envelope = try? decoder.decode(CacheEnvelope.self, from: data)
+        else { return nil }
+        let entry = CachedEntry(spec: envelope.spec, etag: envelope.etag, cachedAt: envelope.cachedAt)
         memoryCache[urlString] = entry
         return entry
     }
 
     func store(_ entry: CachedEntry, for urlString: String) {
         memoryCache[urlString] = entry
-        let envelope = CachedEnvelope(
-            infoTitle: entry.spec.info.title,
-            infoVersion: entry.spec.info.version,
-            infoDescription: entry.spec.info.description,
-            servers: entry.spec.servers,
-            etag: entry.etag,
-            cachedAt: entry.cachedAt
-        )
+        let envelope = CacheEnvelope(spec: entry.spec, etag: entry.etag, cachedAt: entry.cachedAt)
         let file = cacheFile(for: urlString)
-        if let data = try? JSONEncoder().encode(envelope) {
+        if let data = try? encoder.encode(envelope) {
             try? data.write(to: file, options: .atomic)
+            log.debug("Spec cached to disk: \(file.lastPathComponent) (\(data.count) bytes)")
         }
     }
 
@@ -76,22 +47,23 @@ actor SpecCache: SpecCacheProtocol {
     func clear() {
         memoryCache.removeAll()
         try? FileManager.default.removeItem(at: cacheDirectory)
-        try? FileManager.default.createDirectory(
-            at: cacheDirectory,
-            withIntermediateDirectories: true
-        )
+        try? FileManager.default.createDirectory(at: cacheDirectory, withIntermediateDirectories: true)
     }
 
     private func cacheFile(for urlString: String) -> URL {
-        // Simple hash: use djb2 hash of URL UTF-8 bytes
         let bytes = Array(urlString.utf8)
         var hash = 5381
         for byte in bytes {
             hash = ((hash << 5) &+ hash) &+ Int(byte)
         }
-        let filename = "spec_\(abs(hash)).json"
-        return cacheDirectory.appendingPathComponent(filename)
+        return cacheDirectory.appendingPathComponent("spec_\(abs(hash)).json")
     }
+}
+
+private struct CacheEnvelope: Codable {
+    let spec: ParsedSpec
+    let etag: String?
+    let cachedAt: Date
 }
 
 extension URL {

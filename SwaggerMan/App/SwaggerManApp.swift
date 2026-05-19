@@ -29,5 +29,19 @@ struct SwaggerManApp: App {
         .windowStyle(.titleBar)
         .windowToolbarStyle(.unified)
         .defaultSize(width: 1200, height: 750)
+        .commands {
+            CommandGroup(after: .appInfo) {
+                Divider()
+                Button("프로젝트 관리...") {
+                    NotificationCenter.default.post(name: .openProjectSettings, object: nil)
+                }
+                .keyboardShortcut(",", modifiers: .command)
+                Divider()
+            }
+        }
     }
+}
+
+extension Notification.Name {
+    static let openProjectSettings = Notification.Name("com.swaggerman.openProjectSettings")
 }

@@ -11,24 +11,63 @@ struct ParamsTab: View {
                 VStack(alignment: .leading, spacing: 20) {
                     if !store.pathParams.isEmpty {
                         ParamSection(title: "Path Parameters") {
-                            ForEach(store.pathParams.keys.sorted(), id: \.self) { key in
-                                ParamsTabInputRow(
-                                    label: "{\(key)}",
-                                    placeholder: "값 입력",
-                                    value: Binding(
-                                        get: { store.pathParams[key] ?? "" },
-                                        set: { store.pathParams[key] = $0 }
-                                    )
-                                )
+                            Grid(alignment: .leading, horizontalSpacing: 8, verticalSpacing: 4) {
+                                ForEach(store.pathParams.keys.sorted(), id: \.self) { key in
+                                    GridRow {
+                                        Text("{\(key)}")
+                                            .font(.system(.caption, design: .monospaced))
+                                            .foregroundStyle(.secondary)
+                                            .fixedSize(horizontal: true, vertical: false)
+                                        TextField("값 입력", text: Binding(
+                                            get: { store.pathParams[key] ?? "" },
+                                            set: { store.pathParams[key] = $0 }
+                                        ))
+                                        .font(.system(.body, design: .monospaced))
+                                        .textFieldStyle(.plain)
+                                        .padding(.horizontal, 8).padding(.vertical, 6)
+                                        .background(Color(.textBackgroundColor).opacity(0.5))
+                                        .clipShape(.rect(cornerRadius: 5))
+                                        .overlay(RoundedRectangle(cornerRadius: 5).stroke(
+                                            Color(.separatorColor),
+                                            lineWidth: 1
+                                        ))
+                                        .frame(maxWidth: .infinity)
+                                    }
+                                }
                             }
+                            .padding(.horizontal, 4)
                         }
                     }
 
                     if !store.queryParams.isEmpty {
                         ParamSection(title: "Query Parameters") {
-                            ForEach($store.queryParams) { $param in
-                                ParamsTabQueryInputRow(param: $param)
+                            Grid(alignment: .leading, horizontalSpacing: 8, verticalSpacing: 4) {
+                                ForEach($store.queryParams) { $param in
+                                    GridRow {
+                                        Toggle("", isOn: $param.enabled)
+                                            .labelsHidden().scaleEffect(0.85).frame(width: 24)
+                                        Text(param.key)
+                                            .font(.system(.caption, design: .monospaced))
+                                            .foregroundStyle(param.enabled ? .primary : .tertiary)
+                                            .fixedSize(horizontal: true, vertical: false)
+                                        TextField("값 입력", text: $param.value)
+                                            .font(.system(.body, design: .monospaced))
+                                            .textFieldStyle(.plain)
+                                            .disabled(!param.enabled)
+                                            .padding(.horizontal, 8).padding(.vertical, 6)
+                                            .background(param.enabled
+                                                ? Color(.textBackgroundColor).opacity(0.5)
+                                                : Color(.textBackgroundColor).opacity(0.15))
+                                            .clipShape(.rect(cornerRadius: 5))
+                                            .overlay(RoundedRectangle(cornerRadius: 5).stroke(
+                                                Color(.separatorColor),
+                                                lineWidth: 1
+                                            ))
+                                            .frame(maxWidth: .infinity)
+                                    }
+                                }
                             }
+                            .padding(.horizontal, 4)
                         }
                     }
                 }
@@ -69,8 +108,7 @@ struct ParamsTabInputRow: View {
             Text(label)
                 .font(.system(.caption, design: .monospaced))
                 .foregroundStyle(.secondary)
-                .frame(width: 120, alignment: .leading)
-                .lineLimit(1)
+                .fixedSize(horizontal: true, vertical: false)
 
             TextField(placeholder, text: $value)
                 .font(.system(.body, design: .monospaced))
@@ -103,8 +141,7 @@ struct ParamsTabQueryInputRow: View {
             Text(param.key)
                 .font(.system(.caption, design: .monospaced))
                 .foregroundStyle(param.enabled ? .primary : .tertiary)
-                .frame(width: 110, alignment: .leading)
-                .lineLimit(1)
+                .fixedSize(horizontal: true, vertical: false)
 
             TextField("값 입력", text: $param.value)
                 .font(.system(.body, design: .monospaced))

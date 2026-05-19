@@ -40,6 +40,8 @@ targets:
     dependencies:
       - package: OpenAPIKit
         product: OpenAPIKit30
+      - package: OpenAPIKit
+        product: OpenAPIKit
       - package: Yams
         product: Yams
       - package: KeychainAccess

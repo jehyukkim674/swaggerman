@@ -15,6 +15,14 @@ final class ProjectStore {
     init(modelContext: ModelContext) {
         self.modelContext = modelContext
         loadProjects()
+        migrateDisableTLS()
+    }
+
+    private func migrateDisableTLS() {
+        for project in projects where !project.disableTLSVerification {
+            project.disableTLSVerification = true
+        }
+        try? save()
     }
 
     // MARK: - Public
@@ -32,7 +40,11 @@ final class ProjectStore {
         let project = Project(alias: trimmedAlias, swaggerURL: swaggerURL)
         modelContext.insert(project)
 
-        let defaultEnv = APIEnvironment(name: "Dev", baseURL: swaggerURL, project: project)
+        let defaultEnv = APIEnvironment(
+            name: "Dev",
+            baseURL: EnvironmentStore.deriveBaseURL(from: swaggerURL),
+            project: project
+        )
         modelContext.insert(defaultEnv)
         project.environments.append(defaultEnv)
 
@@ -68,13 +80,27 @@ final class ProjectStore {
         try? save()
     }
 
-    func updateProject(_ project: Project, alias: String, swaggerURL: String) throws {
+    func updateProject(
+        _ project: Project,
+        alias: String,
+        swaggerURL: String,
+        disableTLSVerification: Bool = false,
+        specAuthType: String? = nil,
+        specAuthValue1: String? = nil,
+        specAuthValue2: String? = nil,
+        specAuthValue3: String? = nil
+    ) throws {
         let isDuplicate = projects.contains { $0.alias == alias && $0.id != project.id }
         if isDuplicate {
             throw SwaggerManError.persistence(.duplicateAlias(alias))
         }
         project.alias = alias
         project.swaggerURL = swaggerURL
+        project.disableTLSVerification = disableTLSVerification
+        project.specAuthType = specAuthType
+        project.specAuthValue1 = specAuthValue1.flatMap { $0.isEmpty ? nil : $0 }
+        project.specAuthValue2 = specAuthValue2.flatMap { $0.isEmpty ? nil : $0 }
+        project.specAuthValue3 = specAuthValue3.flatMap { $0.isEmpty ? nil : $0 }
         try save()
         loadProjects()
     }

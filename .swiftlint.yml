@@ -58,3 +58,4 @@ identifier_name:
 excluded:
   - SwaggerMan.xcodeproj
   - SwaggerManTests/Mocks
+  - build

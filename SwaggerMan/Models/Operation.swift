@@ -1,6 +1,6 @@
 import Foundation
 
-struct ParsedParameter: Identifiable {
+struct ParsedParameter: Identifiable, Codable {
     let id: String
     let name: String
     let location: ParameterLocation
@@ -13,7 +13,7 @@ enum ParameterLocation: String, Codable {
     case path, query, header, cookie
 }
 
-final class ParsedSchema {
+final class ParsedSchema: Codable {
     let type: SchemaType
     let properties: [String: ParsedSchema]?
     let items: ParsedSchema?
@@ -39,24 +39,24 @@ final class ParsedSchema {
     }
 }
 
-enum SchemaType: String {
+enum SchemaType: String, Codable {
     case string, integer, number, boolean, array, object, unknown
 }
 
-struct ParsedRequestBody {
+struct ParsedRequestBody: Codable {
     let required: Bool
     let contentType: String
     let schema: ParsedSchema?
 }
 
-struct ParsedResponse {
-    let statusCode: String // "200", "404", "default"
+struct ParsedResponse: Codable {
+    let statusCode: String
     let description: String?
     let schema: ParsedSchema?
 }
 
-struct ParsedOperation: Identifiable {
-    let id: String // "\(method.rawValue) \(path)"
+struct ParsedOperation: Identifiable, Codable {
+    let id: String
     let method: HTTPMethod
     let path: String
     let operationId: String?

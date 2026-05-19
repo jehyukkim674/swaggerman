@@ -62,6 +62,7 @@ final class RequestEditorStore {
     private let httpClient: HTTPClientProtocol
     @ObservationIgnored private var stateLoadedFromHistory = false
     @ObservationIgnored private var isLoadingOperation = false
+    @ObservationIgnored private var sendTask: Task<Void, Never>?
 
     init(httpClient: HTTPClientProtocol = HTTPClient()) {
         self.httpClient = httpClient
@@ -134,48 +135,60 @@ final class RequestEditorStore {
         persistEditorState(projectID: pid, operationID: op.id)
     }
 
-    func send(project: Project, historyStore: HistoryStore, disableTLS: Bool = false) async {
+    func send(project: Project, historyStore: HistoryStore, disableTLS: Bool = false) {
         guard let op = selectedOperation else { return }
-        isSending = true
-        defer { isSending = false }
-        sendError = nil
+        sendTask?.cancel()
+        sendTask = Task {
+            isSending = true
+            defer { isSending = false }
+            sendError = nil
 
-        do {
-            let request = try buildRequest(op: op)
-            lastCurlString = CurlBuilder.build(request)
-            lastRequest = request
-            let res = try await httpClient.execute(request, disableTLS: disableTLS)
-            response = res
-            responseTab = .response
+            do {
+                let request = try buildRequest(op: op)
+                lastCurlString = CurlBuilder.build(request)
+                lastRequest = request
+                let res = try await httpClient.execute(request, disableTLS: disableTLS)
+                try Task.checkCancellation()
+                response = res
+                responseTab = .response
 
-            let reqHeadersJSON = jsonString(from: request.headers)
-            let resHeadersJSON = jsonString(from: res.headers)
-            let bodyStr = res.bodyString ?? ""
-            let truncatedBody = bodyStr.count > 1_000_000
-                ? String(bodyStr.prefix(1_000_000)) + "\n...(truncated)"
-                : bodyStr
+                let reqHeadersJSON = jsonString(from: request.headers)
+                let resHeadersJSON = jsonString(from: res.headers)
+                let bodyStr = res.bodyString ?? ""
+                let truncatedBody = bodyStr.count > 1_000_000
+                    ? String(bodyStr.prefix(1_000_000)) + "\n...(truncated)"
+                    : bodyStr
 
-            let item = HistoryItem(
-                environmentID: currentEnvID,
-                method: op.method.rawValue,
-                path: op.path,
-                fullURL: request.url.absoluteString,
-                requestHeadersJSON: reqHeadersJSON,
-                requestBody: request.body.flatMap { String(data: $0, encoding: .utf8) },
-                responseStatus: res.statusCode,
-                responseHeadersJSON: resHeadersJSON,
-                responseBody: truncatedBody,
-                responseSize: res.body.count,
-                durationMs: res.durationMs,
-                project: project
-            )
-            historyStore.append(item, to: project)
-            log.info("Request sent: \(op.method.rawValue) \(op.path) → \(res.statusCode)")
-        } catch {
-            sendError = error
-            responseTab = .response
-            log.error("Request failed: \(error.localizedDescription)")
+                let item = HistoryItem(
+                    environmentID: currentEnvID,
+                    method: op.method.rawValue,
+                    path: op.path,
+                    fullURL: request.url.absoluteString,
+                    requestHeadersJSON: reqHeadersJSON,
+                    requestBody: request.body.flatMap { String(data: $0, encoding: .utf8) },
+                    responseStatus: res.statusCode,
+                    responseHeadersJSON: resHeadersJSON,
+                    responseBody: truncatedBody,
+                    responseSize: res.body.count,
+                    durationMs: res.durationMs,
+                    project: project
+                )
+                historyStore.append(item, to: project)
+                log.info("Request sent: \(op.method.rawValue) \(op.path) → \(res.statusCode)")
+            } catch is CancellationError {
+                log.info("Request cancelled")
+            } catch {
+                sendError = error
+                responseTab = .response
+                log.error("Request failed: \(error.localizedDescription)")
+            }
         }
+    }
+
+    func cancelSend() {
+        sendTask?.cancel()
+        sendTask = nil
+        isSending = false
     }
 
     func loadFromHistory(_ item: HistoryItem, operation: ParsedOperation,
@@ -228,9 +241,10 @@ final class RequestEditorStore {
         }
 
         var headers: [String: String] = [:]
-        for header in requestHeaders where header.enabled && !header.key.isEmpty {
+        for header in requestHeaders where header.enabled && !header.key.isEmpty && !header.value.isEmpty {
             headers[header.key] = header.value
         }
+        log.debug("buildRequest headers: \(headers.map { "\($0.key)=\($0.value.prefix(20))" }.joined(separator: ", "))")
 
         var body: Data?
         let trimmedBody = bodyJSON.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -325,7 +339,6 @@ final class RequestEditorStore {
         let key = "editorState-\(projectID.uuidString)-\(operationID)"
         if let data = try? JSONEncoder().encode(state) {
             UserDefaults.standard.set(data, forKey: key)
-            UserDefaults.standard.synchronize()
             log.debug("PERSIST [\(operationID)] headers=\(state.headers.map(\.key))")
         }
     }
@@ -340,12 +353,27 @@ final class RequestEditorStore {
             return false
         }
         log.debug("RESTORE [\(operationID)] headers=\(state.headers.map(\.key))")
-        requestHeaders = state.headers.map {
-            RequestParam(key: $0.key, value: $0.value, enabled: $0.enabled)
+
+        // Merge saved values into spec-derived params (preserve isFromSpec/isRequired metadata)
+        let savedQueryMap = Dictionary(uniqueKeysWithValues: state.queryParams.map { ($0.key, $0) })
+        queryParams = queryParams.map { param in
+            guard let saved = savedQueryMap[param.key] else { return param }
+            return RequestParam(key: param.key, value: saved.value, enabled: saved.enabled,
+                                isFromSpec: param.isFromSpec, isRequired: param.isRequired)
         }
-        queryParams = state.queryParams.map {
-            RequestParam(key: $0.key, value: $0.value, enabled: $0.enabled)
+
+        // Merge headers: update existing spec headers, append any user-added ones
+        let savedHeaderMap = Dictionary(uniqueKeysWithValues: state.headers.map { ($0.key, $0) })
+        requestHeaders = requestHeaders.map { param in
+            guard let saved = savedHeaderMap[param.key] else { return param }
+            return RequestParam(key: param.key, value: saved.value, enabled: saved.enabled,
+                                isFromSpec: param.isFromSpec, isRequired: param.isRequired)
         }
+        let existingHeaderKeys = Set(requestHeaders.map(\.key))
+        for saved in state.headers where !existingHeaderKeys.contains(saved.key) {
+            requestHeaders.append(RequestParam(key: saved.key, value: saved.value, enabled: saved.enabled))
+        }
+
         pathParams = state.pathParams
         bodyJSON = state.bodyJSON
         return true

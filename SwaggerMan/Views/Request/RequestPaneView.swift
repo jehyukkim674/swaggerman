@@ -4,7 +4,7 @@ struct RequestPaneView: View {
     @Bindable var store: RequestEditorStore
     @Bindable var operationStore: OperationStore
     let activeEnvironment: APIEnvironment?
-    let onSend: () async -> Void
+    let onSend: () -> Void
 
     var body: some View {
         VStack(spacing: 0) {
@@ -12,7 +12,8 @@ struct RequestPaneView: View {
                 OperationHeaderView(
                     operation: op,
                     isSending: store.isSending,
-                    onSend: { Task { await onSend() } }
+                    onSend: onSend,
+                    onCancel: { store.cancelSend() }
                 )
 
                 // Inline auth token bar (if spec defines security schemes)

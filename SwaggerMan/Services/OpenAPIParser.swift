@@ -4,38 +4,37 @@ import Yams
 
 struct OpenAPIParser: OpenAPIParserProtocol {
     func parse(_ data: Data) throws -> ParsedSpec {
-        // Detect OpenAPI 2.0 (swagger field present) before attempting decode.
         if let dict = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
            let swaggerVersion = dict["swagger"]
         {
             throw SwaggerManError.parsing(.unsupportedVersion(String(describing: swaggerVersion)))
         }
 
-        let document: OpenAPI.Document
+        if let doc30 = try? JSONDecoder().decode(OpenAPI.Document.self, from: data) {
+            return buildSpec(from: doc30)
+        }
         do {
-            document = try JSONDecoder().decode(OpenAPI.Document.self, from: data)
+            return try openAPIKit31ParseJSON(data)
         } catch {
             throw SwaggerManError.parsing(.invalidJSON(error.localizedDescription))
         }
-
-        return buildSpec(from: document)
     }
 
     func parseYAML(_ string: String) throws -> ParsedSpec {
-        // Detect OpenAPI 2.0 (swagger key) in YAML before attempting decode.
         if let yamlAny = try? Yams.load(yaml: string) as? [String: Any],
            let swaggerVersion = yamlAny["swagger"]
         {
             throw SwaggerManError.parsing(.unsupportedVersion(String(describing: swaggerVersion)))
         }
 
-        let document: OpenAPI.Document
+        if let doc30 = try? YAMLDecoder().decode(OpenAPI.Document.self, from: string) {
+            return buildSpec(from: doc30)
+        }
         do {
-            document = try YAMLDecoder().decode(OpenAPI.Document.self, from: string)
+            return try openAPIKit31ParseYAML(string)
         } catch {
             throw SwaggerManError.parsing(.invalidYAML(error.localizedDescription))
         }
-        return buildSpec(from: document)
     }
 
     // MARK: - Mapping
@@ -183,7 +182,7 @@ struct OpenAPIParser: OpenAPIParserProtocol {
         case .patch: .patch
         case .options: .options
         case .head: .head
-        case .trace: nil // TRACE not in HTTPMethod enum; skip silently
+        case .trace: nil
         }
     }
 

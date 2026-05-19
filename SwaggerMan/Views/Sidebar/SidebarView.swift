@@ -17,6 +17,8 @@ struct SidebarView: View {
     let onDeleteHistory: (HistoryItem) -> Void
     let onClearHistory: () -> Void
 
+    let onRefresh: () -> Void
+
     var body: some View {
         VStack(spacing: 0) {
             SearchBarView(text: $operationStore.searchText)
@@ -37,13 +39,21 @@ struct SidebarView: View {
                     ProgressView("로딩 중...")
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                 } else if let err = operationStore.loadError {
-                    VStack(spacing: 8) {
+                    VStack(spacing: 12) {
                         Image(systemName: "exclamationmark.triangle")
                             .font(.title2)
                             .foregroundStyle(.orange)
                         Text(err.localizedDescription)
                             .font(.caption)
                             .multilineTextAlignment(.center)
+                        Button {
+                            onRefresh()
+                        } label: {
+                            Label("다시 시도", systemImage: "arrow.clockwise")
+                                .font(.caption.weight(.medium))
+                        }
+                        .buttonStyle(.bordered)
+                        .controlSize(.small)
                     }
                     .padding()
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -333,65 +343,5 @@ struct OperationRowView: View {
                 )
         )
         .onHover { isHovered = $0 }
-    }
-}
-
-// MARK: - History Row
-
-struct HistoryRowView: View {
-    let item: HistoryItem
-    let onSelect: () -> Void
-    let onReplay: () -> Void
-
-    @State private var isHovered = false
-
-    var body: some View {
-        HStack(spacing: 6) {
-            Text(item.method)
-                .font(.system(.caption2, design: .monospaced).bold())
-                .foregroundStyle(methodColor)
-                .padding(.horizontal, 4)
-                .padding(.vertical, 2)
-                .background(methodColor.opacity(0.12))
-                .clipShape(.rect(cornerRadius: 3))
-
-            VStack(alignment: .leading, spacing: 1) {
-                Text(item.path)
-                    .font(.system(.caption, design: .monospaced))
-                    .lineLimit(1)
-                Text(item.executedAt, style: .relative)
-                    .font(.caption2)
-                    .foregroundStyle(.tertiary)
-            }
-
-            Spacer()
-
-            Text("\(item.responseStatus)")
-                .font(.system(.caption2, design: .monospaced))
-                .foregroundStyle(statusColor)
-
-            if isHovered {
-                Button(action: onReplay) {
-                    Image(systemName: "arrow.clockwise")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-                .buttonStyle(.plain)
-                .help("요청 에디터에 불러오기 (응답 초기화)")
-            }
-        }
-        .padding(.vertical, 4)
-        .padding(.horizontal, 2)
-        .contentShape(Rectangle())
-        .onTapGesture { onSelect() }
-        .onHover { isHovered = $0 }
-    }
-
-    private var methodColor: Color {
-        HTTPMethod.color(for: item.method)
-    }
-
-    private var statusColor: Color {
-        .httpStatus(item.responseStatus)
     }
 }

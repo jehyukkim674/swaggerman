@@ -12,6 +12,24 @@ final class EnvironmentStore {
 
     init(modelContext: ModelContext) {
         self.modelContext = modelContext
+        migrateSwaggerUIBaseURLs()
+    }
+
+    private func migrateSwaggerUIBaseURLs() {
+        guard !UserDefaults.standard.bool(forKey: "envBaseURLMigrated_v1") else { return }
+        let descriptor = FetchDescriptor<APIEnvironment>()
+        guard let envs = try? modelContext.fetch(descriptor) else { return }
+        var changed = false
+        for env in envs {
+            let derived = Self.deriveBaseURL(from: env.baseURL)
+            if derived != env.baseURL {
+                log.info("Migrating env '\(env.name)' baseURL: \(env.baseURL) → \(derived)")
+                env.baseURL = derived
+                changed = true
+            }
+        }
+        if changed { try? modelContext.save() }
+        UserDefaults.standard.set(true, forKey: "envBaseURLMigrated_v1")
     }
 
     // MARK: - Public
@@ -42,7 +60,8 @@ final class EnvironmentStore {
                            apiKeyHeaderName: String? = nil,
                            apiKeyValue: String? = nil,
                            apiKeyInQuery: Bool = false,
-                           disableTLS: Bool = false) throws {
+                           disableTLS: Bool = false) throws
+    {
         env.name = name
         env.baseURL = baseURL
         env.authScheme = authScheme
@@ -58,6 +77,7 @@ final class EnvironmentStore {
 
     func setActive(_ env: APIEnvironment, for project: Project) {
         activeEnvironments[project.id] = env.id
+        UserDefaults.standard.set(env.id.uuidString, forKey: activeEnvKey(project))
     }
 
     func activeEnvironment(for project: Project) -> APIEnvironment? {
@@ -77,11 +97,23 @@ final class EnvironmentStore {
             log.info("Auto-created default environment for project: \(project.alias)")
         }
         if activeEnvironments[project.id] == nil {
-            activeEnvironments[project.id] = project.environments.first?.id
+            // Restore from UserDefaults
+            if let saved = UserDefaults.standard.string(forKey: activeEnvKey(project)),
+               let id = UUID(uuidString: saved),
+               let env = project.environments.first(where: { $0.id == id })
+            {
+                activeEnvironments[project.id] = env.id
+            } else {
+                activeEnvironments[project.id] = project.environments.first?.id
+            }
         }
     }
 
-    private static func deriveBaseURL(from swaggerURL: String) -> String {
+    private func activeEnvKey(_ project: Project) -> String {
+        "activeEnv-\(project.id.uuidString)"
+    }
+
+    static func deriveBaseURL(from swaggerURL: String) -> String {
         guard let url = URL(string: swaggerURL),
               var components = URLComponents(url: url, resolvingAgainstBaseURL: false)
         else {

@@ -21,16 +21,17 @@ actor HTTPClient: HTTPClientProtocol {
         return try await execute(req, disableTLS: disableTLS)
     }
 
-    func execute(_ request: HTTPRequest, disableTLS: Bool = false) async throws -> HTTPResponse {
+    func execute(_ request: HTTPRequest, disableTLS _: Bool = false) async throws -> HTTPResponse {
         var urlRequest = URLRequest(url: request.url)
         urlRequest.httpMethod = request.method.rawValue
-        urlRequest.timeoutInterval = 30
+        urlRequest.timeoutInterval = 60
         request.headers.forEach { urlRequest.setValue($1, forHTTPHeaderField: $0) }
         urlRequest.httpBody = request.body
 
-        log.debug("→ \(request.method.rawValue) \(request.url)")
+        let headerKeys = request.headers.keys.sorted().joined(separator: ", ")
+        log.debug("→ \(request.method.rawValue) \(request.url) headers=[\(headerKeys)]")
 
-        let session = disableTLS ? bypassSession : defaultSession
+        let session = bypassSession
 
         do {
             let start = Date()

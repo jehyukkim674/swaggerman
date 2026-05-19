@@ -96,7 +96,9 @@ struct EnvironmentDetailForm: View {
         Form {
             Section("기본 설정") {
                 TextField("이름", text: $name)
+                    .multilineTextAlignment(.leading)
                 TextField("Base URL", text: $baseURL)
+                    .multilineTextAlignment(.leading)
                     .font(.system(.body, design: .monospaced))
             }
 

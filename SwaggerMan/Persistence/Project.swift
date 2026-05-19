@@ -10,6 +10,12 @@ final class Project {
     var lastUsedAt: Date
     var lastOperationID: String?
     var securityValuesJSON: String? // JSON-encoded [String: String]
+    var disableTLSVerification: Bool = true
+    // Spec auth — type: "bearer" | "basic" | "apikey" | "login"
+    var specAuthType: String?
+    var specAuthValue1: String? // bearer: token | basic: username | apikey: header-name | login: url
+    var specAuthValue2: String? // basic: password | apikey: header-value | login: username
+    var specAuthValue3: String? // login: password
 
     @Relationship(deleteRule: .cascade, inverse: \APIEnvironment.project)
     var environments: [APIEnvironment]

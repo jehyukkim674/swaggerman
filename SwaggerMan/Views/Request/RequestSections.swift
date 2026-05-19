@@ -9,23 +9,62 @@ struct ParamsSectionContent: View {
         VStack(alignment: .leading, spacing: 14) {
             if !store.pathParams.isEmpty {
                 ParamGroup(title: "Path") {
-                    ForEach(store.pathParams.keys.sorted(), id: \.self) { key in
-                        ParamInputRow(
-                            label: "{\(key)}",
-                            placeholder: "값 입력",
-                            isRequired: true,
-                            value: Binding(
-                                get: { store.pathParams[key] ?? "" },
-                                set: { store.pathParams[key] = $0 }
-                            )
-                        )
+                    Grid(alignment: .leading, horizontalSpacing: 8, verticalSpacing: 4) {
+                        ForEach(store.pathParams.keys.sorted(), id: \.self) { key in
+                            GridRow {
+                                HStack(spacing: 2) {
+                                    Text("{\(key)}")
+                                        .font(.system(.caption, design: .monospaced))
+                                        .foregroundStyle(.secondary)
+                                    Text("*").font(.caption2).foregroundStyle(.red)
+                                }
+                                .fixedSize(horizontal: true, vertical: false)
+
+                                TextField("값 입력", text: Binding(
+                                    get: { store.pathParams[key] ?? "" },
+                                    set: { store.pathParams[key] = $0 }
+                                ))
+                                .font(.system(.caption, design: .monospaced))
+                                .textFieldStyle(.plain)
+                                .padding(.horizontal, 8).padding(.vertical, 5)
+                                .background(Color(.textBackgroundColor).opacity(0.5))
+                                .clipShape(.rect(cornerRadius: 5))
+                                .overlay(RoundedRectangle(cornerRadius: 5).stroke(Color(.separatorColor), lineWidth: 1))
+                            }
+                        }
                     }
                 }
             }
             if !store.queryParams.isEmpty {
                 ParamGroup(title: "Query") {
-                    ForEach($store.queryParams) { $param in
-                        QueryParamInputRow(param: $param)
+                    Grid(alignment: .leading, horizontalSpacing: 8, verticalSpacing: 4) {
+                        ForEach($store.queryParams) { $param in
+                            GridRow {
+                                Toggle("", isOn: $param.enabled)
+                                    .labelsHidden().scaleEffect(0.8)
+                                    .frame(width: 24)
+
+                                Text(param.key)
+                                    .font(.system(.caption, design: .monospaced))
+                                    .foregroundStyle(param.enabled ? .primary : .tertiary)
+                                    .fixedSize(horizontal: true, vertical: false)
+
+                                TextField("값 입력", text: $param.value)
+                                    .font(.system(.caption, design: .monospaced))
+                                    .textFieldStyle(.plain)
+                                    .disabled(!param.enabled)
+                                    .padding(.horizontal, 8).padding(.vertical, 5)
+                                    .background(param.enabled
+                                        ? Color(.textBackgroundColor).opacity(0.5)
+                                        : Color(.textBackgroundColor).opacity(0.15))
+                                    .clipShape(.rect(cornerRadius: 5))
+                                    .overlay(RoundedRectangle(cornerRadius: 5).stroke(
+                                        Color(.separatorColor),
+                                        lineWidth: 1
+                                    ))
+                                    .frame(maxWidth: .infinity)
+                            }
+                        }
                     }
                 }
             }
@@ -306,63 +345,12 @@ struct HeaderInputRow: View {
                     .overlay(RoundedRectangle(cornerRadius: 5).stroke(Color(.separatorColor), lineWidth: 1))
             }
 
-            TextField("값", text: $header.value)
-                .font(.system(.caption, design: .monospaced))
-                .textFieldStyle(.plain)
-                .frame(maxWidth: .infinity)
-                .padding(.horizontal, 8).padding(.vertical, 6)
-                .background(header.enabled
-                    ? Color(.textBackgroundColor).opacity(0.5)
-                    : Color(.textBackgroundColor).opacity(0.15))
-                .clipShape(.rect(cornerRadius: 5))
-                .overlay(RoundedRectangle(cornerRadius: 5).stroke(Color(.separatorColor), lineWidth: 1))
+            HeaderValueField(value: $header.value, enabled: header.enabled)
 
             Button(action: onDelete) {
                 Image(systemName: "minus.circle.fill").foregroundStyle(.red.opacity(0.7))
             }
             .buttonStyle(.plain)
         }
-    }
-}
-
-// MARK: - Operation Header
-
-struct OperationHeaderView: View {
-    let operation: ParsedOperation
-    let isSending: Bool
-    let onSend: () -> Void
-
-    var body: some View {
-        HStack(spacing: 8) {
-            Text(operation.method.rawValue)
-                .font(.system(.body, design: .monospaced).bold())
-                .foregroundStyle(operation.method.swiftUIColor)
-                .padding(.horizontal, 8).padding(.vertical, 3)
-                .background(operation.method.swiftUIColor.opacity(0.12))
-                .clipShape(.rect(cornerRadius: 4))
-
-            Text(operation.path)
-                .font(.system(.body, design: .monospaced))
-                .lineLimit(1)
-                .foregroundStyle(.primary)
-
-            Spacer()
-
-            Button {
-                onSend()
-            } label: {
-                if isSending {
-                    ProgressView().scaleEffect(0.7).frame(width: 40)
-                } else {
-                    Text("Send").frame(width: 40)
-                }
-            }
-            .buttonStyle(.borderedProminent)
-            .disabled(isSending)
-            .help("선택한 endpoint로 HTTP 요청을 보냅니다.")
-            .keyboardShortcut(.return, modifiers: .command)
-        }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 8)
     }
 }
