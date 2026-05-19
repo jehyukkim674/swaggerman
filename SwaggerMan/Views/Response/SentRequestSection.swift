@@ -2,7 +2,7 @@ import SwiftUI
 
 struct SentRequestSection: View {
     let request: HTTPRequest
-    @State private var isExpanded = false
+    @State private var isExpanded = true
 
     private var sortedHeaders: [(key: String, value: String)] {
         request.headers.sorted { $0.key < $1.key }

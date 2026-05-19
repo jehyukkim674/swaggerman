@@ -21,7 +21,7 @@ actor HTTPClient: HTTPClientProtocol {
         return try await execute(req, disableTLS: disableTLS)
     }
 
-    func execute(_ request: HTTPRequest, disableTLS _: Bool = false) async throws -> HTTPResponse {
+    func execute(_ request: HTTPRequest, disableTLS: Bool = false) async throws -> HTTPResponse {
         var urlRequest = URLRequest(url: request.url)
         urlRequest.httpMethod = request.method.rawValue
         urlRequest.timeoutInterval = 60
@@ -31,7 +31,7 @@ actor HTTPClient: HTTPClientProtocol {
         let headerKeys = request.headers.keys.sorted().joined(separator: ", ")
         log.debug("→ \(request.method.rawValue) \(request.url) headers=[\(headerKeys)]")
 
-        let session = bypassSession
+        let session = disableTLS ? bypassSession : defaultSession
 
         do {
             let start = Date()

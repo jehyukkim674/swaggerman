@@ -133,7 +133,8 @@ struct RootView: View {
                                     requestEditorStore.send(
                                         project: project,
                                         historyStore: historyStore,
-                                        disableTLS: env.disableTLSValidation
+                                        disableTLS: env.disableTLSValidation,
+                                        securityHeaders: operationStore.computedSecurityHeaders
                                     )
                                 }
                             )

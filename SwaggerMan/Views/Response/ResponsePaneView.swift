@@ -103,7 +103,7 @@ struct ResponseDetailView: View {
 
     private var searchResult: (body: AttributedString, count: Int) {
         let text = formattedBody
-        guard !searchText.isEmpty else { return (AttributedString(text), 0) }
+        guard !searchText.isEmpty else { return (AttributedString(), 0) }
 
         var result = AttributedString()
         var count = 0
@@ -269,15 +269,25 @@ struct ResponseDetailView: View {
 
             // Response Body (scrollable, fills remaining space)
             ScrollView {
-                Text(highlightedBody)
-                    .font(.system(size: fontSize, design: .monospaced))
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .textSelection(.enabled)
-                    .padding(12)
+                Group {
+                    if searchText.isEmpty {
+                        Text(formattedBody)
+                    } else {
+                        Text(highlightedBody)
+                    }
+                }
+                .font(.system(size: fontSize, design: .monospaced))
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .textSelection(.enabled)
+                .padding(12)
             }
         }
         .task(id: response.body) {
             let data = response.body
+            // Show raw bytes immediately so there's no blank period
+            let raw = String(data: data, encoding: .utf8) ?? ""
+            formattedBody = raw.count > 1_000_000 ? String(raw.prefix(1_000_000)) + "\n...(truncated)" : raw
+            // Replace with pretty-printed version once background task finishes
             let result = await Task.detached(priority: .userInitiated) {
                 Self.formatBody(data)
             }.value

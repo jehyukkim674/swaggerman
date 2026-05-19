@@ -135,7 +135,9 @@ final class RequestEditorStore {
         persistEditorState(projectID: pid, operationID: op.id)
     }
 
-    func send(project: Project, historyStore: HistoryStore, disableTLS: Bool = false) {
+    func send(project: Project, historyStore: HistoryStore, disableTLS: Bool = false,
+              securityHeaders: [String: String] = [:])
+    {
         guard let op = selectedOperation else { return }
         sendTask?.cancel()
         sendTask = Task {
@@ -144,7 +146,7 @@ final class RequestEditorStore {
             sendError = nil
 
             do {
-                let request = try buildRequest(op: op)
+                let request = try buildRequest(op: op, securityHeaders: securityHeaders)
                 lastCurlString = CurlBuilder.build(request)
                 lastRequest = request
                 let res = try await httpClient.execute(request, disableTLS: disableTLS)
@@ -220,7 +222,7 @@ final class RequestEditorStore {
 
     // MARK: - Private Methods
 
-    private func buildRequest(op: ParsedOperation) throws -> HTTPRequest {
+    private func buildRequest(op: ParsedOperation, securityHeaders: [String: String] = [:]) throws -> HTTPRequest {
         var path = op.path
         for (key, value) in pathParams {
             let encoded = value.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? value
@@ -243,6 +245,10 @@ final class RequestEditorStore {
         var headers: [String: String] = [:]
         for header in requestHeaders where header.enabled && !header.key.isEmpty && !header.value.isEmpty {
             headers[header.key] = header.value
+        }
+        // Fresh security headers override stale values from loadOperation time
+        for (key, value) in securityHeaders where !value.isEmpty {
+            headers[key] = value
         }
         log.debug("buildRequest headers: \(headers.map { "\($0.key)=\($0.value.prefix(20))" }.joined(separator: ", "))")
 
