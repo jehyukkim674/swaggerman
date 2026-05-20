@@ -148,6 +148,10 @@ final class OperationStore {
         do {
             let spec = try await fetchAndParse(url: url)
             await cache.store(CachedEntry(spec: spec, etag: nil, cachedAt: Date()), for: urlString)
+            guard project.modelContext != nil else {
+                log.info("backgroundRefresh: project removed — skipping spec update")
+                return
+            }
             if currentProject?.id == project.id {
                 currentSpec = spec
                 loadSecurityValues(from: project)
@@ -166,7 +170,8 @@ final class OperationStore {
     }
 
     private func saveSecurityValues() {
-        guard let project = currentProject else { return }
+        guard let project = currentProject,
+              project.modelContext != nil else { return }
         if let data = try? JSONEncoder().encode(securityValues),
            let json = String(data: data, encoding: .utf8)
         {

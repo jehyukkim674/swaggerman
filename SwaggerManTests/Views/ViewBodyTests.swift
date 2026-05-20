@@ -277,14 +277,14 @@ struct ViewBodyTests {
     @Test("OperationHeaderView body 실행")
     func operationHeaderViewBody() {
         let op = makeOperation(method: .post, path: "/users")
-        let view = OperationHeaderView(operation: op, isSending: false, onSend: {})
+        let view = OperationHeaderView(operation: op, isSending: false, onSend: {}, onCancel: {})
         _ = view.body
     }
 
     @Test("OperationHeaderView isSending=true body 실행")
     func operationHeaderViewSendingBody() {
         let op = makeOperation(method: .delete, path: "/users/1")
-        let view = OperationHeaderView(operation: op, isSending: true, onSend: {})
+        let view = OperationHeaderView(operation: op, isSending: true, onSend: {}, onCancel: {})
         _ = view.body
     }
 
@@ -442,7 +442,8 @@ struct ViewBodyTests {
             onSelectHistory: { _ in },
             onReplayHistory: { _ in },
             onDeleteHistory: { _ in },
-            onClearHistory: {}
+            onClearHistory: {},
+            onRefresh: {}
         )
         _ = view.body
     }
@@ -490,7 +491,8 @@ struct ViewBodyTests {
             onSelectHistory: { _ in },
             onReplayHistory: { _ in },
             onDeleteHistory: { _ in },
-            onClearHistory: {}
+            onClearHistory: {},
+            onRefresh: {}
         )
         _ = view.body
     }

@@ -154,6 +154,11 @@ final class RequestEditorStore {
                 response = res
                 responseTab = .response
 
+                guard project.modelContext != nil else {
+                    log.warning("send: project removed during request — response shown, history skipped")
+                    return
+                }
+
                 let reqHeadersJSON = jsonString(from: request.headers)
                 let resHeadersJSON = jsonString(from: res.headers)
                 let bodyStr = res.bodyString ?? ""

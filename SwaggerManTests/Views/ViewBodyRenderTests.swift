@@ -69,7 +69,8 @@ struct ViewBodyRenderTests {
             onSelectHistory: { _ in },
             onReplayHistory: { _ in },
             onDeleteHistory: { _ in },
-            onClearHistory: {}
+            onClearHistory: {},
+            onRefresh: {}
         ))
     }
 
@@ -92,7 +93,8 @@ struct ViewBodyRenderTests {
             onSelectHistory: { _ in },
             onReplayHistory: { _ in },
             onDeleteHistory: { _ in },
-            onClearHistory: {}
+            onClearHistory: {},
+            onRefresh: {}
         ))
     }
 

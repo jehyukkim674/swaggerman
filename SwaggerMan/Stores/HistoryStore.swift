@@ -18,10 +18,20 @@ final class HistoryStore {
     // MARK: - Public
 
     func loadHistory(for project: Project) {
+        guard project.modelContext != nil else {
+            log.warning("HistoryStore.loadHistory skipped — project removed from context")
+            items = []
+            return
+        }
         items = project.history.sorted { $0.executedAt > $1.executedAt }
     }
 
     func append(_ item: HistoryItem, to project: Project) {
+        guard project.modelContext != nil else {
+            log.warning("HistoryStore.append skipped — project '\(project.alias)' removed during request")
+            return
+        }
+
         item.project = project
         modelContext.insert(item)
         project.history.append(item)

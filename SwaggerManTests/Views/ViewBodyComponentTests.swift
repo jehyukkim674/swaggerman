@@ -121,7 +121,8 @@ struct ViewBodyComponentTests {
             onSelectHistory: { _ in },
             onReplayHistory: { _ in },
             onDeleteHistory: { _ in },
-            onClearHistory: {}
+            onClearHistory: {},
+            onRefresh: {}
         ).body
     }
 
@@ -147,7 +148,8 @@ struct ViewBodyComponentTests {
             onSelectHistory: { _ in },
             onReplayHistory: { _ in },
             onDeleteHistory: { _ in },
-            onClearHistory: {}
+            onClearHistory: {},
+            onRefresh: {}
         ).body
     }
 
