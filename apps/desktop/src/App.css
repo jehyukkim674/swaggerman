@@ -1604,3 +1604,29 @@ mark.hl.active {
   overflow: auto;
   white-space: pre-wrap;
 }
+
+/* 컬렉션 러너 모달 */
+.runner-modal {
+  width: 600px;
+}
+.runner-bar {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border);
+}
+.runner-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  padding: 4px 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 12px;
+}
+.runner-name {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

@@ -12,7 +12,7 @@ import {
   type RequestInputs,
   type RequestParam,
 } from "./core/request-builder";
-import { savedToRequest, type Collection } from "./core/collections";
+import { savedToRequest, type Collection, type SavedRequest } from "./core/collections";
 import { validateResponseBody, type ValidationIssue } from "./core/schema-validate";
 import { computeSecurityHeaders } from "./core/security";
 import {
@@ -41,6 +41,7 @@ import { ResponseView } from "./components/ResponseView";
 import { AuthorizeModal } from "./components/AuthorizeModal";
 import { CurlImportModal } from "./components/CurlImportModal";
 import { CollectionsModal } from "./components/CollectionsModal";
+import { RunnerModal, type RunResult } from "./components/RunnerModal";
 import { SettingsModal } from "./components/SettingsModal";
 import { EnvironmentsModal } from "./components/EnvironmentsModal";
 import { GlobalHeadersModal } from "./components/GlobalHeadersModal";
@@ -126,6 +127,25 @@ export default function App() {
   const [curlModalOpen, setCurlModalOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [collectionsOpen, setCollectionsOpen] = useState(false);
+  const [runnerOpen, setRunnerOpen] = useState(false);
+
+  // 컬렉션 러너: 저장 요청 1건 실행 → 결과 반환
+  async function runSaved(s: SavedRequest): Promise<RunResult> {
+    const { operation, inputs: ins, baseURL: b } = savedToRequest(s);
+    const securityHeaders = computeSecurityHeaders(spec?.securitySchemes ?? [], authValues);
+    const request = buildRequest(b, operation, ins, securityHeaders, globalHeaders, activeVars);
+    const t0 = Date.now();
+    try {
+      const res = await executeRequest(request, netSettings);
+      return {
+        status: res.statusCode,
+        ok: res.statusCode >= 200 && res.statusCode < 300,
+        durationMs: res.durationMs,
+      };
+    } catch (e) {
+      return { status: 0, ok: false, durationMs: Date.now() - t0, error: String(e) };
+    }
+  }
 
   // 컬렉션(저장 요청) — 전역 저장
   const [collections, setCollections] = useState<Collection[]>(() =>
@@ -560,6 +580,14 @@ export default function App() {
         </button>
         <button
           className="btn"
+          title="컬렉션 일괄 실행(러너)"
+          onClick={() => setRunnerOpen(true)}
+          disabled={collections.length === 0}
+        >
+          러너
+        </button>
+        <button
+          className="btn"
           title="네트워크 설정(타임아웃/SSL/프록시) · 쿠키 관리"
           onClick={() => setSettingsOpen(true)}
         >
@@ -761,6 +789,9 @@ export default function App() {
           onChange={setNetSettings}
           onClose={() => setSettingsOpen(false)}
         />
+      )}
+      {runnerOpen && (
+        <RunnerModal collections={collections} onRun={runSaved} onClose={() => setRunnerOpen(false)} />
       )}
       {collectionsOpen && (
         <CollectionsModal
