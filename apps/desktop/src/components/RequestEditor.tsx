@@ -1,6 +1,13 @@
 import { useState } from "react";
+import { open } from "@tauri-apps/plugin-dialog";
 import type { ParsedOperation } from "../core/types";
-import { buildRequestUrl, type RequestInputs, type RequestParam } from "../core/request-builder";
+import {
+  buildRequestUrl,
+  type BodyMode,
+  type FormField,
+  type RequestInputs,
+  type RequestParam,
+} from "../core/request-builder";
 import { relativeTime, type HistoryItem } from "../core/history";
 import type { Assertion, AssertionResult, ExtractRule } from "../core/variables";
 import { methodColor, statusColor } from "./method";
@@ -92,6 +99,22 @@ export function RequestEditor({
 
   const pathKeys = Object.keys(inputs.pathParams);
 
+  const mode: BodyMode = inputs.bodyMode ?? (operation.requestBody ? "raw" : "none");
+  const form = inputs.form ?? [];
+  const showBody =
+    !!operation.requestBody || ["POST", "PUT", "PATCH", "DELETE"].includes(operation.method);
+  const setForm = (f: FormField[]) => onChange({ ...inputs, form: f });
+  const pickFile = async (index: number) => {
+    try {
+      const path = await open({ multiple: false, title: "업로드할 파일 선택" });
+      if (typeof path === "string") {
+        setForm(form.map((x, j) => (j === index ? { ...x, filePath: path } : x)));
+      }
+    } catch {
+      /* 취소 등 무시 */
+    }
+  };
+
   return (
     <main className="request-pane">
       {historyItem && <HistoryBanner item={historyItem} />}
@@ -175,10 +198,24 @@ export function RequestEditor({
           onAdd={() => addRow("headers")}
         />
 
-        {operation.requestBody && (
+        {showBody && (
           <section className="section">
             <div className="body-head">
-              <h4>Body ({operation.requestBody.contentType})</h4>
+              <h4>Body</h4>
+              <select
+                className="body-mode"
+                value={mode}
+                onChange={(e) => onChange({ ...inputs, bodyMode: e.target.value as BodyMode })}
+                title="Body 형식"
+              >
+                <option value="none">None</option>
+                <option value="raw">JSON / Raw</option>
+                <option value="urlencoded">form-urlencoded</option>
+                <option value="multipart">multipart / 파일</option>
+              </select>
+            </div>
+
+            {mode === "raw" && (
               <div className="sample-bar">
                 {samples.length > 0 && (
                   <>
@@ -262,14 +299,24 @@ export function RequestEditor({
                   </span>
                 )}
               </div>
-            </div>
-            <textarea
-              className="body-input"
-              value={inputs.body}
-              onChange={(e) => onChange({ ...inputs, body: e.target.value })}
-              spellCheck={false}
-              rows={10}
-            />
+            )}
+            {mode === "raw" && (
+              <textarea
+                className="body-input"
+                value={inputs.body}
+                onChange={(e) => onChange({ ...inputs, body: e.target.value })}
+                spellCheck={false}
+                rows={10}
+              />
+            )}
+            {(mode === "urlencoded" || mode === "multipart") && (
+              <FormEditor
+                form={form}
+                multipart={mode === "multipart"}
+                onChange={setForm}
+                onPickFile={pickFile}
+              />
+            )}
           </section>
         )}
 
@@ -337,5 +384,81 @@ function ParamSection({
         + 추가
       </button>
     </section>
+  );
+}
+
+interface FormEditorProps {
+  form: FormField[];
+  multipart: boolean;
+  onChange: (form: FormField[]) => void;
+  onPickFile: (index: number) => void;
+}
+
+function FormEditor({ form, multipart, onChange, onPickFile }: FormEditorProps) {
+  const patch = (i: number, p: Partial<FormField>) =>
+    onChange(form.map((f, j) => (j === i ? { ...f, ...p } : f)));
+  return (
+    <div className="form-editor">
+      {form.map((field, i) => (
+        <div className="form-row" key={i}>
+          <input
+            type="checkbox"
+            checked={field.enabled}
+            onChange={(e) => patch(i, { enabled: e.target.checked })}
+          />
+          <input
+            className="kv-input"
+            value={field.name}
+            onChange={(e) => patch(i, { name: e.target.value })}
+            placeholder="이름"
+            spellCheck={false}
+          />
+          {multipart && field.filePath ? (
+            <span className="form-file" title={field.filePath}>
+              📎 {field.filePath.split(/[\\/]/).pop()}
+            </span>
+          ) : (
+            <input
+              className="kv-input"
+              value={field.value}
+              onChange={(e) => patch(i, { value: e.target.value })}
+              placeholder="값"
+              spellCheck={false}
+            />
+          )}
+          {multipart && (
+            <button
+              className="btn small"
+              title="파일 선택(멀티파트 파일 파트)"
+              onClick={() => onPickFile(i)}
+            >
+              파일
+            </button>
+          )}
+          {multipart && field.filePath && (
+            <button
+              className="btn small"
+              title="파일 해제(텍스트 값으로)"
+              onClick={() => patch(i, { filePath: undefined })}
+            >
+              ✕파일
+            </button>
+          )}
+          <button
+            className="icon-btn"
+            onClick={() => onChange(form.filter((_, j) => j !== i))}
+            title="삭제"
+          >
+            ✕
+          </button>
+        </div>
+      ))}
+      <button
+        className="add-row"
+        onClick={() => onChange([...form, { name: "", value: "", enabled: true }])}
+      >
+        + 필드
+      </button>
+    </div>
   );
 }

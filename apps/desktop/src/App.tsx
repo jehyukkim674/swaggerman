@@ -24,12 +24,20 @@ import { checkForUpdate, type AvailableUpdate } from "./core/updater";
 import { loadJSON, saveJSON } from "./core/storage";
 import { log } from "./core/log";
 import { newId, type HistoryItem } from "./core/history";
-import type { HTTPRequest, HTTPResponse, ParsedOperation, ParsedSpec } from "./core/types";
+import {
+  defaultNetworkSettings,
+  type HTTPRequest,
+  type HTTPResponse,
+  type NetworkSettings,
+  type ParsedOperation,
+  type ParsedSpec,
+} from "./core/types";
 import { Sidebar } from "./components/Sidebar";
 import { RequestEditor } from "./components/RequestEditor";
 import { ResponseView } from "./components/ResponseView";
 import { AuthorizeModal } from "./components/AuthorizeModal";
 import { CurlImportModal } from "./components/CurlImportModal";
+import { SettingsModal } from "./components/SettingsModal";
 import { EnvironmentsModal } from "./components/EnvironmentsModal";
 import { GlobalHeadersModal } from "./components/GlobalHeadersModal";
 
@@ -111,6 +119,15 @@ export default function App() {
   const [headerModalOpen, setHeaderModalOpen] = useState(false);
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [curlModalOpen, setCurlModalOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+
+  // 전역 네트워크 설정(타임아웃/SSL/프록시) — 전역 저장
+  const [netSettings, setNetSettings] = useState<NetworkSettings>(() =>
+    loadJSON("swaggerman.net", defaultNetworkSettings()),
+  );
+  useEffect(() => {
+    saveJSON("swaggerman.net", netSettings);
+  }, [netSettings]);
 
   // OAuth2 토큰 발급 설정 — 프로젝트별 저장
   const [oauth2Config, setOauth2Config] = useState<OAuth2Config>(emptyOAuth2Config());
@@ -320,7 +337,7 @@ export default function App() {
       const request = buildRequest(baseURL, op, ins, securityHeaders, globalHeaders, activeVars);
       setLastRequest(request);
       log.info("request", `${request.method} ${request.url}`);
-      const res = await executeRequest(request);
+      const res = await executeRequest(request, netSettings);
       if (sendIdRef.current !== myId) {
         log.debug("request", "응답 무시(취소됨)");
         return; // 취소됨
@@ -511,6 +528,13 @@ export default function App() {
         >
           cURL
         </button>
+        <button
+          className="btn"
+          title="네트워크 설정(타임아웃/SSL/프록시) · 쿠키 관리"
+          onClick={() => setSettingsOpen(true)}
+        >
+          ⚙︎
+        </button>
         {activeSpecUrl && projects.some((p) => p.url === activeSpecUrl) && (
           <button
             className="btn"
@@ -699,6 +723,13 @@ export default function App() {
       )}
       {curlModalOpen && (
         <CurlImportModal onImport={importCurl} onClose={() => setCurlModalOpen(false)} />
+      )}
+      {settingsOpen && (
+        <SettingsModal
+          settings={netSettings}
+          onChange={setNetSettings}
+          onClose={() => setSettingsOpen(false)}
+        />
       )}
       {authModalOpen && spec && (
         <AuthorizeModal

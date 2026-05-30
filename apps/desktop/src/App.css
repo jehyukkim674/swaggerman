@@ -1389,3 +1389,89 @@ mark.hl.active {
   font-size: 12px;
   resize: vertical;
 }
+
+/* Body 모드 / form 에디터 */
+.body-mode {
+  max-width: 180px;
+}
+.form-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.form-row {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+.form-file {
+  flex: 1;
+  font-size: 12px;
+  font-family: ui-monospace, monospace;
+  color: var(--accent);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 설정/쿠키 모달 */
+.settings-modal {
+  width: 620px;
+}
+.settings-section {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--muted);
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 4px;
+  margin-top: 8px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.settings-actions {
+  display: flex;
+  gap: 6px;
+}
+.settings-field {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.settings-field span {
+  font-size: 11px;
+  color: var(--muted);
+}
+.settings-check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+}
+.btn.small.danger {
+  color: #ff7b72;
+  border-color: #6b2e2e;
+}
+.cookie-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr 2fr;
+  gap: 8px;
+  font-size: 11px;
+  font-family: ui-monospace, monospace;
+  padding: 2px 0;
+  border-bottom: 1px solid var(--border);
+}
+.cookie-name {
+  color: var(--text);
+  font-weight: 600;
+}
+.cookie-domain {
+  color: var(--muted);
+}
+.cookie-value {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

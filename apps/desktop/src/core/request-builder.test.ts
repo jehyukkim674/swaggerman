@@ -146,6 +146,66 @@ describe("buildRequest", () => {
   });
 });
 
+describe("buildRequest body 모드", () => {
+  const postOp = op({ method: "POST", path: "/x" });
+  const base = (over: Partial<import("./request-builder").RequestInputs>) => ({
+    pathParams: {},
+    queryParams: [],
+    headers: [],
+    body: "",
+    ...over,
+  });
+
+  it("urlencoded: 활성 form 파트만 + 변수 치환, body 미전송", () => {
+    const req = buildRequest(
+      "https://api.com",
+      postOp,
+      base({
+        bodyMode: "urlencoded",
+        body: "ignored",
+        form: [
+          { name: "a", value: "{{v}}", enabled: true },
+          { name: "off", value: "x", enabled: false },
+          { name: "", value: "noname", enabled: true },
+        ],
+      }),
+      {},
+      [],
+      { v: "1" },
+    );
+    expect(req.multipart).toBe(false);
+    expect(req.form).toEqual([{ name: "a", value: "1", filePath: undefined, contentType: undefined }]);
+    expect(req.body).toBeUndefined();
+  });
+
+  it("multipart: 파일 경로/Content-Type 전달, multipart=true", () => {
+    const req = buildRequest(
+      "https://api.com",
+      postOp,
+      base({
+        bodyMode: "multipart",
+        form: [{ name: "file", value: "", filePath: "/tmp/a.png", contentType: "image/png", enabled: true }],
+      }),
+    );
+    expect(req.multipart).toBe(true);
+    expect(req.form).toEqual([
+      { name: "file", value: "", filePath: "/tmp/a.png", contentType: "image/png" },
+    ]);
+  });
+
+  it("none: body를 전송하지 않음", () => {
+    const req = buildRequest("https://api.com", postOp, base({ bodyMode: "none", body: "{}" }));
+    expect(req.body).toBeUndefined();
+    expect(req.form).toBeUndefined();
+  });
+
+  it("raw(기본): 기존처럼 body 전송", () => {
+    const req = buildRequest("https://api.com", postOp, base({ bodyMode: "raw", body: '{"a":1}' }));
+    expect(req.body).toBe('{"a":1}');
+    expect(req.form).toBeUndefined();
+  });
+});
+
 describe("buildRequestUrl 변수 치환", () => {
   it("path/query 값의 변수를 치환", () => {
     const operation = op({

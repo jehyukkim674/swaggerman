@@ -1,7 +1,7 @@
 // HTTP는 Rust(reqwest) 커맨드로 처리한다.
 // 웹뷰 fetch는 CORS/스코프 제약이 있어 임의 호스트 호출이 불가하므로, API 클라이언트 목적상 Rust로 보낸다.
 import { invoke } from "@tauri-apps/api/core";
-import type { HTTPRequest, HTTPResponse } from "./types";
+import type { HTTPRequest, HTTPResponse, NetworkSettings } from "./types";
 
 interface RawHttpResult {
   status: number;
@@ -13,15 +13,21 @@ interface RawHttpResult {
 
 export async function executeRequest(
   request: HTTPRequest,
-  options: { timeoutMs?: number } = {},
+  net?: Partial<NetworkSettings>,
 ): Promise<HTTPResponse> {
+  const hasForm = !!request.form;
   const result = await invoke<RawHttpResult>("http_request", {
     args: {
       method: request.method,
       url: request.url,
       headers: request.headers,
-      body: request.method === "GET" ? undefined : request.body,
-      timeoutMs: options.timeoutMs ?? 30_000,
+      // form이 있으면 body 무시. GET은 raw body를 보내지 않음.
+      body: hasForm || request.method === "GET" ? undefined : request.body,
+      form: request.form,
+      multipart: request.multipart,
+      timeoutMs: net?.timeoutMs ?? 30_000,
+      insecure: net?.insecure ?? false,
+      proxy: net?.proxy || undefined,
     },
   });
   return {

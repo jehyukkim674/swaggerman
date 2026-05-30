@@ -95,11 +95,33 @@ export interface ParsedSpec {
   rawOperationCount: number;
 }
 
+export interface FormFieldWire {
+  name: string;
+  value: string;
+  filePath?: string;
+  contentType?: string;
+}
+
 export interface HTTPRequest {
   method: HTTPMethod;
   url: string;
   headers: Record<string, string>;
   body?: string;
+  /** form 파트(있으면 body 대신 전송). */
+  form?: FormFieldWire[];
+  /** true면 multipart/form-data, false/없으면 application/x-www-form-urlencoded. */
+  multipart?: boolean;
+}
+
+/** 전역 네트워크 설정(요청 실행 옵션). */
+export interface NetworkSettings {
+  timeoutMs: number;
+  insecure: boolean;
+  proxy: string;
+}
+
+export function defaultNetworkSettings(): NetworkSettings {
+  return { timeoutMs: 30000, insecure: false, proxy: "" };
 }
 
 export interface HTTPResponse {

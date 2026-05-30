@@ -40,11 +40,23 @@ export interface RequestParam {
   enabled: boolean;
 }
 
+export type BodyMode = "none" | "raw" | "urlencoded" | "multipart";
+
+export interface FormField {
+  name: string;
+  value: string;
+  filePath?: string; // 멀티파트 파일 경로(있으면 파일 파트)
+  contentType?: string;
+  enabled: boolean;
+}
+
 export interface RequestInputs {
   pathParams: Record<string, string>;
   queryParams: RequestParam[];
   headers: RequestParam[];
   body: string;
+  bodyMode?: BodyMode; // 없으면 raw로 간주(하위호환)
+  form?: FormField[];
 }
 
 /** operation의 기본 입력값(빈 path/query, 기본 헤더) 생성. */
@@ -65,6 +77,8 @@ export function defaultInputs(operation: ParsedOperation): RequestInputs {
     queryParams,
     headers,
     body: defaultBody(operation),
+    bodyMode: operation.requestBody ? "raw" : "none",
+    form: [],
   };
 }
 
@@ -147,12 +161,30 @@ export function buildRequest(
     if (value) headers[key] = sub(value);
   }
 
+  const method = operation.method as HTTPMethod;
+  const url = buildRequestUrl(baseURL, operation, inputs, true, vars);
+  const mode = inputs.bodyMode ?? "raw";
+
+  // form 모드(urlencoded/multipart): 활성·이름 있는 파트만, 값은 변수 치환
+  if (mode === "urlencoded" || mode === "multipart") {
+    const form = (inputs.form ?? [])
+      .filter((f) => f.enabled && f.name)
+      .map((f) => ({
+        name: f.name,
+        value: sub(f.value),
+        filePath: f.filePath || undefined,
+        contentType: f.contentType || undefined,
+      }));
+    return { method, url, headers, form, multipart: mode === "multipart" };
+  }
+
+  // raw / none
   const body = sub(inputs.body).trim();
   return {
-    method: operation.method as HTTPMethod,
-    url: buildRequestUrl(baseURL, operation, inputs, true, vars),
+    method,
+    url,
     headers,
-    body: body.length > 0 ? body : undefined,
+    body: mode === "none" ? undefined : body.length > 0 ? body : undefined,
   };
 }
 

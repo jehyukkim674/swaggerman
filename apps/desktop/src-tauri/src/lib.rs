@@ -1,7 +1,22 @@
 use std::collections::HashMap;
+use std::sync::{Arc, OnceLock};
 use std::time::{Duration, Instant};
 
+use reqwest_cookie_store::{CookieStore, CookieStoreMutex};
 use serde::{Deserialize, Serialize};
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct FormPart {
+    name: String,
+    #[serde(default)]
+    value: Option<String>,
+    /// 파일 업로드 시 로컬 경로(있으면 멀티파트 파일 파트로 전송).
+    #[serde(default)]
+    file_path: Option<String>,
+    #[serde(default)]
+    content_type: Option<String>,
+}
 
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -12,6 +27,17 @@ struct HttpRequestArgs {
     headers: HashMap<String, String>,
     body: Option<String>,
     timeout_ms: Option<u64>,
+    /// form 파트(있으면 body 대신 사용). multipart=true면 multipart/form-data, 아니면 urlencoded.
+    #[serde(default)]
+    form: Option<Vec<FormPart>>,
+    #[serde(default)]
+    multipart: Option<bool>,
+    /// 인증서 검증 무시(자체 서명 등).
+    #[serde(default)]
+    insecure: Option<bool>,
+    /// 프록시 URL(예: http://127.0.0.1:8888).
+    #[serde(default)]
+    proxy: Option<String>,
 }
 
 #[derive(Serialize)]
@@ -24,16 +50,65 @@ struct HttpResult {
     size: usize,
 }
 
+/// 세션 동안 공유되는 쿠키 저장소(요청 간 Set-Cookie 자동 유지, 조회/삭제 가능).
+static COOKIE_STORE: OnceLock<Arc<CookieStoreMutex>> = OnceLock::new();
+fn cookie_store() -> Arc<CookieStoreMutex> {
+    COOKIE_STORE
+        .get_or_init(|| Arc::new(CookieStoreMutex::new(CookieStore::default())))
+        .clone()
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct CookieInfo {
+    name: String,
+    value: String,
+    domain: String,
+    path: String,
+}
+
+/// 저장된 모든 쿠키를 조회한다.
+#[tauri::command]
+fn list_cookies() -> Vec<CookieInfo> {
+    let store = cookie_store();
+    let guard = store.lock().unwrap();
+    guard
+        .iter_any()
+        .map(|c| CookieInfo {
+            name: c.name().to_string(),
+            value: c.value().to_string(),
+            domain: c.domain().unwrap_or("").to_string(),
+            path: c.path().unwrap_or("").to_string(),
+        })
+        .collect()
+}
+
+/// 저장된 쿠키를 모두 삭제한다.
+#[tauri::command]
+fn clear_cookies() {
+    let store = cookie_store();
+    store.lock().unwrap().clear();
+}
+
 /// 임의 호스트로 HTTP 요청을 보낸다(웹뷰 CORS/스코프 제약 없음 — API 클라이언트 목적).
 #[tauri::command]
 async fn http_request(args: HttpRequestArgs) -> Result<HttpResult, String> {
     let start = Instant::now();
 
-    let client = reqwest::Client::builder()
+    let mut builder = reqwest::Client::builder()
         .timeout(Duration::from_millis(args.timeout_ms.unwrap_or(30_000)))
-        .user_agent("SwaggerManDesktop/0.1")
-        .build()
-        .map_err(|e| e.to_string())?;
+        .user_agent("SwaggerManDesktop/0.2")
+        .cookie_provider(cookie_store());
+
+    if args.insecure.unwrap_or(false) {
+        builder = builder.danger_accept_invalid_certs(true);
+    }
+    if let Some(proxy) = args.proxy.as_ref().filter(|s| !s.is_empty()) {
+        builder = builder
+            .proxy(reqwest::Proxy::all(proxy).map_err(|e| format!("프록시 설정 오류: {e}"))?);
+    }
+
+    let client = builder.build().map_err(|e| e.to_string())?;
 
     let method = reqwest::Method::from_bytes(args.method.to_uppercase().as_bytes())
         .map_err(|e| format!("잘못된 메서드: {e}"))?;
@@ -53,7 +128,40 @@ async fn http_request(args: HttpRequestArgs) -> Result<HttpResult, String> {
         }
     }
     let mut request = client.request(method, &args.url).headers(header_map);
-    if let Some(body) = args.body {
+
+    // body 우선순위: form 파트 > raw body
+    if let Some(parts) = args.form {
+        if args.multipart.unwrap_or(false) {
+            let mut form = reqwest::multipart::Form::new();
+            for p in parts {
+                if let Some(path) = p.file_path.as_ref().filter(|s| !s.is_empty()) {
+                    let bytes =
+                        std::fs::read(path).map_err(|e| format!("파일 읽기 실패({path}): {e}"))?;
+                    let filename = std::path::Path::new(path)
+                        .file_name()
+                        .and_then(|s| s.to_str())
+                        .unwrap_or("file")
+                        .to_string();
+                    let mut part = reqwest::multipart::Part::bytes(bytes).file_name(filename);
+                    if let Some(ct) = p.content_type.as_ref().filter(|s| !s.is_empty()) {
+                        part = part
+                            .mime_str(ct)
+                            .map_err(|e| format!("content-type 오류: {e}"))?;
+                    }
+                    form = form.part(p.name, part);
+                } else {
+                    form = form.text(p.name, p.value.unwrap_or_default());
+                }
+            }
+            request = request.multipart(form);
+        } else {
+            let pairs: Vec<(String, String)> = parts
+                .into_iter()
+                .map(|p| (p.name, p.value.unwrap_or_default()))
+                .collect();
+            request = request.form(&pairs);
+        }
+    } else if let Some(body) = args.body {
         if !body.is_empty() {
             request = request.body(body);
         }
@@ -83,7 +191,9 @@ async fn http_request(args: HttpRequestArgs) -> Result<HttpResult, String> {
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    let mut builder = tauri::Builder::default().plugin(tauri_plugin_opener::init());
+    let mut builder = tauri::Builder::default()
+        .plugin(tauri_plugin_opener::init())
+        .plugin(tauri_plugin_dialog::init());
 
     // 자동 업데이트(데스크톱 전용): 릴리스의 서명된 업데이터 아티팩트를 확인/적용.
     #[cfg(desktop)]
@@ -94,7 +204,11 @@ pub fn run() {
     }
 
     builder
-        .invoke_handler(tauri::generate_handler![http_request])
+        .invoke_handler(tauri::generate_handler![
+            http_request,
+            list_cookies,
+            clear_cookies
+        ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
