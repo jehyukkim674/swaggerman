@@ -4,7 +4,7 @@
   --bg-3: #21262d;
   --border: #30363d;
   --text: #e6edf3;
-  --muted: #8b949e;
+  --muted: #9aa4af;
   --accent: #388bfd;
 }
 
@@ -131,11 +131,14 @@ body {
   margin-top: 14px;
 }
 .docs-section h4 {
-  margin: 0 0 6px;
-  color: var(--muted);
+  margin: 0 0 8px;
+  color: #b6c0cb;
   font-size: 11px;
+  font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.6px;
+  padding-left: 8px;
+  border-left: 3px solid var(--accent);
 }
 .docs-param {
   display: flex;
@@ -525,11 +528,15 @@ select:hover {
   margin-bottom: 16px;
 }
 .section h4 {
-  margin: 0 0 6px;
-  color: var(--muted);
+  margin: 0 0 8px;
+  color: #b6c0cb;
   font-size: 11px;
+  font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.6px;
+  padding-left: 8px;
+  border-left: 3px solid var(--accent);
+  line-height: 1.1;
 }
 .kv-row {
   display: flex;
@@ -557,13 +564,23 @@ select:hover {
   color: var(--text);
 }
 .add-row {
-  background: transparent;
-  border: 1px dashed var(--border);
-  color: var(--muted);
+  background: var(--bg-2);
+  border: 1px dashed #586069;
+  color: var(--text);
   border-radius: 6px;
-  padding: 4px 8px;
+  padding: 6px 14px;
   cursor: pointer;
   font-size: 11px;
+  font-weight: 600;
+  transition:
+    background 0.12s,
+    border-color 0.12s,
+    color 0.12s;
+}
+.add-row:hover {
+  background: #2d333b;
+  border-color: var(--accent);
+  color: var(--accent);
 }
 .body-input {
   width: 100%;
@@ -598,10 +615,24 @@ select:hover {
   justify-content: center;
   padding: 4px 7px;
 }
+.btn.danger {
+  color: #f85149;
+}
+.btn.danger:hover {
+  color: #f85149;
+  background: #f8514918;
+  border-color: #f85149;
+}
 .hist-actions button {
   display: inline-flex;
   align-items: center;
   padding: 2px;
+}
+.hist-actions button.danger {
+  color: #f85149;
+}
+.hist-actions button.danger:hover {
+  color: #ff7b72;
 }
 .sample-add {
   display: flex;

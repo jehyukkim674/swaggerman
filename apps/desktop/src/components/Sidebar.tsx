@@ -235,6 +235,7 @@ function HistoryTab({
                 <ReplayIcon size={14} />
               </button>
               <button
+                className="danger"
                 title="삭제"
                 onClick={(e) => {
                   e.stopPropagation();

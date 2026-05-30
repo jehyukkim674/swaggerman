@@ -156,7 +156,7 @@ export function RequestEditor({
                           수정
                         </button>
                         <button
-                          className="btn small icon"
+                          className="btn small icon danger"
                           title="이 샘플 삭제"
                           onClick={() => {
                             onDeleteSample(activeSample);
