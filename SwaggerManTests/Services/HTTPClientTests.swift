@@ -69,6 +69,24 @@ struct HTTPClientTests {
         }
     }
 
+    @Test("설정한 타임아웃이 요청에 적용됨")
+    func configuredTimeoutAppliedToRequest() async throws {
+        let client = HTTPClient(session: .mock(), timeout: 7)
+        var capturedTimeout: TimeInterval?
+        defer { MockURLProtocol.requestHandler = nil }
+
+        MockURLProtocol.requestHandler = { req in
+            capturedTimeout = req.timeoutInterval
+            let url = try #require(req.url)
+            let res = try #require(HTTPURLResponse(url: url, statusCode: 200, httpVersion: nil, headerFields: nil))
+            return (res, Data())
+        }
+
+        let url = try #require(URL(string: "https://api.example.com/x"))
+        _ = try await client.get(url, headers: [:])
+        #expect(capturedTimeout == 7)
+    }
+
     @Test("401 응답은 에러 없이 상태코드 그대로 반환")
     func unauthorizedPassedThrough() async throws {
         let client = makeClient()

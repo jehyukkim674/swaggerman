@@ -5,16 +5,20 @@ private let log = Logger(subsystem: "com.swaggerman", category: "HTTPClient")
 
 actor HTTPClient: HTTPClientProtocol {
     private let defaultSession: URLSession
+    /// 요청 타임아웃(초). 내부망 전용 등 도달 불가 호스트에서 무한정 멈추지 않도록 기본 30초.
+    private let timeout: TimeInterval
 
-    nonisolated init(session: URLSession = .shared) {
+    init(session: URLSession = .shared, timeout: TimeInterval = 30) {
         defaultSession = session
+        self.timeout = timeout
     }
 
-    private lazy var bypassSession: URLSession = .init(
-        configuration: .default,
-        delegate: TLSBypassDelegate(),
-        delegateQueue: nil
-    )
+    private lazy var bypassSession: URLSession = {
+        let config = URLSessionConfiguration.default
+        config.timeoutIntervalForRequest = timeout
+        config.timeoutIntervalForResource = timeout
+        return URLSession(configuration: config, delegate: TLSBypassDelegate(), delegateQueue: nil)
+    }()
 
     func get(_ url: URL, headers: [String: String] = [:], disableTLS: Bool = false) async throws -> HTTPResponse {
         let req = HTTPRequest(method: .get, url: url, headers: headers)
@@ -24,7 +28,7 @@ actor HTTPClient: HTTPClientProtocol {
     func execute(_ request: HTTPRequest, disableTLS: Bool = false) async throws -> HTTPResponse {
         var urlRequest = URLRequest(url: request.url)
         urlRequest.httpMethod = request.method.rawValue
-        urlRequest.timeoutInterval = 60
+        urlRequest.timeoutInterval = timeout
         request.headers.forEach { urlRequest.setValue($1, forHTTPHeaderField: $0) }
         urlRequest.httpBody = request.body
 
