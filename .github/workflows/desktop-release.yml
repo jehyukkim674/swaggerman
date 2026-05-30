@@ -1,11 +1,15 @@
-name: Desktop Release
+name: SwaggerMan Release
 
-# 태그(v*) 푸시 또는 수동 실행 시 macOS/Windows 설치본을 빌드해 GitHub Release에 첨부한다.
+# SwaggerMan-v* 태그 푸시 또는 수동 실행 시 macOS/Windows 설치본을 빌드해 GitHub Release에 첨부한다.
 on:
   push:
     tags:
-      - "desktop-v*"
+      - "SwaggerMan-v*"
   workflow_dispatch:
+
+# 릴리스(태그/릴리스 생성)에 필요한 쓰기 권한
+permissions:
+  contents: write
 
 defaults:
   run:
@@ -13,6 +17,8 @@ defaults:
 
 jobs:
   build:
+    permissions:
+      contents: write
     strategy:
       fail-fast: false
       matrix:
@@ -52,7 +58,7 @@ jobs:
           projectPath: apps/desktop
           args: ${{ matrix.args }}
           tagName: ${{ github.ref_name }}
-          releaseName: "Swagger Man Desktop ${{ github.ref_name }}"
+          releaseName: "SwaggerMan ${{ github.ref_name }}"
           releaseDraft: true
           prerelease: false
         env:

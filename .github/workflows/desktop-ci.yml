@@ -1,4 +1,4 @@
-name: Desktop CI
+name: SwaggerMan CI
 
 # apps/desktop 변경 시 프론트엔드 타입체크/빌드 + Rust 컴파일 검사.
 on:
