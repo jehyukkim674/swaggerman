@@ -102,18 +102,25 @@ export function buildRequestUrl(
   }
 }
 
-/** baseURL + operation + 입력값(+ 인증 헤더)으로 HTTPRequest 구성. */
+/** baseURL + operation + 입력값(+ 인증 헤더 + 전역 헤더)으로 HTTPRequest 구성.
+ *  우선순위: 전역 헤더(기본) < 요청별 헤더 < 인증 헤더 */
 export function buildRequest(
   baseURL: string,
   operation: ParsedOperation,
   inputs: RequestInputs,
   securityHeaders: Record<string, string> = {},
+  globalHeaders: RequestParam[] = [],
 ): HTTPRequest {
   const headers: Record<string, string> = {};
+  // 전역 기본 헤더(모든 요청에 적용, 가장 낮은 우선순위)
+  for (const h of globalHeaders) {
+    if (h.enabled && h.key && h.value !== "") headers[h.key] = h.value;
+  }
+  // 요청별 헤더가 전역을 덮어씀
   for (const h of inputs.headers) {
     if (h.enabled && h.key && h.value !== "") headers[h.key] = h.value;
   }
-  // 인증 헤더가 수동 헤더를 덮어쓴다(Authorize에서 설정한 값 우선).
+  // 인증 헤더가 최우선(Authorize에서 설정한 값)
   for (const [key, value] of Object.entries(securityHeaders)) {
     if (value) headers[key] = value;
   }

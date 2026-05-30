@@ -85,6 +85,29 @@ describe("buildRequest", () => {
     expect(req.body).toBe('{"a":1}');
   });
 
+  it("전역 헤더는 기본값, 요청별/비활성 처리", () => {
+    const operation = op({ method: "GET", path: "/x" });
+    const inputs = {
+      pathParams: {},
+      queryParams: [],
+      headers: [
+        { key: "X-Req", value: "r", enabled: true },
+        { key: "X-Common", value: "req", enabled: true },
+      ],
+      body: "",
+    };
+    const globalHeaders = [
+      { key: "X-Global", value: "g", enabled: true },
+      { key: "X-Common", value: "global", enabled: true },
+      { key: "X-Off", value: "o", enabled: false },
+    ];
+    const req = buildRequest("https://api.com", operation, inputs, {}, globalHeaders);
+    expect(req.headers["X-Global"]).toBe("g");
+    expect(req.headers["X-Req"]).toBe("r");
+    expect(req.headers["X-Common"]).toBe("req"); // 요청별이 전역을 덮어씀
+    expect(req.headers["X-Off"]).toBeUndefined();
+  });
+
   it("빈 body는 undefined", () => {
     const req = buildRequest("https://api.com", op({ path: "/x" }), {
       pathParams: {},

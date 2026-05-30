@@ -4,7 +4,13 @@ import { getCurrentWebview } from "@tauri-apps/api/webview";
 import "./App.css";
 import { loadSpec as loadSpecFromUrl } from "./core/spec-loader";
 import { executeRequest } from "./core/http-client";
-import { buildRequest, defaultInputs, deriveBaseURL, type RequestInputs } from "./core/request-builder";
+import {
+  buildRequest,
+  defaultInputs,
+  deriveBaseURL,
+  type RequestInputs,
+  type RequestParam,
+} from "./core/request-builder";
 import { computeSecurityHeaders } from "./core/security";
 import { loadJSON, saveJSON } from "./core/storage";
 import { newId, type HistoryItem } from "./core/history";
@@ -14,6 +20,7 @@ import { RequestEditor } from "./components/RequestEditor";
 import { ResponseView } from "./components/ResponseView";
 import { AuthorizePanel } from "./components/AuthorizePanel";
 import { EnvironmentsModal } from "./components/EnvironmentsModal";
+import { GlobalHeadersModal } from "./components/GlobalHeadersModal";
 
 const DEFAULT_SPEC_URL = "http://localhost:8000/v3/api-docs";
 
@@ -53,6 +60,13 @@ export default function App() {
   useEffect(() => {
     if (activeSpecUrl) saveJSON(`swaggerman.envs.${activeSpecUrl}`, envs);
   }, [envs, activeSpecUrl]);
+
+  // 전역 헤더(모든 요청에 적용) — 프로젝트별 저장
+  const [globalHeaders, setGlobalHeaders] = useState<RequestParam[]>([]);
+  const [headerModalOpen, setHeaderModalOpen] = useState(false);
+  useEffect(() => {
+    if (activeSpecUrl) saveJSON(`swaggerman.headers.${activeSpecUrl}`, globalHeaders);
+  }, [globalHeaders, activeSpecUrl]);
 
   // 오퍼레이션별 body 샘플(이름→body) — 프로젝트별 저장
   const [bodySamples, setBodySamples] = useState<Record<string, { name: string; body: string }[]>>(
@@ -164,6 +178,7 @@ export default function App() {
       setBodySamples(
         loadJSON(`swaggerman.samples.${targetUrl}`, {} as Record<string, { name: string; body: string }[]>),
       );
+      setGlobalHeaders(loadJSON(`swaggerman.headers.${targetUrl}`, [] as RequestParam[]));
       opCacheRef.current.clear();
       setSelected(null);
       setInputs(null);
@@ -217,7 +232,7 @@ export default function App() {
     setSendError(null);
     try {
       const securityHeaders = computeSecurityHeaders(spec?.securitySchemes ?? [], authValues);
-      const request = buildRequest(baseURL, op, ins, securityHeaders);
+      const request = buildRequest(baseURL, op, ins, securityHeaders, globalHeaders);
       setLastRequest(request);
       const res = await executeRequest(request);
       if (sendIdRef.current !== myId) return; // 취소됨
@@ -377,6 +392,15 @@ export default function App() {
             >
               환경 관리
             </button>
+            <button
+              className="btn small"
+              title="모든 요청에 적용되는 전역 헤더 관리"
+              onClick={() => setHeaderModalOpen(true)}
+            >
+              전역 헤더
+              {globalHeaders.filter((h) => h.enabled && h.key).length > 0 &&
+                ` ${globalHeaders.filter((h) => h.enabled && h.key).length}`}
+            </button>
           </div>
           <AuthorizePanel schemes={spec.securitySchemes} values={authValues} onChange={setAuthValues} />
           <div className="zoom-controls">
@@ -457,6 +481,13 @@ export default function App() {
           onChange={setEnvs}
           onApply={setBaseURL}
           onClose={() => setEnvModalOpen(false)}
+        />
+      )}
+      {headerModalOpen && (
+        <GlobalHeadersModal
+          headers={globalHeaders}
+          onChange={setGlobalHeaders}
+          onClose={() => setHeaderModalOpen(false)}
         />
       )}
     </div>
