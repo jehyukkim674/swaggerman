@@ -1,3 +1,4 @@
+// swiftlint:disable file_length type_body_length
 import Foundation
 import os.log
 import SwiftUI
@@ -92,8 +93,11 @@ final class RequestEditorStore {
         lastCurlString = nil
         lastRequest = nil
 
-        pathParams = Dictionary(uniqueKeysWithValues:
-            op.parameters.filter { $0.location == .path }.map { ($0.name, "") })
+        // 같은 이름의 path 파라미터가 중복으로 정의된(비정상) 스펙에서도 크래시하지 않도록 병합
+        pathParams = Dictionary(
+            op.parameters.filter { $0.location == .path }.map { ($0.name, "") },
+            uniquingKeysWith: { first, _ in first }
+        )
         queryParams = op.parameters
             .filter { $0.location == .query }
             .map { RequestParam(key: $0.name, value: "", enabled: true) }
@@ -135,60 +139,77 @@ final class RequestEditorStore {
         persistEditorState(projectID: pid, operationID: op.id)
     }
 
+    /// 요청을 백그라운드 Task로 시작한다(취소 가능, UI 논블로킹). 실제 수행은 `performSend`.
     func send(project: Project, historyStore: HistoryStore, disableTLS: Bool = false,
               securityHeaders: [String: String] = [:])
     {
-        guard let op = selectedOperation else { return }
+        guard selectedOperation != nil else {
+            log.warning("send 무시 — 선택된 operation 없음")
+            return
+        }
         sendTask?.cancel()
-        sendTask = Task {
-            isSending = true
-            defer { isSending = false }
-            sendError = nil
+        sendTask = Task { [weak self] in
+            await self?.performSend(project: project, historyStore: historyStore,
+                                    disableTLS: disableTLS, securityHeaders: securityHeaders)
+        }
+    }
 
-            do {
-                let request = try buildRequest(op: op, securityHeaders: securityHeaders)
-                lastCurlString = CurlBuilder.build(request)
-                lastRequest = request
-                let res = try await httpClient.execute(request, disableTLS: disableTLS)
-                try Task.checkCancellation()
-                response = res
-                responseTab = .response
+    /// 실제 요청 수행. `send`가 Task로 감싸 호출하며, 테스트에서는 직접 await 한다.
+    func performSend(project: Project, historyStore: HistoryStore, disableTLS: Bool = false,
+                     securityHeaders: [String: String] = [:]) async
+    {
+        guard let op = selectedOperation else {
+            log.warning("performSend 무시 — 선택된 operation 없음")
+            return
+        }
+        isSending = true
+        defer { isSending = false }
+        sendError = nil
 
-                guard project.modelContext != nil else {
-                    log.warning("send: project removed during request — response shown, history skipped")
-                    return
-                }
+        do {
+            let request = try buildRequest(op: op, securityHeaders: securityHeaders)
+            lastCurlString = CurlBuilder.build(request)
+            lastRequest = request
+            log.info("요청 시작: \(op.method.rawValue) \(request.url.absoluteString) (disableTLS=\(disableTLS))")
+            let res = try await httpClient.execute(request, disableTLS: disableTLS)
+            try Task.checkCancellation()
+            response = res
+            responseTab = .response
 
-                let reqHeadersJSON = jsonString(from: request.headers)
-                let resHeadersJSON = jsonString(from: res.headers)
-                let bodyStr = res.bodyString ?? ""
-                let truncatedBody = bodyStr.count > 1_000_000
-                    ? String(bodyStr.prefix(1_000_000)) + "\n...(truncated)"
-                    : bodyStr
-
-                let item = HistoryItem(
-                    environmentID: currentEnvID,
-                    method: op.method.rawValue,
-                    path: op.path,
-                    fullURL: request.url.absoluteString,
-                    requestHeadersJSON: reqHeadersJSON,
-                    requestBody: request.body.flatMap { String(data: $0, encoding: .utf8) },
-                    responseStatus: res.statusCode,
-                    responseHeadersJSON: resHeadersJSON,
-                    responseBody: truncatedBody,
-                    responseSize: res.body.count,
-                    durationMs: res.durationMs,
-                    project: project
-                )
-                historyStore.append(item, to: project)
-                log.info("Request sent: \(op.method.rawValue) \(op.path) → \(res.statusCode)")
-            } catch is CancellationError {
-                log.info("Request cancelled")
-            } catch {
-                sendError = error
-                responseTab = .response
-                log.error("Request failed: \(error.localizedDescription)")
+            guard project.modelContext != nil else {
+                log.warning("send: project removed during request — response shown, history skipped")
+                return
             }
+
+            let reqHeadersJSON = jsonString(from: request.headers)
+            let resHeadersJSON = jsonString(from: res.headers)
+            let bodyStr = res.bodyString ?? ""
+            let truncatedBody = bodyStr.count > 1_000_000
+                ? String(bodyStr.prefix(1_000_000)) + "\n...(truncated)"
+                : bodyStr
+
+            let item = HistoryItem(
+                environmentID: currentEnvID,
+                method: op.method.rawValue,
+                path: op.path,
+                fullURL: request.url.absoluteString,
+                requestHeadersJSON: reqHeadersJSON,
+                requestBody: request.body.flatMap { String(data: $0, encoding: .utf8) },
+                responseStatus: res.statusCode,
+                responseHeadersJSON: resHeadersJSON,
+                responseBody: truncatedBody,
+                responseSize: res.body.count,
+                durationMs: res.durationMs,
+                project: project
+            )
+            historyStore.append(item, to: project)
+            log.info("요청 완료: \(op.method.rawValue) \(op.path) → \(res.statusCode) (\(res.durationMs)ms)")
+        } catch is CancellationError {
+            log.info("요청 취소됨: \(op.method.rawValue) \(op.path)")
+        } catch {
+            sendError = error
+            responseTab = .response
+            log.error("요청 실패: \(op.method.rawValue) \(op.path) — \(error.localizedDescription)")
         }
     }
 
@@ -214,6 +235,11 @@ final class RequestEditorStore {
             body: item.responseBody.data(using: .utf8) ?? Data(),
             durationMs: item.durationMs
         )
+        lastCurlString = nil
+        lastRequest = nil
+        // 저장된 응답을 바로 볼 수 있도록 Response 탭으로 전환
+        responseTab = .response
+        log.info("히스토리 로드: \(item.method) \(item.path) → \(item.responseStatus)")
     }
 
     func restoreParams(from item: HistoryItem) {
@@ -223,6 +249,49 @@ final class RequestEditorStore {
         let headers = decodeStringDict(item.requestHeadersJSON)
         // isFromSpec/isRequired metadata is not persisted in HistoryItem; restored headers appear as user-defined.
         requestHeaders = headers.map { RequestParam(key: $0.key, value: $0.value, enabled: true) }
+        // 실제 보냈던 path/query 파라미터 값을 fullURL에서 복원
+        restorePathAndQuery(fromFullURL: item.fullURL)
+    }
+
+    /// 히스토리의 fullURL에서 실제 요청에 사용된 path/query 파라미터 값을 복원한다.
+    /// (HistoryItem은 fullURL만 저장하므로 path param {id}=값, query를 역으로 추출)
+    private func restorePathAndQuery(fromFullURL fullURL: String) {
+        guard let components = URLComponents(string: fullURL) else {
+            log.warning("restorePathAndQuery: fullURL 파싱 실패 — \(fullURL)")
+            return
+        }
+
+        // Query 파라미터 복원 (히스토리에 있던 쿼리만 값 채움)
+        let historyQuery = components.queryItems ?? []
+        if !historyQuery.isEmpty {
+            var historyMap: [String: String] = [:]
+            for queryItem in historyQuery {
+                historyMap[queryItem.name] = queryItem.value ?? ""
+            }
+            queryParams = queryParams.map { param in
+                guard let value = historyMap[param.key] else { return param }
+                return RequestParam(key: param.key, value: value, enabled: true,
+                                    isFromSpec: param.isFromSpec, isRequired: param.isRequired)
+            }
+            let existing = Set(queryParams.map(\.key))
+            for queryItem in historyQuery where !existing.contains(queryItem.name) {
+                queryParams.append(RequestParam(key: queryItem.name, value: queryItem.value ?? "", enabled: true))
+            }
+        }
+
+        // Path 파라미터 복원: op.path 템플릿을 실제 경로의 끝에 정렬해 {param} 위치의 값을 추출
+        guard let op = selectedOperation else { return }
+        let templateSegments = op.path.split(separator: "/").map(String.init)
+        let actualSegments = components.path.split(separator: "/").map(String.init)
+        guard actualSegments.count >= templateSegments.count else { return }
+        let offset = actualSegments.count - templateSegments.count
+        for (index, segment) in templateSegments.enumerated()
+            where segment.hasPrefix("{") && segment.hasSuffix("}")
+        {
+            let name = String(segment.dropFirst().dropLast())
+            let rawValue = actualSegments[offset + index]
+            pathParams[name] = rawValue.removingPercentEncoding ?? rawValue
+        }
     }
 
     // MARK: - Private Methods
@@ -366,7 +435,8 @@ final class RequestEditorStore {
         log.debug("RESTORE [\(operationID)] headers=\(state.headers.map(\.key))")
 
         // Merge saved values into spec-derived params (preserve isFromSpec/isRequired metadata)
-        let savedQueryMap = Dictionary(uniqueKeysWithValues: state.queryParams.map { ($0.key, $0) })
+        // 빈 키/중복 키(중복 쿼리·헤더 파라미터)에서도 크래시하지 않도록 마지막 값 우선으로 병합
+        let savedQueryMap = Dictionary(state.queryParams.map { ($0.key, $0) }, uniquingKeysWith: { _, last in last })
         queryParams = queryParams.map { param in
             guard let saved = savedQueryMap[param.key] else { return param }
             return RequestParam(key: param.key, value: saved.value, enabled: saved.enabled,
@@ -374,7 +444,7 @@ final class RequestEditorStore {
         }
 
         // Merge headers: update existing spec headers, append any user-added ones
-        let savedHeaderMap = Dictionary(uniqueKeysWithValues: state.headers.map { ($0.key, $0) })
+        let savedHeaderMap = Dictionary(state.headers.map { ($0.key, $0) }, uniquingKeysWith: { _, last in last })
         requestHeaders = requestHeaders.map { param in
             guard let saved = savedHeaderMap[param.key] else { return param }
             return RequestParam(key: param.key, value: saved.value, enabled: saved.enabled,
@@ -390,3 +460,5 @@ final class RequestEditorStore {
         return true
     }
 }
+
+// swiftlint:enable file_length type_body_length

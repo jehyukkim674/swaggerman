@@ -258,7 +258,7 @@ struct RequestEditorStoreAdditionalTests {
                             environment: APIEnvironment(name: "Test", baseURL: "https://api.com"))
         store.queryParams[0].value = "swift"
 
-        await store.send(project: project, historyStore: historyStore)
+        await store.performSend(project: project, historyStore: historyStore)
 
         #expect(project.history.first?.fullURL.contains("q=swift") == true)
     }
@@ -301,7 +301,7 @@ struct RequestEditorStoreAdditionalTests {
         store.queryParams[0].value = "swift"
         store.queryParams[0].enabled = false
 
-        await store.send(project: project, historyStore: historyStore)
+        await store.performSend(project: project, historyStore: historyStore)
 
         #expect(project.history.first?.fullURL.contains("q=") == false)
     }
@@ -331,7 +331,7 @@ struct RequestEditorStoreAdditionalTests {
         store.loadOperation(op, baseURL: "https://api.com",
                             environment: APIEnvironment(name: "T", baseURL: "https://api.com"))
 
-        await store.send(project: project, historyStore: historyStore)
+        await store.performSend(project: project, historyStore: historyStore)
         #expect(store.isSending == false) // should be false after completion
     }
 
@@ -359,7 +359,7 @@ struct RequestEditorStoreAdditionalTests {
         )
         store.loadOperation(op, baseURL: "https://api.com",
                             environment: APIEnvironment(name: "T", baseURL: "https://api.com"))
-        await store.send(project: project, historyStore: historyStore)
+        await store.performSend(project: project, historyStore: historyStore)
 
         #expect(store.lastCurlString != nil)
         #expect(store.lastCurlString?.contains("curl") == true)
@@ -389,7 +389,7 @@ struct RequestEditorStoreAdditionalTests {
         store.requestHeaders.removeAll { $0.key == "Content-Type" }
         store.bodyJSON = "{\"test\": true}"
 
-        await store.send(project: project, historyStore: historyStore)
+        await store.performSend(project: project, historyStore: historyStore)
         #expect(store.response != nil)
     }
 
@@ -419,7 +419,7 @@ struct RequestEditorStoreAdditionalTests {
         let env = APIEnvironment(name: "Dev", baseURL: "https://api.test")
         store.loadOperation(op, baseURL: env.baseURL, environment: env, securityHeaders: [:])
 
-        await store.send(project: project, historyStore: historyStore, disableTLS: true)
+        await store.performSend(project: project, historyStore: historyStore, disableTLS: true)
 
         let disableTLSUsed = await mockClient.lastDisableTLS
         #expect(disableTLSUsed == true)
@@ -438,7 +438,7 @@ struct RequestEditorStoreAdditionalTests {
 
         let store = RequestEditorStore(httpClient: MockHTTPClient())
         // Don't call loadOperation → selectedOperation is nil
-        await store.send(project: project, historyStore: historyStore)
+        await store.performSend(project: project, historyStore: historyStore)
 
         #expect(store.response == nil)
         #expect(store.sendError == nil)
@@ -461,7 +461,7 @@ struct RequestEditorStoreAdditionalTests {
         let op = makeOp(method: .post, path: "/users")
         store.loadOperation(op, baseURL: "https://api.test", environment: makeEnv())
 
-        await store.send(project: project, historyStore: historyStore, disableTLS: false)
+        await store.performSend(project: project, historyStore: historyStore, disableTLS: false)
 
         #expect(store.lastRequest != nil)
         #expect(store.lastRequest?.method == .post)
@@ -482,7 +482,7 @@ struct RequestEditorStoreAdditionalTests {
 
         let op = makeOp(method: .get, path: "/users")
         store.loadOperation(op, baseURL: "https://api.test", environment: makeEnv())
-        await store.send(project: project, historyStore: historyStore, disableTLS: false)
+        await store.performSend(project: project, historyStore: historyStore, disableTLS: false)
         #expect(store.lastRequest != nil)
 
         store.loadOperation(makeOp(method: .post, path: "/items"), baseURL: "https://api.test", environment: makeEnv())

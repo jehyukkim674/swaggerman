@@ -134,7 +134,7 @@ struct ViewBodyResponseTests {
         let store = RequestEditorStore(httpClient: mockHTTP)
         store.loadOperation(makeOp(), baseURL: "https://api.com",
                             environment: APIEnvironment(name: "T", baseURL: "https://api.com"))
-        await store.send(project: project, historyStore: historyStore)
+        await store.performSend(project: project, historyStore: historyStore)
 
         _ = ResponsePaneView(store: store).body
     }
@@ -154,7 +154,7 @@ struct ViewBodyResponseTests {
         let store = RequestEditorStore(httpClient: mockHTTP)
         store.loadOperation(makeOp(), baseURL: "https://api.com",
                             environment: APIEnvironment(name: "T", baseURL: "https://api.com"))
-        await store.send(project: project, historyStore: historyStore)
+        await store.performSend(project: project, historyStore: historyStore)
 
         _ = ResponsePaneView(store: store).body
     }
@@ -179,7 +179,7 @@ struct ViewBodyResponseTests {
         let store = RequestEditorStore(httpClient: mockHTTP)
         store.loadOperation(makeOp(), baseURL: "https://api.com",
                             environment: APIEnvironment(name: "T", baseURL: "https://api.com"))
-        await store.send(project: project, historyStore: historyStore)
+        await store.performSend(project: project, historyStore: historyStore)
 
         _ = ResponsePaneView(store: store).body
     }
