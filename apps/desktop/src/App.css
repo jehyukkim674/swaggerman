@@ -94,6 +94,14 @@ body {
   font-size: 11px;
   max-width: 130px;
 }
+.env-add {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+.env-name-input {
+  width: 110px;
+}
 
 /* Response tabs (Docs/Response) */
 .resp-tabs {

@@ -46,9 +46,18 @@ export default function App() {
 
   // 환경(여러 baseURL) — 프로젝트별 저장
   const [envs, setEnvs] = useState<{ name: string; baseURL: string }[]>([]);
+  const [newEnvName, setNewEnvName] = useState<string | null>(null);
   useEffect(() => {
     if (activeSpecUrl) saveJSON(`swaggerman.envs.${activeSpecUrl}`, envs);
   }, [envs, activeSpecUrl]);
+
+  function confirmAddEnv() {
+    const name = (newEnvName ?? "").trim();
+    if (name) {
+      setEnvs((prev) => [...prev.filter((e) => e.name !== name), { name, baseURL }]);
+    }
+    setNewEnvName(null);
+  }
 
   // 프로젝트(spec URL) 목록 — 전역 저장
   const [projects, setProjects] = useState<Project[]>(() =>
@@ -299,16 +308,36 @@ export default function App() {
                 </option>
               ))}
             </select>
-            <button
-              className="btn small"
-              title="현재 Base URL을 환경으로 저장"
-              onClick={() => {
-                const name = prompt("환경 이름:", `환경 ${envs.length + 1}`);
-                if (name) setEnvs((prev) => [...prev.filter((e) => e.name !== name), { name, baseURL }]);
-              }}
-            >
-              ＋환경
-            </button>
+            {newEnvName === null ? (
+              <button
+                className="btn small"
+                title="현재 Base URL을 환경으로 저장"
+                onClick={() => setNewEnvName(`환경 ${envs.length + 1}`)}
+              >
+                ＋환경
+              </button>
+            ) : (
+              <span className="env-add">
+                <input
+                  className="env-name-input"
+                  autoFocus
+                  value={newEnvName}
+                  onChange={(e) => setNewEnvName(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") confirmAddEnv();
+                    if (e.key === "Escape") setNewEnvName(null);
+                  }}
+                  placeholder="환경 이름"
+                  spellCheck={false}
+                />
+                <button className="btn small" onClick={confirmAddEnv} title="저장">
+                  ✓
+                </button>
+                <button className="btn small" onClick={() => setNewEnvName(null)} title="취소">
+                  ✕
+                </button>
+              </span>
+            )}
           </div>
           <AuthorizePanel schemes={spec.securitySchemes} values={authValues} onChange={setAuthValues} />
           <div className="zoom-controls">
