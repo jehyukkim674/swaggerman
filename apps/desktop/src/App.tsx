@@ -13,6 +13,7 @@ import { Sidebar } from "./components/Sidebar";
 import { RequestEditor } from "./components/RequestEditor";
 import { ResponseView } from "./components/ResponseView";
 import { AuthorizePanel } from "./components/AuthorizePanel";
+import { EnvironmentsModal } from "./components/EnvironmentsModal";
 
 const DEFAULT_SPEC_URL = "http://localhost:8000/v3/api-docs";
 
@@ -43,10 +44,12 @@ export default function App() {
   const [favorites, setFavorites] = useState<string[]>([]);
   const [history, setHistory] = useState<HistoryItem[]>([]);
   const [responseTab, setResponseTab] = useState<"docs" | "response">("docs");
+  // 현재 보고 있는 히스토리 항목(선택 시 표기). 직접 선택/전송하면 해제.
+  const [selectedHistory, setSelectedHistory] = useState<HistoryItem | null>(null);
 
   // 환경(여러 baseURL) — 프로젝트별 저장
   const [envs, setEnvs] = useState<{ name: string; baseURL: string }[]>([]);
-  const [newEnvName, setNewEnvName] = useState<string | null>(null);
+  const [envModalOpen, setEnvModalOpen] = useState(false);
   useEffect(() => {
     if (activeSpecUrl) saveJSON(`swaggerman.envs.${activeSpecUrl}`, envs);
   }, [envs, activeSpecUrl]);
@@ -70,14 +73,6 @@ export default function App() {
       ...prev,
       [opId]: (prev[opId] ?? []).filter((s) => s.name !== name),
     }));
-  }
-
-  function confirmAddEnv() {
-    const name = (newEnvName ?? "").trim();
-    if (name) {
-      setEnvs((prev) => [...prev.filter((e) => e.name !== name), { name, baseURL }]);
-    }
-    setNewEnvName(null);
   }
 
   // 프로젝트(spec URL) 목록 — 전역 저장
@@ -197,6 +192,7 @@ export default function App() {
 
   function selectOperation(op: ParsedOperation) {
     stashCurrent();
+    setSelectedHistory(null);
     setSelected(op);
     const cached = opCacheRef.current.get(op.id);
     if (cached) {
@@ -216,6 +212,7 @@ export default function App() {
 
   async function sendWith(op: ParsedOperation, ins: RequestInputs) {
     const myId = ++sendIdRef.current;
+    setSelectedHistory(null);
     setSending(true);
     setSendError(null);
     try {
@@ -268,6 +265,7 @@ export default function App() {
 
   function selectHistory(item: HistoryItem) {
     stashCurrent();
+    setSelectedHistory(item);
     const op = spec?.operations.find((o) => o.id === item.opId);
     if (op) {
       setSelected(op);
@@ -372,36 +370,13 @@ export default function App() {
                 </option>
               ))}
             </select>
-            {newEnvName === null ? (
-              <button
-                className="btn small"
-                title="현재 Base URL을 환경으로 저장"
-                onClick={() => setNewEnvName(`환경 ${envs.length + 1}`)}
-              >
-                ＋환경
-              </button>
-            ) : (
-              <span className="env-add">
-                <input
-                  className="env-name-input"
-                  autoFocus
-                  value={newEnvName}
-                  onChange={(e) => setNewEnvName(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") confirmAddEnv();
-                    if (e.key === "Escape") setNewEnvName(null);
-                  }}
-                  placeholder="환경 이름"
-                  spellCheck={false}
-                />
-                <button className="btn small" onClick={confirmAddEnv} title="저장">
-                  ✓
-                </button>
-                <button className="btn small" onClick={() => setNewEnvName(null)} title="취소">
-                  ✕
-                </button>
-              </span>
-            )}
+            <button
+              className="btn small"
+              title="환경 추가/수정/삭제"
+              onClick={() => setEnvModalOpen(true)}
+            >
+              환경 관리
+            </button>
           </div>
           <AuthorizePanel schemes={spec.securitySchemes} values={authValues} onChange={setAuthValues} />
           <div className="zoom-controls">
@@ -437,6 +412,7 @@ export default function App() {
             onReplayHistory={replayHistory}
             onDeleteHistory={(id) => setHistory((prev) => prev.filter((h) => h.id !== id))}
             onClearHistory={() => setHistory([])}
+            selectedHistoryId={selectedHistory?.id ?? null}
           />
         </Panel>
         <PanelResizeHandle className="resize-handle" />
@@ -456,6 +432,7 @@ export default function App() {
             onDeleteSample={(name) => {
               if (selected) deleteSample(selected.id, name);
             }}
+            historyItem={selectedHistory}
           />
         </Panel>
         <PanelResizeHandle className="resize-handle" />
@@ -468,9 +445,20 @@ export default function App() {
             error={sendError}
             tab={responseTab}
             onTab={setResponseTab}
+            historyItem={selectedHistory}
           />
         </Panel>
       </PanelGroup>
+
+      {envModalOpen && (
+        <EnvironmentsModal
+          envs={envs}
+          currentBaseURL={baseURL}
+          onChange={setEnvs}
+          onApply={setBaseURL}
+          onClose={() => setEnvModalOpen(false)}
+        />
+      )}
     </div>
   );
 }
