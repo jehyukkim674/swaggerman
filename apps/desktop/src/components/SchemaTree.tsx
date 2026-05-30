@@ -1,22 +1,6 @@
 import { useState } from "react";
 import type { ParsedSchema } from "../core/types";
-
-export function schemaTypeLabel(schema: ParsedSchema | undefined): string {
-  if (!schema) return "any";
-  switch (schema.type) {
-    case "string":
-      if (schema.enumValues && schema.enumValues.length > 0) {
-        return schema.enumValues.map((v) => `"${v}"`).join(" | ");
-      }
-      return "string";
-    case "array":
-      return schema.items ? `array[${schemaTypeLabel(schema.items)}]` : "array";
-    case "object":
-      return "object";
-    default:
-      return schema.type;
-  }
-}
+import { schemaTypeLabel } from "../core/schema-format";
 
 interface Props {
   schema: ParsedSchema;

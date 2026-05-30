@@ -1,6 +1,7 @@
 import type { ParsedOperation } from "../core/types";
 import { methodColor, statusColor } from "./method";
-import { SchemaTree, schemaTypeLabel } from "./SchemaTree";
+import { SchemaTree } from "./SchemaTree";
+import { schemaTypeLabel } from "../core/schema-format";
 
 export function DocsPane({ operation }: { operation: ParsedOperation }) {
   const desc = operation.description ?? operation.summary;
