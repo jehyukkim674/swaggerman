@@ -1630,3 +1630,39 @@ mark.hl.active {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
+/* 응답 뷰 모드 / 프리뷰 / raw */
+.view-seg {
+  display: inline-flex;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  overflow: hidden;
+}
+.view-seg button {
+  background: transparent;
+  border: none;
+  color: var(--muted);
+  padding: 3px 8px;
+  cursor: pointer;
+  font-size: 11px;
+}
+.view-seg button.active {
+  background: var(--accent);
+  color: #fff;
+}
+.resp-preview {
+  flex: 1;
+  border: none;
+  background: #fff;
+  width: 100%;
+}
+.resp-raw {
+  flex: 1;
+  overflow: auto;
+  margin: 0;
+  padding: 8px 12px;
+  font-family: ui-monospace, monospace;
+  font-size: 12px;
+  white-space: pre-wrap;
+  word-break: break-all;
+}

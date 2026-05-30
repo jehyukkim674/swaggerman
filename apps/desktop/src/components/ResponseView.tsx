@@ -4,7 +4,9 @@ import { statusColor } from "./method";
 import { Minimap } from "./Minimap";
 import { DocsPane } from "./DocsPane";
 import { JsonView } from "./JsonView";
+import { save } from "@tauri-apps/plugin-dialog";
 import { buildSnippet, SNIPPET_LANGS, type SnippetLang } from "../core/snippet-builder";
+import { writeTextFile } from "../core/fs";
 import { HistoryBanner } from "./RequestEditor";
 import type { HistoryItem } from "../core/history";
 import type { ValidationIssue } from "../core/schema-validate";
@@ -56,7 +58,25 @@ export function ResponseView({
   const [submitted, setSubmitted] = useState("");
   const [active, setActive] = useState(0);
   const [snippetOpen, setSnippetOpen] = useState(false);
+  const [viewMode, setViewMode] = useState<"pretty" | "raw" | "preview">("pretty");
   const bodyRef = useRef<HTMLDivElement>(null);
+
+  const contentType = response?.headers["content-type"] ?? "";
+  const isHtml = contentType.includes("text/html");
+
+  const saveBody = async () => {
+    if (!response) return;
+    try {
+      const ext = isHtml ? "html" : contentType.includes("json") ? "json" : "txt";
+      const path = await save({
+        defaultPath: `response.${ext}`,
+        filters: [{ name: "응답", extensions: [ext, "txt", "json", "html"] }],
+      });
+      if (typeof path === "string") await writeTextFile(path, response.body);
+    } catch {
+      /* 취소 등 무시 */
+    }
+  };
 
   const body = useMemo(() => (response ? prettyBody(response.body) : ""), [response]);
   const lines = useMemo(() => body.split("\n"), [body]);
@@ -121,8 +141,33 @@ export function ResponseView({
         <span className="muted">{response.durationMs}ms</span>
         <span className="muted">{formatSize(response.size)}</span>
         <div className="resp-actions">
+          <span className="view-seg">
+            <button
+              className={viewMode === "pretty" ? "active" : ""}
+              onClick={() => setViewMode("pretty")}
+            >
+              Pretty
+            </button>
+            <button
+              className={viewMode === "raw" ? "active" : ""}
+              onClick={() => setViewMode("raw")}
+            >
+              Raw
+            </button>
+            {isHtml && (
+              <button
+                className={viewMode === "preview" ? "active" : ""}
+                onClick={() => setViewMode("preview")}
+              >
+                Preview
+              </button>
+            )}
+          </span>
           <button className="btn small" onClick={() => copy(body, () => flash("body"))}>
             {copied === "body" ? "✓" : "Body"}
+          </button>
+          <button className="btn small" onClick={saveBody} title="응답을 파일로 저장">
+            저장
           </button>
           {request && (
             <button
@@ -247,10 +292,16 @@ export function ResponseView({
           ))}
       </div>
 
-      <div className="resp-body-wrap">
-        <JsonView text={body} query={submitted} active={active} containerRef={bodyRef} />
-        <Minimap text={body} scrollRef={bodyRef} matchLines={matchLines} />
-      </div>
+      {viewMode === "preview" && isHtml ? (
+        <iframe className="resp-preview" sandbox="" srcDoc={response.body} title="HTML 미리보기" />
+      ) : viewMode === "raw" ? (
+        <pre className="resp-raw">{response.body}</pre>
+      ) : (
+        <div className="resp-body-wrap">
+          <JsonView text={body} query={submitted} active={active} containerRef={bodyRef} />
+          <Minimap text={body} scrollRef={bodyRef} matchLines={matchLines} />
+        </div>
+      )}
     </>
   );
 
