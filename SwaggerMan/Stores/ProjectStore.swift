@@ -15,14 +15,7 @@ final class ProjectStore {
     init(modelContext: ModelContext) {
         self.modelContext = modelContext
         loadProjects()
-        migrateDisableTLS()
-    }
-
-    private func migrateDisableTLS() {
-        for project in projects where !project.disableTLSVerification {
-            project.disableTLSVerification = true
-        }
-        try? save()
+        log.info("ProjectStore 초기화 — 프로젝트 \(self.projects.count)개 로드")
     }
 
     // MARK: - Public
@@ -61,12 +54,14 @@ final class ProjectStore {
     func deleteProject(_ project: Project) throws {
         let deletingID = project.id
         let wasSelected = selectedProject?.id == deletingID
+        let alias = project.alias
         modelContext.delete(project)
         try save()
         loadProjects()
         if wasSelected {
             selectedProject = projects.first
         }
+        log.info("프로젝트 삭제: \(alias) — 남은 프로젝트 \(self.projects.count)개")
     }
 
     func selectProject(_ project: Project) {
@@ -103,6 +98,7 @@ final class ProjectStore {
         project.specAuthValue3 = specAuthValue3.flatMap { $0.isEmpty ? nil : $0 }
         try save()
         loadProjects()
+        log.info("프로젝트 수정: \(alias) (TLS검증해제=\(disableTLSVerification))")
     }
 
     // MARK: - Private

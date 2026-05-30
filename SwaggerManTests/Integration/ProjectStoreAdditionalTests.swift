@@ -146,4 +146,22 @@ struct ProjectStoreAdditionalTests {
         // selectedProject should still be first (was auto-selected)
         #expect(store.selectedProject?.alias == "First")
     }
+
+    @Test("재초기화 시 사용자의 disableTLSVerification 설정을 덮어쓰지 않음")
+    func reinitDoesNotForceDisableTLS() throws {
+        let container = try ModelContainerFactory.makeInMemory()
+        let ctx = container.mainContext
+        let store = ProjectStore(modelContext: ctx)
+        try store.addProject(alias: "API", swaggerURL: "https://api.com/docs")
+        let project = store.projects[0]
+
+        // 사용자가 TLS 검증을 다시 켬(=해제 false)
+        project.disableTLSVerification = false
+        try ctx.save()
+
+        // 앱 재실행 시뮬레이션: 같은 컨텍스트로 새 ProjectStore 생성
+        let store2 = ProjectStore(modelContext: ctx)
+        let reloaded = store2.projects.first { $0.id == project.id }
+        #expect(reloaded?.disableTLSVerification == false)
+    }
 }
