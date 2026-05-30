@@ -226,3 +226,109 @@ pub fn run() {
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::io::{Read, Write};
+    use std::net::TcpListener;
+    use std::sync::mpsc;
+
+    /// 요청 1건을 받아 캡처하고 고정 응답을 돌려주는 일회용 HTTP 서버.
+    fn spawn_server(response: &'static str) -> (String, mpsc::Receiver<String>) {
+        let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+        let addr = listener.local_addr().unwrap();
+        let (tx, rx) = mpsc::channel();
+        std::thread::spawn(move || {
+            if let Ok((mut stream, _)) = listener.accept() {
+                let mut buf = vec![0u8; 16384];
+                let n = stream.read(&mut buf).unwrap_or(0);
+                let _ = tx.send(String::from_utf8_lossy(&buf[..n]).to_string());
+                let _ = stream.write_all(response.as_bytes());
+            }
+        });
+        (format!("http://{addr}/"), rx)
+    }
+
+    const OK_RESP: &str = "HTTP/1.1 200 OK\r\nContent-Length: 2\r\n\r\nok";
+
+    fn args(url: String) -> HttpRequestArgs {
+        HttpRequestArgs {
+            method: "POST".into(),
+            url,
+            headers: HashMap::new(),
+            body: None,
+            timeout_ms: Some(5000),
+            form: None,
+            multipart: None,
+            insecure: None,
+            proxy: None,
+        }
+    }
+
+    #[tokio::test]
+    async fn raw_body_and_header_are_sent() {
+        let (url, rx) = spawn_server(OK_RESP);
+        let mut a = args(url);
+        a.headers.insert("X-Test".into(), "hello".into());
+        a.body = Some("{\"a\":1}".into());
+        let res = http_request(a).await.unwrap();
+        assert_eq!(res.status, 200);
+        assert_eq!(res.body, "ok");
+        let captured = rx.recv_timeout(Duration::from_secs(3)).unwrap();
+        assert!(captured.contains("x-test: hello") || captured.contains("X-Test: hello"));
+        assert!(captured.contains("{\"a\":1}"));
+    }
+
+    #[tokio::test]
+    async fn urlencoded_form_sets_content_type() {
+        let (url, rx) = spawn_server(OK_RESP);
+        let mut a = args(url);
+        a.form = Some(vec![
+            FormPart { name: "a".into(), value: Some("1".into()), file_path: None, content_type: None },
+            FormPart { name: "b".into(), value: Some("x y".into()), file_path: None, content_type: None },
+        ]);
+        a.multipart = Some(false);
+        let res = http_request(a).await.unwrap();
+        assert_eq!(res.status, 200);
+        let captured = rx.recv_timeout(Duration::from_secs(3)).unwrap().to_lowercase();
+        assert!(captured.contains("content-type: application/x-www-form-urlencoded"));
+        assert!(captured.contains("a=1"));
+        assert!(captured.contains("b=x+y"));
+    }
+
+    #[tokio::test]
+    async fn multipart_includes_file_part() {
+        let dir = std::env::temp_dir();
+        let path = dir.join("swaggerman_test_upload.txt");
+        std::fs::write(&path, b"FILEDATA").unwrap();
+        let (url, rx) = spawn_server(OK_RESP);
+        let mut a = args(url);
+        a.form = Some(vec![FormPart {
+            name: "file".into(),
+            value: None,
+            file_path: Some(path.to_string_lossy().to_string()),
+            content_type: Some("text/plain".into()),
+        }]);
+        a.multipart = Some(true);
+        let res = http_request(a).await.unwrap();
+        assert_eq!(res.status, 200);
+        let captured = rx.recv_timeout(Duration::from_secs(3)).unwrap();
+        assert!(captured.to_lowercase().contains("content-type: multipart/form-data"));
+        assert!(captured.contains("name=\"file\""));
+        assert!(captured.contains("swaggerman_test_upload.txt"));
+        assert!(captured.contains("FILEDATA"));
+        let _ = std::fs::remove_file(&path);
+    }
+
+    #[test]
+    fn read_write_text_file_roundtrip() {
+        let path = std::env::temp_dir()
+            .join("swaggerman_rw_test.json")
+            .to_string_lossy()
+            .to_string();
+        write_text_file(path.clone(), "{\"x\":1}".into()).unwrap();
+        assert_eq!(read_text_file(path.clone()).unwrap(), "{\"x\":1}");
+        let _ = std::fs::remove_file(&path);
+    }
+}
