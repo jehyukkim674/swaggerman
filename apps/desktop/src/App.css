@@ -51,6 +51,15 @@ body {
 .base-url {
   width: 240px;
 }
+.project-select {
+  background: var(--bg);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 5px 8px;
+  font-size: 12px;
+  max-width: 200px;
+}
 
 input,
 textarea {
@@ -434,6 +443,11 @@ mark.hl {
   color: #000;
   border-radius: 2px;
 }
+mark.hl.active {
+  background: #f85149;
+  color: #fff;
+  box-shadow: 0 0 0 1px #f85149;
+}
 
 /* Response actions */
 .resp-actions {
@@ -507,6 +521,20 @@ mark.hl {
 }
 .match.none {
   color: #f85149;
+}
+.match-nav {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.match-nav .btn.small {
+  padding: 1px 8px;
+  font-size: 14px;
+  line-height: 1.2;
+}
+.match-nav .match {
+  min-width: 34px;
+  text-align: center;
 }
 
 /* Minimap */

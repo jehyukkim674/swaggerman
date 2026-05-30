@@ -15,6 +15,11 @@ import { AuthorizePanel } from "./components/AuthorizePanel";
 
 const DEFAULT_SPEC_URL = "http://localhost:8000/v3/api-docs";
 
+interface Project {
+  url: string;
+  title: string;
+}
+
 export default function App() {
   const [specUrl, setSpecUrl] = useState(() =>
     loadJSON("swaggerman.lastSpecUrl", DEFAULT_SPEC_URL),
@@ -37,6 +42,14 @@ export default function App() {
   const [favorites, setFavorites] = useState<string[]>([]);
   const [history, setHistory] = useState<HistoryItem[]>([]);
 
+  // 프로젝트(spec URL) 목록 — 전역 저장
+  const [projects, setProjects] = useState<Project[]>(() =>
+    loadJSON("swaggerman.projects", [] as Project[]),
+  );
+  useEffect(() => {
+    saveJSON("swaggerman.projects", projects);
+  }, [projects]);
+
   // 영속화: 스펙별 키로 저장
   useEffect(() => {
     if (activeSpecUrl) saveJSON(`swaggerman.fav.${activeSpecUrl}`, favorites);
@@ -48,18 +61,24 @@ export default function App() {
     if (activeSpecUrl) saveJSON(`swaggerman.auth.${activeSpecUrl}`, authValues);
   }, [authValues, activeSpecUrl]);
 
-  async function loadSpec() {
+  async function loadSpec(targetUrl: string = specUrl) {
+    setSpecUrl(targetUrl);
     setLoading(true);
     setLoadError(null);
     try {
-      const parsed = await loadSpecFromUrl(specUrl);
+      const parsed = await loadSpecFromUrl(targetUrl);
       setSpec(parsed);
-      setBaseURL(deriveBaseURL(specUrl, parsed.servers));
-      setActiveSpecUrl(specUrl);
-      saveJSON("swaggerman.lastSpecUrl", specUrl);
-      setFavorites(loadJSON(`swaggerman.fav.${specUrl}`, [] as string[]));
-      setHistory(loadJSON(`swaggerman.hist.${specUrl}`, [] as HistoryItem[]));
-      setAuthValues(loadJSON(`swaggerman.auth.${specUrl}`, {} as Record<string, string>));
+      setBaseURL(deriveBaseURL(targetUrl, parsed.servers));
+      setActiveSpecUrl(targetUrl);
+      saveJSON("swaggerman.lastSpecUrl", targetUrl);
+      // 프로젝트 목록에 upsert(최근 것을 맨 앞으로)
+      setProjects((prev) => [
+        { url: targetUrl, title: parsed.info.title || targetUrl },
+        ...prev.filter((p) => p.url !== targetUrl),
+      ]);
+      setFavorites(loadJSON(`swaggerman.fav.${targetUrl}`, [] as string[]));
+      setHistory(loadJSON(`swaggerman.hist.${targetUrl}`, [] as HistoryItem[]));
+      setAuthValues(loadJSON(`swaggerman.auth.${targetUrl}`, {} as Record<string, string>));
       setSelected(null);
       setInputs(null);
       setResponse(null);
@@ -69,6 +88,13 @@ export default function App() {
     } finally {
       setLoading(false);
     }
+  }
+
+  function removeProject(url: string) {
+    setProjects((prev) => prev.filter((p) => p.url !== url));
+    localStorage.removeItem(`swaggerman.fav.${url}`);
+    localStorage.removeItem(`swaggerman.hist.${url}`);
+    localStorage.removeItem(`swaggerman.auth.${url}`);
   }
 
   function selectOperation(op: ParsedOperation) {
@@ -150,6 +176,21 @@ export default function App() {
     <div className="app">
       <header className="topbar">
         <span className="brand">{title}</span>
+        {projects.length > 0 && (
+          <select
+            className="project-select"
+            value={activeSpecUrl}
+            onChange={(e) => loadSpec(e.target.value)}
+            title="저장된 프로젝트 전환"
+          >
+            {!activeSpecUrl && <option value="">프로젝트 선택…</option>}
+            {projects.map((p) => (
+              <option key={p.url} value={p.url}>
+                {p.title}
+              </option>
+            ))}
+          </select>
+        )}
         <input
           className="spec-url"
           value={specUrl}
@@ -158,9 +199,18 @@ export default function App() {
           placeholder="OpenAPI spec URL (예: /v3/api-docs, /swagger-ui/index.html)"
           spellCheck={false}
         />
-        <button className="btn primary" onClick={loadSpec} disabled={loading}>
+        <button className="btn primary" onClick={() => loadSpec()} disabled={loading}>
           {loading ? "로딩…" : "Load"}
         </button>
+        {activeSpecUrl && projects.some((p) => p.url === activeSpecUrl) && (
+          <button
+            className="btn"
+            title="이 프로젝트를 목록에서 삭제(히스토리/즐겨찾기 포함)"
+            onClick={() => removeProject(activeSpecUrl)}
+          >
+            ✕
+          </button>
+        )}
       </header>
 
       {spec && (

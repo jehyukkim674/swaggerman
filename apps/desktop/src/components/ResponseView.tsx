@@ -34,6 +34,7 @@ export function ResponseView({ response, request, sending, error }: Props) {
   const [copied, setCopied] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [submitted, setSubmitted] = useState("");
+  const [active, setActive] = useState(0);
   const [snippetOpen, setSnippetOpen] = useState(false);
   const bodyRef = useRef<HTMLPreElement>(null);
 
@@ -60,13 +61,28 @@ export function ResponseView({ response, request, sending, error }: Props) {
     return { matchLines: set, matchCount: count };
   }, [lines, submitted]);
 
-  // 검색 제출 시 첫 매치 라인으로 스크롤
+  // 새 검색을 제출하면 활성 매치를 첫 번째로 되돌린다.
   useEffect(() => {
-    if (!submitted || matchLines.size === 0 || !bodyRef.current) return;
-    const first = Math.min(...matchLines);
-    const el = bodyRef.current;
-    el.scrollTop = (first / Math.max(lines.length, 1)) * el.scrollHeight - el.clientHeight / 3;
-  }, [submitted, matchLines, lines.length]);
+    setActive(0);
+  }, [submitted]);
+
+  // 활성 매치를 본문 가운데로 스크롤한다. (resp-body 컨테이너 내부만 스크롤)
+  useEffect(() => {
+    if (!submitted || matchCount === 0 || !bodyRef.current) return;
+    const wrap = bodyRef.current;
+    const markEl = wrap.querySelector<HTMLElement>(`mark[data-match="${active}"]`);
+    if (!markEl) return;
+    const wrapRect = wrap.getBoundingClientRect();
+    const markRect = markEl.getBoundingClientRect();
+    wrap.scrollTop += markRect.top - wrapRect.top - wrap.clientHeight / 2;
+  }, [active, submitted, matchCount]);
+
+  const goNext = () => {
+    if (matchCount > 0) setActive((a) => (a + 1) % matchCount);
+  };
+  const goPrev = () => {
+    if (matchCount > 0) setActive((a) => (a - 1 + matchCount) % matchCount);
+  };
 
   const flash = (id: string) => {
     setCopied(id);
@@ -87,7 +103,7 @@ export function ResponseView({ response, request, sending, error }: Props) {
       </section>
     );
 
-  const highlighted = renderHighlighted(body, submitted);
+  const highlighted = renderHighlighted(body, submitted, active);
 
   return (
     <section className="response-pane">
@@ -159,7 +175,15 @@ export function ResponseView({ response, request, sending, error }: Props) {
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           onKeyDown={(e) => {
-            if (e.key === "Enter") setSubmitted(search);
+            if (e.key === "Enter") {
+              // 같은 검색어로 다시 Enter 하면 매치 사이를 이동한다. (Shift+Enter = 이전)
+              if (submitted === search && matchCount > 0) {
+                if (e.shiftKey) goPrev();
+                else goNext();
+              } else {
+                setSubmitted(search);
+              }
+            }
             if (e.key === "Escape") {
               setSearch("");
               setSubmitted("");
@@ -168,11 +192,22 @@ export function ResponseView({ response, request, sending, error }: Props) {
           placeholder="검색 후 Enter"
           spellCheck={false}
         />
-        {submitted && (
-          <span className={matchCount === 0 ? "match none" : "match"}>
-            {matchCount === 0 ? "일치 없음" : `${matchCount}개 일치`}
-          </span>
-        )}
+        {submitted &&
+          (matchCount === 0 ? (
+            <span className="match none">일치 없음</span>
+          ) : (
+            <span className="match-nav">
+              <button className="btn small" onClick={goPrev} title="이전 매치 (Shift+Enter)">
+                ‹
+              </button>
+              <span className="match">
+                {active + 1}/{matchCount}
+              </span>
+              <button className="btn small" onClick={goNext} title="다음 매치 (Enter)">
+                ›
+              </button>
+            </span>
+          ))}
       </div>
 
       <div className="resp-body-wrap">
@@ -185,23 +220,25 @@ export function ResponseView({ response, request, sending, error }: Props) {
   );
 }
 
-/** 검색어가 있으면 매치를 <mark>로 감싼 노드를, 없으면 원문 문자열을 반환. */
-function renderHighlighted(body: string, query: string): React.ReactNode {
+/** 검색어가 있으면 매치를 <mark>로 감싼 노드를, 없으면 원문 문자열을 반환.
+ *  active 인덱스의 매치에는 `active` 클래스를 추가하고 data-match 로 식별자를 부여한다. */
+function renderHighlighted(body: string, query: string, active: number): React.ReactNode {
   if (!query) return body;
   const parts: React.ReactNode[] = [];
   const lower = body.toLowerCase();
   const lq = query.toLowerCase();
   let i = 0;
-  let key = 0;
+  let matchIndex = 0;
   let idx = lower.indexOf(lq);
   while (idx !== -1) {
     if (idx > i) parts.push(body.slice(i, idx));
     parts.push(
-      <mark key={key++} className="hl">
+      <mark key={matchIndex} data-match={matchIndex} className={matchIndex === active ? "hl active" : "hl"}>
         {body.slice(idx, idx + query.length)}
       </mark>,
     );
     i = idx + query.length;
+    matchIndex += 1;
     idx = lower.indexOf(lq, i);
   }
   parts.push(body.slice(i));
