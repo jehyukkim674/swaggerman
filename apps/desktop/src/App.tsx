@@ -22,6 +22,7 @@ import {
 import { emptyOAuth2Config, fetchOAuth2Token, type OAuth2Config } from "./core/oauth2";
 import { checkForUpdate, type AvailableUpdate } from "./core/updater";
 import { loadJSON, saveJSON } from "./core/storage";
+import { log } from "./core/log";
 import { newId, type HistoryItem } from "./core/history";
 import type { HTTPRequest, HTTPResponse, ParsedOperation, ParsedSpec } from "./core/types";
 import { Sidebar } from "./components/Sidebar";
@@ -185,6 +186,7 @@ export default function App() {
         response: HTTPResponse | null;
         lastRequest: HTTPRequest | null;
         sendError: string | null;
+        assertResults: AssertionResult[];
       }
     >
   >(new Map());
@@ -218,8 +220,13 @@ export default function App() {
     setSpecUrl(targetUrl);
     setLoading(true);
     setLoadError(null);
+    log.info("spec", `로딩 시작: ${targetUrl}`);
     try {
       const parsed = await loadSpecFromUrl(targetUrl);
+      log.info(
+        "spec",
+        `로딩 성공: "${parsed.info.title}" (오퍼레이션 ${parsed.operations.length}개)`,
+      );
       setSpec(parsed);
       setBaseURL(deriveBaseURL(targetUrl, parsed.servers));
       setActiveSpecUrl(targetUrl);
@@ -249,7 +256,9 @@ export default function App() {
       setInputs(null);
       setResponse(null);
     } catch (e) {
-      setLoadError(e instanceof Error ? e.message : String(e));
+      const msg = e instanceof Error ? e.message : String(e);
+      log.error("spec", `로딩 실패: ${msg}`);
+      setLoadError(msg);
       setSpec(null);
     } finally {
       setLoading(false);
@@ -266,14 +275,19 @@ export default function App() {
   // 현재 오퍼레이션의 라이브 상태를 캐시에 저장
   function stashCurrent() {
     if (selected && inputs) {
-      opCacheRef.current.set(selected.id, { inputs, response, lastRequest, sendError });
+      opCacheRef.current.set(selected.id, {
+        inputs,
+        response,
+        lastRequest,
+        sendError,
+        assertResults,
+      });
     }
   }
 
   function selectOperation(op: ParsedOperation) {
     stashCurrent();
     setSelectedHistory(null);
-    setAssertResults([]);
     setSelected(op);
     const cached = opCacheRef.current.get(op.id);
     if (cached) {
@@ -281,14 +295,17 @@ export default function App() {
       setResponse(cached.response);
       setLastRequest(cached.lastRequest);
       setSendError(cached.sendError);
+      setAssertResults(cached.assertResults ?? []);
       setResponseTab(cached.response ? "response" : "docs");
     } else {
       setInputs(defaultInputs(op));
       setResponse(null);
       setLastRequest(null);
       setSendError(null);
+      setAssertResults([]);
       setResponseTab("docs");
     }
+    log.debug("ui", `오퍼레이션 선택: ${op.method} ${op.path}`);
   }
 
   async function sendWith(op: ParsedOperation, ins: RequestInputs) {
@@ -300,18 +317,34 @@ export default function App() {
       const securityHeaders = computeSecurityHeaders(spec?.securitySchemes ?? [], authValues);
       const request = buildRequest(baseURL, op, ins, securityHeaders, globalHeaders, activeVars);
       setLastRequest(request);
+      log.info("request", `${request.method} ${request.url}`);
       const res = await executeRequest(request);
-      if (sendIdRef.current !== myId) return; // 취소됨
+      if (sendIdRef.current !== myId) {
+        log.debug("request", "응답 무시(취소됨)");
+        return; // 취소됨
+      }
+      log.info("request", `응답 ${res.statusCode} (${res.durationMs}ms, ${res.size}B)`);
       setResponse(res);
       setResponseTab("response");
       // 체이닝: 응답에서 변수 추출 → 다음 요청에 사용
       const extracted = applyExtractRules(res.body, extractRules[op.id] ?? []);
       if (Object.keys(extracted).length > 0) {
+        log.info("chain", `변수 추출: ${Object.keys(extracted).join(", ")}`);
         setChainVars((prev) => ({ ...prev, ...extracted }));
       }
       // 어서션: 응답 검증 결과 표시
-      setAssertResults(runAssertions(res.statusCode, res.body, assertions[op.id] ?? []));
-      opCacheRef.current.set(op.id, { inputs: ins, response: res, lastRequest: request, sendError: null });
+      const results = runAssertions(res.statusCode, res.body, assertions[op.id] ?? []);
+      if (results.length > 0) {
+        log.info("assert", `${results.filter((r) => r.ok).length}/${results.length} 통과`);
+      }
+      setAssertResults(results);
+      opCacheRef.current.set(op.id, {
+        inputs: ins,
+        response: res,
+        lastRequest: request,
+        sendError: null,
+        assertResults: results,
+      });
       const item: HistoryItem = {
         id: newId(),
         opId: op.id,
@@ -329,8 +362,11 @@ export default function App() {
       setHistory((prev) => [item, ...prev].slice(0, 200));
     } catch (e) {
       if (sendIdRef.current !== myId) return; // 취소됨
-      setSendError(e instanceof Error ? e.message : String(e));
+      const msg = e instanceof Error ? e.message : String(e);
+      log.error("request", `요청 실패: ${msg}`);
+      setSendError(msg);
       setResponse(null);
+      setAssertResults([]);
     } finally {
       if (sendIdRef.current === myId) setSending(false);
     }

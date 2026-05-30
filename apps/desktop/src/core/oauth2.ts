@@ -1,5 +1,6 @@
 // OAuth2 토큰 발급. token 엔드포인트에 form-urlencoded로 요청해 access_token을 받는다.
 import type { HTTPRequest, HTTPResponse } from "./types";
+import { log } from "./log";
 
 export type OAuth2Grant = "client_credentials" | "password";
 
@@ -78,12 +79,15 @@ export async function fetchOAuth2Token(
     },
     body: buildTokenForm(cfg),
   };
+  log.info("oauth2", `토큰 요청: ${cfg.grant} → ${cfg.tokenUrl}`);
   const res = await exec(request);
   const parsed = parseTokenResponse(res.body);
   if (!parsed) {
+    log.error("oauth2", `토큰 발급 실패 (status ${res.statusCode})`);
     throw new Error(
       `토큰 발급 실패 (status ${res.statusCode}): ${res.body.slice(0, 200) || "빈 응답"}`,
     );
   }
+  log.info("oauth2", "토큰 발급 성공");
   return parsed;
 }
