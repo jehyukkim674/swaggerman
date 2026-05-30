@@ -66,6 +66,48 @@ const SPEC = {
 describe("openapi-parser", () => {
   const spec = parseSpec(SPEC);
 
+  it("object query 파라미터를 필드별 query로 펼친다(@ModelAttribute)", () => {
+    const s = parseSpec({
+      openapi: "3.0.0",
+      info: { title: "T", version: "1" },
+      components: {
+        schemas: {
+          SearchReq: {
+            type: "object",
+            required: ["keyword"],
+            properties: {
+              keyword: { type: "string" },
+              page: { type: "integer" },
+              mounted: { type: "boolean" },
+            },
+          },
+        },
+      },
+      paths: {
+        "/search": {
+          get: {
+            parameters: [
+              {
+                name: "request",
+                in: "query",
+                required: true,
+                schema: { $ref: "#/components/schemas/SearchReq" },
+              },
+            ],
+            responses: {},
+          },
+        },
+      },
+    });
+    const op = s.operations[0];
+    const q = op.parameters.filter((p) => p.location === "query");
+    expect(q.map((p) => p.name).sort()).toEqual(["keyword", "mounted", "page"]);
+    expect(q.find((p) => p.name === "keyword")?.required).toBe(true);
+    expect(q.find((p) => p.name === "page")?.required).toBe(false);
+    // 단일 object "request" 파라미터는 더 이상 없음
+    expect(q.find((p) => p.name === "request")).toBeUndefined();
+  });
+
   it("응답 example을 추출(media.example/examples)", () => {
     const s = parseSpec({
       openapi: "3.0.0",

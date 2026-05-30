@@ -65,13 +65,17 @@ export interface RequestInputs {
   form?: FormField[];
 }
 
-/** 파라미터의 스펙 기본값: example → default → enum 첫값 → 빈 문자열. */
+/** 파라미터의 스펙 기본값: example → default → enum 첫값 →
+ *  object/array면 스키마로 예시 JSON 생성 → 그 외 빈 문자열. */
 export function defaultParamValue(param: ParsedParameter): string {
   const s = param.schema;
   if (!s) return "";
   if (s.example != null && s.example !== "") return String(s.example);
   if (s.defaultValue != null && s.defaultValue !== "") return String(s.defaultValue);
   if (s.enumValues && s.enumValues.length > 0) return s.enumValues[0];
+  if (s.type === "object" || s.type === "array") {
+    return JSON.stringify(schemaToExample(s));
+  }
   return "";
 }
 

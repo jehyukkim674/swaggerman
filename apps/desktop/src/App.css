@@ -1758,3 +1758,12 @@ mark.hl.active {
   color: #fff;
   border-color: transparent;
 }
+
+/* 옵션 파라미터 배지 */
+.opt-badge {
+  font-size: 9px;
+  color: var(--muted);
+  background: var(--bg-3);
+  padding: 1px 5px;
+  border-radius: 3px;
+}

@@ -101,12 +101,31 @@ export function parseSpec(doc: AnyObj): ParsedSpec {
       if (!param?.name || !param?.in) return;
       const location = param.in as ParameterLocation;
       if (!["path", "query", "header", "cookie"].includes(location)) return;
+      const schema = convertSchema(param.schema);
+
+      // object query 파라미터(예: Spring @ModelAttribute)는 각 필드를 개별 query로 펼친다.
+      // 예: request: CmdbSearchRequest(object) → keyword, mounted, deviceId, ... 각각의 query param
+      if (location === "query" && schema?.type === "object" && schema.properties) {
+        const reqd = new Set(schema.required ?? []);
+        for (const [propName, propSchema] of Object.entries(schema.properties)) {
+          result.push({
+            id: `query-${propName}-${index}`,
+            name: propName,
+            location: "query",
+            required: reqd.has(propName),
+            schema: propSchema,
+            description: propSchema.description,
+          });
+        }
+        return;
+      }
+
       result.push({
         id: `${location}-${param.name}-${index}`,
         name: param.name,
         location,
         required: param.required === true || location === "path",
-        schema: convertSchema(param.schema),
+        schema,
         description: param.description,
       });
     });

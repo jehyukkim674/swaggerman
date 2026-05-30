@@ -104,6 +104,12 @@ export function RequestEditor({
 
   const pathKeys = Object.keys(inputs.pathParams);
 
+  // 스펙 query 파라미터의 필수여부(이름→required) — 행에 필수/옵션 배지 표시용
+  const queryMeta = new Map<string, boolean>();
+  for (const p of operation.parameters) {
+    if (p.location === "query") queryMeta.set(p.name, p.required);
+  }
+
   const mode: BodyMode = inputs.bodyMode ?? (operation.requestBody ? "raw" : "none");
   const form = inputs.form ?? [];
   const showBody =
@@ -173,6 +179,7 @@ export function RequestEditor({
         <ParamSection
           title="Query Params"
           list={inputs.queryParams}
+          meta={queryMeta}
           onToggle={(i, v) => setParamList("queryParams", i, { enabled: v })}
           onKey={(i, v) => setParamList("queryParams", i, { key: v })}
           onValue={(i, v) => setParamList("queryParams", i, { value: v })}
@@ -346,6 +353,7 @@ export function RequestEditor({
 interface ParamSectionProps {
   title: string;
   list: RequestParam[];
+  meta?: Map<string, boolean>; // key -> required (스펙 파라미터일 때만)
   onToggle: (index: number, value: boolean) => void;
   onKey: (index: number, value: string) => void;
   onValue: (index: number, value: string) => void;
@@ -356,6 +364,7 @@ interface ParamSectionProps {
 function ParamSection({
   title,
   list,
+  meta,
   onToggle,
   onKey,
   onValue,
@@ -365,32 +374,37 @@ function ParamSection({
   return (
     <section className="section">
       <h4>{title}</h4>
-      {list.map((param, index) => (
-        <div className="kv-row" key={index}>
-          <input
-            type="checkbox"
-            checked={param.enabled}
-            onChange={(e) => onToggle(index, e.target.checked)}
-          />
-          <input
-            className="kv-input"
-            value={param.key}
-            onChange={(e) => onKey(index, e.target.value)}
-            placeholder="key"
-            spellCheck={false}
-          />
-          <input
-            className="kv-input"
-            value={param.value}
-            onChange={(e) => onValue(index, e.target.value)}
-            placeholder="value"
-            spellCheck={false}
-          />
-          <button className="icon-btn" onClick={() => onRemove(index)} title="삭제">
-            ✕
-          </button>
-        </div>
-      ))}
+      {list.map((param, index) => {
+        const required = meta?.get(param.key);
+        return (
+          <div className="kv-row" key={index}>
+            <input
+              type="checkbox"
+              checked={param.enabled}
+              onChange={(e) => onToggle(index, e.target.checked)}
+            />
+            <input
+              className="kv-input"
+              value={param.key}
+              onChange={(e) => onKey(index, e.target.value)}
+              placeholder="key"
+              spellCheck={false}
+            />
+            {required === true && <span className="req-badge">필수</span>}
+            {required === false && <span className="opt-badge">옵션</span>}
+            <input
+              className="kv-input"
+              value={param.value}
+              onChange={(e) => onValue(index, e.target.value)}
+              placeholder="value"
+              spellCheck={false}
+            />
+            <button className="icon-btn" onClick={() => onRemove(index)} title="삭제">
+              ✕
+            </button>
+          </div>
+        );
+      })}
       <button className="add-row" onClick={onAdd}>
         + 추가
       </button>
