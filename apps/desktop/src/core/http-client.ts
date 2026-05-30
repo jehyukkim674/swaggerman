@@ -1,69 +1,45 @@
-// Tauri HTTP 플러그인을 통한 요청(웹뷰 CORS 우회 — 임의 호스트 호출 가능).
-import { fetch } from "@tauri-apps/plugin-http";
+// HTTP는 Rust(reqwest) 커맨드로 처리한다.
+// 웹뷰 fetch는 CORS/스코프 제약이 있어 임의 호스트 호출이 불가하므로, API 클라이언트 목적상 Rust로 보낸다.
+import { invoke } from "@tauri-apps/api/core";
 import type { HTTPRequest, HTTPResponse } from "./types";
+
+interface RawHttpResult {
+  status: number;
+  headers: Record<string, string>;
+  body: string;
+  durationMs: number;
+  size: number;
+}
 
 export async function executeRequest(
   request: HTTPRequest,
   options: { timeoutMs?: number } = {},
 ): Promise<HTTPResponse> {
-  const start = performance.now();
-  const controller = new AbortController();
-  const timeoutMs = options.timeoutMs ?? 30_000;
-  const timer = setTimeout(() => controller.abort(), timeoutMs);
-
-  try {
-    const response = await fetch(request.url, {
+  const result = await invoke<RawHttpResult>("http_request", {
+    args: {
       method: request.method,
+      url: request.url,
       headers: request.headers,
-      body:
-        request.body && request.body.length > 0 && request.method !== "GET"
-          ? request.body
-          : undefined,
-      signal: controller.signal,
-    });
-
-    const text = await response.text();
-    const durationMs = Math.round(performance.now() - start);
-
-    const headers: Record<string, string> = {};
-    response.headers.forEach((value, key) => {
-      headers[key] = value;
-    });
-
-    return {
-      statusCode: response.status,
-      headers,
-      body: text,
-      durationMs,
-      size: new TextEncoder().encode(text).length,
-    };
-  } catch (error) {
-    if (error instanceof Error && error.name === "AbortError") {
-      throw new Error(`요청 시간이 초과되었습니다 (${timeoutMs / 1000}초).`);
-    }
-    throw error instanceof Error ? error : new Error(String(error));
-  } finally {
-    clearTimeout(timer);
-  }
+      body: request.method === "GET" ? undefined : request.body,
+      timeoutMs: options.timeoutMs ?? 30_000,
+    },
+  });
+  return {
+    statusCode: result.status,
+    headers: result.headers,
+    body: result.body,
+    durationMs: result.durationMs,
+    size: result.size,
+  };
 }
 
-/** spec URL에서 OpenAPI 문서 텍스트를 가져온다(HTML이면 디스커버리 힌트 throw). */
-export async function fetchSpecText(
+/** 저수준 GET (spec 로드/디스커버리 probe 용). 상태코드와 본문만 반환. */
+export async function rawGet(
   url: string,
   headers: Record<string, string> = {},
-): Promise<string> {
-  const response = await fetch(url, { method: "GET", headers });
-  const text = await response.text();
-  if (response.status === 401 || response.status === 403) {
-    throw new Error("이 spec URL은 인증이 필요합니다.");
-  }
-  if (text.trim().startsWith("<")) {
-    throw new Error(
-      "HTML 페이지를 받았습니다. JSON spec URL을 직접 입력하세요. 예: /v3/api-docs, /openapi.json",
-    );
-  }
-  if (response.status < 200 || response.status >= 300) {
-    throw new Error(`spec 요청 실패: HTTP ${response.status}`);
-  }
-  return text;
+): Promise<{ status: number; body: string }> {
+  const result = await invoke<RawHttpResult>("http_request", {
+    args: { method: "GET", url, headers, body: undefined, timeoutMs: 15_000 },
+  });
+  return { status: result.status, body: result.body };
 }

@@ -1,16 +1,17 @@
 import type { ParsedOperation } from "../core/types";
-import type { RequestInputs, RequestParam } from "../core/request-builder";
+import { buildRequestUrl, type RequestInputs, type RequestParam } from "../core/request-builder";
 import { methodColor } from "./method";
 
 interface Props {
   operation: ParsedOperation | null;
   inputs: RequestInputs | null;
+  baseURL: string;
   sending: boolean;
   onChange: (inputs: RequestInputs) => void;
   onSend: () => void;
 }
 
-export function RequestEditor({ operation, inputs, sending, onChange, onSend }: Props) {
+export function RequestEditor({ operation, inputs, baseURL, sending, onChange, onSend }: Props) {
   if (!operation || !inputs) {
     return (
       <main className="request-pane">
@@ -49,6 +50,10 @@ export function RequestEditor({ operation, inputs, sending, onChange, onSend }: 
         <button className="btn primary send" onClick={onSend} disabled={sending}>
           {sending ? "전송 중…" : "Send"}
         </button>
+      </div>
+
+      <div className="url-preview" title={buildRequestUrl(baseURL, operation, inputs)}>
+        {buildRequestUrl(baseURL, operation, inputs)}
       </div>
 
       <div className="request-body-scroll">

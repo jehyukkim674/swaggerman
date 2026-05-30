@@ -34,32 +34,48 @@ export function defaultInputs(operation: ParsedOperation): RequestInputs {
   };
 }
 
-/** baseURL + operation + 입력값으로 HTTPRequest 구성. */
-export function buildRequest(
+/** baseURL + operation + 입력값으로 요청 URL을 계산(미리보기/전송 공용). */
+export function buildRequestUrl(
   baseURL: string,
   operation: ParsedOperation,
   inputs: RequestInputs,
-): HTTPRequest {
+): string {
   let path = operation.path;
   for (const [key, value] of Object.entries(inputs.pathParams)) {
     path = path.replace(`{${key}}`, encodeURIComponent(value));
   }
-
   const base = baseURL.replace(/\/+$/, "");
-  const url = new URL(base + path);
-  for (const q of inputs.queryParams) {
-    if (q.enabled && q.key && q.value !== "") url.searchParams.append(q.key, q.value);
+  try {
+    const url = new URL(base + path);
+    for (const q of inputs.queryParams) {
+      if (q.enabled && q.key && q.value !== "") url.searchParams.append(q.key, q.value);
+    }
+    return url.toString();
+  } catch {
+    return base + path;
   }
+}
 
+/** baseURL + operation + 입력값(+ 인증 헤더)으로 HTTPRequest 구성. */
+export function buildRequest(
+  baseURL: string,
+  operation: ParsedOperation,
+  inputs: RequestInputs,
+  securityHeaders: Record<string, string> = {},
+): HTTPRequest {
   const headers: Record<string, string> = {};
   for (const h of inputs.headers) {
     if (h.enabled && h.key && h.value !== "") headers[h.key] = h.value;
+  }
+  // 인증 헤더가 수동 헤더를 덮어쓴다(Authorize에서 설정한 값 우선).
+  for (const [key, value] of Object.entries(securityHeaders)) {
+    if (value) headers[key] = value;
   }
 
   const body = inputs.body.trim();
   return {
     method: operation.method as HTTPMethod,
-    url: url.toString(),
+    url: buildRequestUrl(baseURL, operation, inputs),
     headers,
     body: body.length > 0 ? body : undefined,
   };
