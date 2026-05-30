@@ -466,6 +466,91 @@ struct OperationStoreAdditionalTests {
         }
         #expect(opStore.loadError != nil)
     }
+
+    // MARK: - buildSpecAuthHeaders (spec 가져올 때의 인증)
+
+    @Test("buildSpecAuthHeaders — bearer 타입")
+    func specAuthBearer() async throws {
+        let (opStore, projectStore, _container) = try makeStore()
+        _ = _container
+        try projectStore.addProject(alias: "API", swaggerURL: "https://api.com/docs")
+        let project = projectStore.projects[0]
+        project.specAuthType = "bearer"
+        project.specAuthValue1 = "tok123"
+
+        let headers = try await opStore.buildSpecAuthHeaders(for: project)
+        #expect(headers["Authorization"] == "Bearer tok123")
+    }
+
+    @Test("buildSpecAuthHeaders — basic 타입은 base64 인코딩")
+    func specAuthBasic() async throws {
+        let (opStore, projectStore, _container) = try makeStore()
+        _ = _container
+        try projectStore.addProject(alias: "API", swaggerURL: "https://api.com/docs")
+        let project = projectStore.projects[0]
+        project.specAuthType = "basic"
+        project.specAuthValue1 = "user"
+        project.specAuthValue2 = "pass"
+
+        let headers = try await opStore.buildSpecAuthHeaders(for: project)
+        let expected = Data("user:pass".utf8).base64EncodedString()
+        #expect(headers["Authorization"] == "Basic \(expected)")
+    }
+
+    @Test("buildSpecAuthHeaders — apikey 타입")
+    func specAuthAPIKey() async throws {
+        let (opStore, projectStore, _container) = try makeStore()
+        _ = _container
+        try projectStore.addProject(alias: "API", swaggerURL: "https://api.com/docs")
+        let project = projectStore.projects[0]
+        project.specAuthType = "apikey"
+        project.specAuthValue1 = "X-API-Key"
+        project.specAuthValue2 = "secret"
+
+        let headers = try await opStore.buildSpecAuthHeaders(for: project)
+        #expect(headers["X-API-Key"] == "secret")
+    }
+
+    @Test("buildSpecAuthHeaders — login 타입은 토큰을 추출해 Bearer로 반환")
+    func specAuthLoginExtractsToken() async throws {
+        let mockHTTP = MockHTTPClient()
+        await mockHTTP.setExecuteResult(.success(
+            HTTPResponse(statusCode: 200, headers: [:],
+                         body: Data("{\"access_token\":\"jwt-xyz\"}".utf8), durationMs: 5)
+        ))
+        let (opStore, projectStore, _container) = try makeStore(httpClient: mockHTTP)
+        _ = _container
+        try projectStore.addProject(alias: "API", swaggerURL: "https://api.com/docs")
+        let project = projectStore.projects[0]
+        project.specAuthType = "login"
+        project.specAuthValue1 = "https://api.com/login"
+        project.specAuthValue2 = "user"
+        project.specAuthValue3 = "pass"
+
+        let headers = try await opStore.buildSpecAuthHeaders(for: project)
+        #expect(headers["Authorization"] == "Bearer jwt-xyz")
+    }
+
+    @Test("buildSpecAuthHeaders — login 응답에 토큰 없으면 Set-Cookie 폴백")
+    func specAuthLoginCookieFallback() async throws {
+        let mockHTTP = MockHTTPClient()
+        await mockHTTP.setExecuteResult(.success(
+            HTTPResponse(statusCode: 200,
+                         headers: ["Set-Cookie": "session=abc; Path=/; HttpOnly"],
+                         body: Data("{}".utf8), durationMs: 5)
+        ))
+        let (opStore, projectStore, _container) = try makeStore(httpClient: mockHTTP)
+        _ = _container
+        try projectStore.addProject(alias: "API", swaggerURL: "https://api.com/docs")
+        let project = projectStore.projects[0]
+        project.specAuthType = "login"
+        project.specAuthValue1 = "https://api.com/login"
+        project.specAuthValue2 = "user"
+        project.specAuthValue3 = "pass"
+
+        let headers = try await opStore.buildSpecAuthHeaders(for: project)
+        #expect(headers["Cookie"] == "session=abc")
+    }
 }
 
 // swiftlint:enable file_length type_body_length

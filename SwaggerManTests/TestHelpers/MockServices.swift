@@ -8,9 +8,20 @@ actor MockHTTPClient: HTTPClientProtocol {
     var executeResult: Result<HTTPResponse, Error>?
     var urlBasedResults: [String: Result<HTTPResponse, Error>] = [:]
     var lastDisableTLS: Bool = false
+    /// execute 응답 전 인위적 지연(취소 동작 테스트용). 취소되면 Task.sleep이 CancellationError를 던진다.
+    var delayNanoseconds: UInt64 = 0
 
     func setExecuteResult(_ result: Result<HTTPResponse, Error>) {
         executeResult = result
+    }
+
+    /// url별로 지정하지 않은 모든 GET 요청의 기본 결과를 설정한다.
+    func setGetResult(_ result: Result<HTTPResponse, Error>) {
+        getResult = result
+    }
+
+    func setDelay(_ nanoseconds: UInt64) {
+        delayNanoseconds = nanoseconds
     }
 
     func setURLResult(for urlString: String, _ result: Result<HTTPResponse, Error>) {
@@ -27,6 +38,9 @@ actor MockHTTPClient: HTTPClientProtocol {
 
     func execute(_: HTTPRequest, disableTLS: Bool = false) async throws -> HTTPResponse {
         lastDisableTLS = disableTLS
+        if delayNanoseconds > 0 {
+            try await Task.sleep(nanoseconds: delayNanoseconds)
+        }
         if let executeResult { return try executeResult.get() }
         return try getResult.get()
     }

@@ -58,6 +58,47 @@ struct OperationStoreTests {
         #expect(storeCount == 1)
     }
 
+    @Test("reloadSpec — 캐시를 무효화하고 강제로 다시 가져옴")
+    func reloadSpecForcesRefetch() async throws {
+        let mockCache = MockSpecCache()
+        let (opStore, projectStore, _container) = try makeStore(cache: mockCache)
+        _ = _container
+
+        try projectStore.addProject(alias: "API", swaggerURL: "https://api.com/docs")
+        let project = projectStore.projects[0]
+
+        // 최초 로드 → 네트워크에서 가져와 캐시에 저장 (store 1회)
+        try await opStore.loadSpec(for: project)
+        let afterFirst = await mockCache.storeCallCount
+        #expect(afterFirst == 1)
+
+        // 리로드 → 캐시 무효화 후 재요청 → 캐시 미스로 다시 저장 (store 2회)
+        // (무효화가 없었다면 캐시 히트라 store는 1회로 유지됨 → cacheHitSkipsNetwork 참고)
+        try await opStore.reloadSpec(for: project)
+        #expect(opStore.currentSpec?.info.title == "Mock")
+        let afterReload = await mockCache.storeCallCount
+        #expect(afterReload == 2)
+    }
+
+    @Test("saveFilterState — selectedTag가 nil이어도 크래시하지 않음 (plist 유효성)")
+    func filterStateWithNilTagDoesNotCrash() async throws {
+        let (opStore, projectStore, _container) = try makeStore()
+        _ = _container
+
+        try projectStore.addProject(alias: "API", swaggerURL: "https://api.com/docs")
+        let project = projectStore.projects[0]
+        try await opStore.loadSpec(for: project) // currentProject 설정 → 필터 저장 키 유효
+
+        opStore.selectedTag = nil
+        // 아래 변경들이 saveFilterState를 트리거. nil tag를 NSNull로 저장하면 기존엔 크래시했음.
+        opStore.searchText = "users"
+        opStore.selectedMethods = [.get]
+        opStore.selectedTag = "Users"
+        opStore.selectedTag = nil
+
+        #expect(opStore.searchText == "users")
+    }
+
     @Test("selectedMethods 필터 - POST는 제외됨")
     func filtersByMethod() async throws {
         let (opStore, projectStore, _container) = try makeStore()

@@ -55,6 +55,21 @@ struct TopBar: View {
                 }
                 .menuStyle(.borderedButton)
                 .help("활성 환경 선택")
+
+                // Spec 강제 새로고침 (캐시 무시하고 OpenAPI URL 재요청)
+                Button {
+                    Task { try? await operationStore.reloadSpec(for: project) }
+                } label: {
+                    if operationStore.isLoading {
+                        ProgressView().controlSize(.small)
+                    } else {
+                        Image(systemName: "arrow.clockwise")
+                    }
+                }
+                .buttonStyle(.bordered)
+                .controlSize(.small)
+                .disabled(operationStore.isLoading)
+                .help("OpenAPI 명세 새로고침 (캐시 무시하고 다시 불러오기)")
             }
 
             // Authorize button (only when spec has security schemes)

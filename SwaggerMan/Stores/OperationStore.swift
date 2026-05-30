@@ -111,9 +111,11 @@ final class OperationStore {
         currentProject = project
         specDisableTLS = project.disableTLSVerification
         loadError = nil
+        log.info("spec 로딩 시작: \(project.alias) — \(project.swaggerURL)")
 
         guard let url = URL(string: project.swaggerURL) else {
             let err = SwaggerManError.parsing(.invalidJSON("잘못된 URL: \(project.swaggerURL)"))
+            log.error("spec 로딩 실패 — 잘못된 URL: \(project.swaggerURL)")
             loadError = err; throw err
         }
 
@@ -140,8 +142,18 @@ final class OperationStore {
             restoreFilterState()
             log.info("Spec loaded: \(spec.info.title) (\(spec.rawOperationCount) ops)")
         } catch {
+            log.error("spec 로딩 실패: \(project.alias) — \(error.localizedDescription)")
             loadError = error; throw error
         }
+    }
+
+    /// 캐시를 무효화하고 OpenAPI 명세를 URL에서 강제로 다시 가져온다.
+    /// (일반 `loadSpec`은 캐시를 우선 사용하므로, 명시적 새로고침에는 이 메서드를 쓴다.)
+    func reloadSpec(for project: Project) async throws {
+        log.info("spec 강제 리로드: \(project.alias) — \(project.swaggerURL)")
+        await cache.invalidate(for: project.swaggerURL)
+        currentSpec = nil
+        try await loadSpec(for: project)
     }
 
     private func backgroundRefresh(url: URL, urlString: String, project: Project) async {
@@ -280,6 +292,9 @@ final class OperationStore {
             for candidate in candidates {
                 group.addTask { await self.probeSpecURL(candidate) }
             }
+            // 일부 후보가 401이어도 다른 후보가 성공할 수 있으므로 .found를 우선한다.
+            // (Springdoc 그룹 구성 등에서 /openapi.json은 401, /v3/api-docs는 200인 경우가 흔함)
+            var sawUnauthorized = false
             for try await result in group {
                 switch result {
                 case let .found(spec):
@@ -287,11 +302,15 @@ final class OperationStore {
                     log.info("Spec discovered (parallel): \(spec.info.title)")
                     return spec
                 case .unauthorized:
-                    group.cancelAll()
-                    throw SwaggerManError.network(.unauthorizedSwagger)
+                    sawUnauthorized = true
+                    continue
                 case .miss:
                     continue
                 }
+            }
+            if sawUnauthorized {
+                log.info("디스커버리 실패 — 유효한 spec 없음(일부 후보 401)")
+                throw SwaggerManError.network(.unauthorizedSwagger)
             }
             throw SwaggerManError.parsing(.invalidJSON(
                 "HTML 페이지를 받았습니다. JSON spec URL을 직접 입력하세요.\n예: /v3/api-docs, /openapi.json, /api/schema/"
@@ -347,12 +366,15 @@ private extension OperationStore {
 
     func saveFilterState() {
         guard let key = filterKey() else { return }
-        let methods = selectedMethods.map(\.rawValue)
-        let state: [String: Any] = [
+        // selectedTag가 nil일 때 `as Any`로 넣으면 NSNull이 되어 UserDefaults가
+        // NSInvalidArgumentException(비-plist 객체)으로 크래시한다. nil이면 키 자체를 생략한다.
+        var state: [String: Any] = [
             "searchText": searchText,
-            "methods": methods,
-            "tag": selectedTag as Any
+            "methods": selectedMethods.map(\.rawValue)
         ]
+        if let selectedTag {
+            state["tag"] = selectedTag
+        }
         UserDefaults.standard.set(state, forKey: key)
     }
 
