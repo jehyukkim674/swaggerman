@@ -60,6 +60,167 @@ body {
   font-size: 12px;
   max-width: 200px;
 }
+.zoom-controls {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: auto;
+}
+.tag-select {
+  margin: 0 8px 8px;
+  background: var(--bg);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 4px 8px;
+  font-size: 11px;
+}
+.btn.send.cancel {
+  background: #f85149;
+  border-color: #f85149;
+  color: #fff;
+}
+.env-bar {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+.env-select {
+  background: var(--bg);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 4px 6px;
+  font-size: 11px;
+  max-width: 130px;
+}
+
+/* Response tabs (Docs/Response) */
+.resp-tabs {
+  display: flex;
+  gap: 4px;
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-2);
+}
+.resp-tabs button {
+  background: transparent;
+  border: none;
+  color: var(--muted);
+  padding: 4px 12px;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 12px;
+}
+.resp-tabs button.active {
+  background: var(--bg-3);
+  color: var(--text);
+  font-weight: 600;
+}
+
+/* Docs pane */
+.docs-pane {
+  overflow: auto;
+  padding: 12px;
+  flex: 1;
+}
+.docs-overview {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.docs-path {
+  font-family: ui-monospace, monospace;
+}
+.docs-desc {
+  color: var(--muted);
+  font-size: 12px;
+  white-space: pre-wrap;
+}
+.docs-section {
+  margin-top: 14px;
+}
+.docs-section h4 {
+  margin: 0 0 6px;
+  color: var(--muted);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.docs-param {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  padding: 2px 0;
+  font-family: ui-monospace, monospace;
+  font-size: 12px;
+}
+.param-name {
+  min-width: 120px;
+}
+.param-loc {
+  font-size: 9px;
+  background: var(--bg-3);
+  color: var(--muted);
+  padding: 1px 4px;
+  border-radius: 3px;
+}
+.schema-type {
+  color: #79c0ff;
+  font-family: ui-monospace, monospace;
+  font-size: 12px;
+}
+.req-badge {
+  font-size: 9px;
+  color: #d29922;
+  background: #d2992220;
+  padding: 1px 4px;
+  border-radius: 3px;
+}
+.docs-content-type {
+  color: var(--muted);
+  font-family: ui-monospace, monospace;
+  font-size: 11px;
+  margin-bottom: 4px;
+}
+.docs-response {
+  margin-bottom: 8px;
+}
+.docs-response-head {
+  display: flex;
+  gap: 8px;
+  font-family: ui-monospace, monospace;
+}
+.docs-response-schema,
+.schema-children {
+  margin-left: 10px;
+  border-left: 1px solid var(--border);
+  padding-left: 8px;
+}
+.schema-node {
+  margin: 2px 0;
+}
+.schema-toggle {
+  background: transparent;
+  border: none;
+  color: var(--muted);
+  cursor: pointer;
+  font-family: ui-monospace, monospace;
+  font-size: 12px;
+  padding: 0;
+}
+.schema-prop {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+  padding: 1px 0;
+  font-family: ui-monospace, monospace;
+  font-size: 12px;
+}
+.schema-key {
+  color: var(--text);
+}
 
 input,
 textarea {

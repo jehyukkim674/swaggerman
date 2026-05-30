@@ -9,9 +9,18 @@ interface Props {
   sending: boolean;
   onChange: (inputs: RequestInputs) => void;
   onSend: () => void;
+  onCancel: () => void;
 }
 
-export function RequestEditor({ operation, inputs, baseURL, sending, onChange, onSend }: Props) {
+export function RequestEditor({
+  operation,
+  inputs,
+  baseURL,
+  sending,
+  onChange,
+  onSend,
+  onCancel,
+}: Props) {
   if (!operation || !inputs) {
     return (
       <main className="request-pane">
@@ -47,9 +56,15 @@ export function RequestEditor({ operation, inputs, baseURL, sending, onChange, o
           {operation.method}
         </span>
         <span className="req-path">{operation.path}</span>
-        <button className="btn primary send" onClick={onSend} disabled={sending}>
-          {sending ? "전송 중…" : "Send"}
-        </button>
+        {sending ? (
+          <button className="btn send cancel" onClick={onCancel} title="요청 취소">
+            ✕ 취소
+          </button>
+        ) : (
+          <button className="btn primary send" onClick={onSend}>
+            Send
+          </button>
+        )}
       </div>
 
       <div className="url-preview" title={buildRequestUrl(baseURL, operation, inputs)}>

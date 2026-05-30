@@ -1,5 +1,6 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels";
+import { getCurrentWebview } from "@tauri-apps/api/webview";
 import "./App.css";
 import { loadSpec as loadSpecFromUrl } from "./core/spec-loader";
 import { executeRequest } from "./core/http-client";
@@ -41,6 +42,13 @@ export default function App() {
   const [authValues, setAuthValues] = useState<Record<string, string>>({});
   const [favorites, setFavorites] = useState<string[]>([]);
   const [history, setHistory] = useState<HistoryItem[]>([]);
+  const [responseTab, setResponseTab] = useState<"docs" | "response">("docs");
+
+  // 환경(여러 baseURL) — 프로젝트별 저장
+  const [envs, setEnvs] = useState<{ name: string; baseURL: string }[]>([]);
+  useEffect(() => {
+    if (activeSpecUrl) saveJSON(`swaggerman.envs.${activeSpecUrl}`, envs);
+  }, [envs, activeSpecUrl]);
 
   // 프로젝트(spec URL) 목록 — 전역 저장
   const [projects, setProjects] = useState<Project[]>(() =>
@@ -49,6 +57,35 @@ export default function App() {
   useEffect(() => {
     saveJSON("swaggerman.projects", projects);
   }, [projects]);
+
+  // 전역 줌 (Cmd/Ctrl +/-/0)
+  const [zoom, setZoom] = useState<number>(() => loadJSON("swaggerman.zoom", 1));
+  useEffect(() => {
+    saveJSON("swaggerman.zoom", zoom);
+    getCurrentWebview()
+      .setZoom(zoom)
+      .catch(() => {});
+  }, [zoom]);
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (!(e.metaKey || e.ctrlKey)) return;
+      if (e.key === "=" || e.key === "+") {
+        e.preventDefault();
+        setZoom((z) => Math.min(2, Math.round((z + 0.1) * 10) / 10));
+      } else if (e.key === "-") {
+        e.preventDefault();
+        setZoom((z) => Math.max(0.6, Math.round((z - 0.1) * 10) / 10));
+      } else if (e.key === "0") {
+        e.preventDefault();
+        setZoom(1);
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
+
+  // 요청 취소(소프트): 진행 중 요청 id가 바뀌면 결과를 무시한다.
+  const sendIdRef = useRef(0);
 
   // 영속화: 스펙별 키로 저장
   useEffect(() => {
@@ -79,6 +116,7 @@ export default function App() {
       setFavorites(loadJSON(`swaggerman.fav.${targetUrl}`, [] as string[]));
       setHistory(loadJSON(`swaggerman.hist.${targetUrl}`, [] as HistoryItem[]));
       setAuthValues(loadJSON(`swaggerman.auth.${targetUrl}`, {} as Record<string, string>));
+      setEnvs(loadJSON(`swaggerman.envs.${targetUrl}`, [] as { name: string; baseURL: string }[]));
       setSelected(null);
       setInputs(null);
       setResponse(null);
@@ -102,9 +140,11 @@ export default function App() {
     setInputs(defaultInputs(op));
     setResponse(null);
     setSendError(null);
+    setResponseTab("docs");
   }
 
   async function sendWith(op: ParsedOperation, ins: RequestInputs) {
+    const myId = ++sendIdRef.current;
     setSending(true);
     setSendError(null);
     try {
@@ -112,7 +152,9 @@ export default function App() {
       const request = buildRequest(baseURL, op, ins, securityHeaders);
       setLastRequest(request);
       const res = await executeRequest(request);
+      if (sendIdRef.current !== myId) return; // 취소됨
       setResponse(res);
+      setResponseTab("response");
       const item: HistoryItem = {
         id: newId(),
         opId: op.id,
@@ -129,15 +171,21 @@ export default function App() {
       };
       setHistory((prev) => [item, ...prev].slice(0, 200));
     } catch (e) {
+      if (sendIdRef.current !== myId) return; // 취소됨
       setSendError(e instanceof Error ? e.message : String(e));
       setResponse(null);
     } finally {
-      setSending(false);
+      if (sendIdRef.current === myId) setSending(false);
     }
   }
 
   function send() {
     if (selected && inputs) sendWith(selected, inputs);
+  }
+
+  function cancelSend() {
+    sendIdRef.current += 1;
+    setSending(false);
   }
 
   function toggleFavorite(opId: string) {
@@ -160,6 +208,7 @@ export default function App() {
       size: item.size,
     });
     setSendError(null);
+    setResponseTab("response");
   }
 
   function replayHistory(item: HistoryItem) {
@@ -215,6 +264,14 @@ export default function App() {
 
       {spec && (
         <div className="config-bar">
+          <button
+            className="btn small"
+            title="명세 새로고침(다시 불러오기)"
+            onClick={() => loadSpec(activeSpecUrl || specUrl)}
+            disabled={loading}
+          >
+            ↻
+          </button>
           <label className="config-field">
             <span className="config-label">Base URL</span>
             <input
@@ -225,7 +282,50 @@ export default function App() {
               spellCheck={false}
             />
           </label>
+          <div className="env-bar">
+            <select
+              className="env-select"
+              value={envs.find((e) => e.baseURL === baseURL)?.name ?? ""}
+              onChange={(e) => {
+                const env = envs.find((x) => x.name === e.target.value);
+                if (env) setBaseURL(env.baseURL);
+              }}
+              title="환경(Base URL) 전환"
+            >
+              <option value="">사용자 지정</option>
+              {envs.map((env) => (
+                <option key={env.name} value={env.name}>
+                  {env.name}
+                </option>
+              ))}
+            </select>
+            <button
+              className="btn small"
+              title="현재 Base URL을 환경으로 저장"
+              onClick={() => {
+                const name = prompt("환경 이름:", `환경 ${envs.length + 1}`);
+                if (name) setEnvs((prev) => [...prev.filter((e) => e.name !== name), { name, baseURL }]);
+              }}
+            >
+              ＋환경
+            </button>
+          </div>
           <AuthorizePanel schemes={spec.securitySchemes} values={authValues} onChange={setAuthValues} />
+          <div className="zoom-controls">
+            <button
+              className="btn small"
+              onClick={() => setZoom((z) => Math.max(0.6, Math.round((z - 0.1) * 10) / 10))}
+            >
+              −
+            </button>
+            <span className="muted">{Math.round(zoom * 100)}%</span>
+            <button
+              className="btn small"
+              onClick={() => setZoom((z) => Math.min(2, Math.round((z + 0.1) * 10) / 10))}
+            >
+              +
+            </button>
+          </div>
         </div>
       )}
 
@@ -255,11 +355,20 @@ export default function App() {
             sending={sending}
             onChange={setInputs}
             onSend={send}
+            onCancel={cancelSend}
           />
         </Panel>
         <PanelResizeHandle className="resize-handle" />
         <Panel defaultSize={38} minSize={20} className="pane">
-          <ResponseView response={response} request={lastRequest} sending={sending} error={sendError} />
+          <ResponseView
+            response={response}
+            request={lastRequest}
+            operation={selected}
+            sending={sending}
+            error={sendError}
+            tab={responseTab}
+            onTab={setResponseTab}
+          />
         </Panel>
       </PanelGroup>
     </div>

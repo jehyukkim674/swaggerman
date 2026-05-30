@@ -25,21 +25,30 @@ export function Sidebar(props: Props) {
   const [tab, setTab] = useState<"api" | "history">("api");
   const [search, setSearch] = useState("");
   const [methods, setMethods] = useState<Set<HTTPMethod>>(new Set());
+  const [selectedTag, setSelectedTag] = useState<string>("");
 
   const favSet = useMemo(() => new Set(props.favorites), [props.favorites]);
+
+  const availableTags = useMemo(() => {
+    if (!spec) return [];
+    const seen = new Set<string>();
+    for (const op of spec.operations) seen.add(op.tags[0] ?? "default");
+    return [...seen].sort();
+  }, [spec]);
 
   const filtered = useMemo(() => {
     if (!spec) return [];
     const term = search.trim().toLowerCase();
     return spec.operations.filter((op) => {
       const matchMethod = methods.size === 0 || methods.has(op.method);
+      const matchTag = !selectedTag || (op.tags[0] ?? "default") === selectedTag;
       const matchSearch =
         !term ||
         op.path.toLowerCase().includes(term) ||
         (op.summary ?? "").toLowerCase().includes(term);
-      return matchMethod && matchSearch;
+      return matchMethod && matchTag && matchSearch;
     });
-  }, [spec, search, methods]);
+  }, [spec, search, methods, selectedTag]);
 
   const favoriteOps = useMemo(
     () => filtered.filter((op) => favSet.has(op.id)),
@@ -129,6 +138,20 @@ export function Sidebar(props: Props) {
               </button>
             ))}
           </div>
+          {availableTags.length > 0 && (
+            <select
+              className="tag-select"
+              value={selectedTag}
+              onChange={(e) => setSelectedTag(e.target.value)}
+            >
+              <option value="">전체 태그 ({availableTags.length})</option>
+              {availableTags.map((t) => (
+                <option key={t} value={t}>
+                  {t}
+                </option>
+              ))}
+            </select>
+          )}
 
           <div className="op-list">
             {loading && <div className="hint">로딩 중…</div>}
