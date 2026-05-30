@@ -2,8 +2,31 @@
 
 크로스플랫폼(Windows·macOS·Linux) OpenAPI 탐색기. Tauri 2 + React + TypeScript.
 
-릴리스 빌드(설치본)는 `desktop-v*` 태그 푸시 시 GitHub Actions가 생성하며,
+릴리스 빌드(설치본)는 `SwaggerMan-v*` 태그 푸시 시 GitHub Actions가 생성하며,
 **Releases** 페이지에서 OS별 설치본을 내려받을 수 있습니다.
+
+## v0.2.0
+
+API 클라이언트 사용성 강화 + 자동 업데이트.
+
+### 변수 / 체이닝 / 테스트
+- 변수 치환: `{{이름}}` 을 URL·헤더·body·path/query에서 환경 변수로 치환
+- 환경(Environment)에 변수 목록 추가/편집
+- 요청 체이닝: 응답에서 JSONPath로 값 추출 → 변수에 저장 → 다음 요청에 사용
+- 어서션: status·JSONPath 값(=/포함/존재)으로 응답 검증, 통과/실패 표시
+
+### 인증
+- Authorize를 모달(Swagger UI 스타일)로 전환 — 스킴별 Authorize/Logout, 일괄 저장
+- OAuth2 자동 토큰 발급(client_credentials/password) → 선택 스킴에 토큰 자동 적용
+
+### 배포
+- 자동 업데이트(Tauri updater): 시작 시 새 버전 확인 → 인앱 설치/재시작
+  - CI 빌드에 `TAURI_SIGNING_PRIVATE_KEY` / `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` 시크릿 필요
+  - 업데이트 매니페스트(`latest.json`)는 릴리스 자산으로 게시
+- 코드 서명 훅: `APPLE_*`(macOS 공증)/Windows 서명 시크릿이 있으면 자동 적용
+
+### 품질
+- 단위 테스트 73개(variables 17, oauth2 9 등), ESLint + 타입체크 무결
 
 ## v0.1.0
 

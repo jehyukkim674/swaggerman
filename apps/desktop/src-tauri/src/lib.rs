@@ -83,8 +83,17 @@ async fn http_request(args: HttpRequestArgs) -> Result<HttpResult, String> {
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    tauri::Builder::default()
-        .plugin(tauri_plugin_opener::init())
+    let mut builder = tauri::Builder::default().plugin(tauri_plugin_opener::init());
+
+    // 자동 업데이트(데스크톱 전용): 릴리스의 서명된 업데이터 아티팩트를 확인/적용.
+    #[cfg(desktop)]
+    {
+        builder = builder
+            .plugin(tauri_plugin_updater::Builder::new().build())
+            .plugin(tauri_plugin_process::init());
+    }
+
+    builder
         .invoke_handler(tauri::generate_handler![http_request])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

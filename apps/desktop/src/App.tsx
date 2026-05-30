@@ -20,6 +20,7 @@ import {
   type ExtractRule,
 } from "./core/variables";
 import { emptyOAuth2Config, fetchOAuth2Token, type OAuth2Config } from "./core/oauth2";
+import { checkForUpdate, type AvailableUpdate } from "./core/updater";
 import { loadJSON, saveJSON } from "./core/storage";
 import { newId, type HistoryItem } from "./core/history";
 import type { HTTPRequest, HTTPResponse, ParsedOperation, ParsedSpec } from "./core/types";
@@ -205,6 +206,13 @@ export default function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // 시작 시 업데이트 확인(가능한 환경에서만)
+  const [update, setUpdate] = useState<AvailableUpdate | null>(null);
+  const [updating, setUpdating] = useState(false);
+  useEffect(() => {
+    checkForUpdate().then(setUpdate);
+  }, []);
+
   async function loadSpec(targetUrl: string = specUrl) {
     setSpecUrl(targetUrl);
     setLoading(true);
@@ -374,6 +382,29 @@ export default function App() {
 
   return (
     <div className="app">
+      {update && (
+        <div className="update-banner">
+          <span>🚀 새 버전 v{update.version} 사용 가능</span>
+          <button
+            className="btn small primary"
+            disabled={updating}
+            onClick={async () => {
+              setUpdating(true);
+              try {
+                await update.install();
+              } catch (e) {
+                setUpdating(false);
+                alert(`업데이트 실패: ${e instanceof Error ? e.message : String(e)}`);
+              }
+            }}
+          >
+            {updating ? "설치 중…" : "지금 설치 후 재시작"}
+          </button>
+          <button className="btn small" onClick={() => setUpdate(null)}>
+            나중에
+          </button>
+        </div>
+      )}
       <header className="topbar">
         <span className="brand">{title}</span>
         {projects.length > 0 && (
