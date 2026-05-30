@@ -1,3 +1,4 @@
+// swiftlint:disable file_length
 import SwiftUI
 
 struct SidebarView: View {
@@ -19,7 +20,36 @@ struct SidebarView: View {
 
     let onRefresh: () -> Void
 
+    @State private var tab: SidebarTab = .api
+
+    enum SidebarTab: Hashable { case api, history }
+
     var body: some View {
+        VStack(spacing: 0) {
+            // API / 히스토리 탭 스위처
+            Picker("", selection: $tab) {
+                Text("API").tag(SidebarTab.api)
+                Text(historyStore.items.isEmpty ? "히스토리" : "히스토리 \(historyStore.items.count)")
+                    .tag(SidebarTab.history)
+            }
+            .pickerStyle(.segmented)
+            .labelsHidden()
+            .padding(.horizontal, 8)
+            .padding(.vertical, 6)
+
+            Divider()
+
+            if tab == .api {
+                apiTab
+            } else {
+                historyTab
+            }
+        }
+    }
+
+    // MARK: - API 탭
+
+    private var apiTab: some View {
         VStack(spacing: 0) {
             SearchBarView(text: $operationStore.searchText)
 
@@ -39,24 +69,7 @@ struct SidebarView: View {
                     ProgressView("로딩 중...")
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                 } else if let err = operationStore.loadError {
-                    VStack(spacing: 12) {
-                        Image(systemName: "exclamationmark.triangle")
-                            .font(.title2)
-                            .foregroundStyle(.orange)
-                        Text(err.localizedDescription)
-                            .font(.caption)
-                            .multilineTextAlignment(.center)
-                        Button {
-                            onRefresh()
-                        } label: {
-                            Label("다시 시도", systemImage: "arrow.clockwise")
-                                .font(.caption.weight(.medium))
-                        }
-                        .buttonStyle(.bordered)
-                        .controlSize(.small)
-                    }
-                    .padding()
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    loadErrorView(err)
                 } else if operationStore.operationsByTag.isEmpty {
                     ContentUnavailableView(
                         "API 없음",
@@ -65,87 +78,139 @@ struct SidebarView: View {
                     )
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                 } else {
+                    operationsList
+                }
+            }
+        }
+    }
+
+    private func loadErrorView(_ err: Error) -> some View {
+        VStack(spacing: 12) {
+            Image(systemName: "exclamationmark.triangle")
+                .font(.title2)
+                .foregroundStyle(.orange)
+            Text(err.localizedDescription)
+                .font(.caption)
+                .multilineTextAlignment(.center)
+            Button {
+                onRefresh()
+            } label: {
+                Label("다시 시도", systemImage: "arrow.clockwise")
+                    .font(.caption.weight(.medium))
+            }
+            .buttonStyle(.bordered)
+            .controlSize(.small)
+        }
+        .padding()
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    private var operationsList: some View {
+        List {
+            // ── Favorites section (only if non-empty) ──
+            if !favoriteStore.favorites.isEmpty {
+                Section {
+                    ForEach(favoriteStore.favorites) { fav in
+                        if let op = operationStore.operations.first(where: {
+                            $0.method.rawValue == fav.method && $0.path == fav.path
+                        }) {
+                            operationRow(op, isFavorite: true)
+                                .contextMenu {
+                                    Button("즐겨찾기 제거", role: .destructive) { onToggleFavorite(op) }
+                                }
+                        }
+                    }
+                    .onMove { source, dest in favoriteStore.move(from: source, to: dest) }
+                } header: {
+                    Label("즐겨찾기", systemImage: "star.fill")
+                        .foregroundStyle(.yellow)
+                        .font(.caption.weight(.semibold))
+                }
+            }
+
+            // ── Operations section ──
+            ForEach(operationStore.operationsByTag, id: \.tag) { group in
+                Section(group.tag) {
+                    ForEach(group.operations) { op in
+                        operationRow(
+                            op,
+                            isFavorite: favoriteStore.isFavorite(method: op.method.rawValue, path: op.path)
+                        )
+                        .contextMenu {
+                            Button(
+                                favoriteStore.isFavorite(method: op.method.rawValue, path: op.path)
+                                    ? "즐겨찾기 제거" : "즐겨찾기 추가",
+                                systemImage: "star"
+                            ) { onToggleFavorite(op) }
+                        }
+                    }
+                }
+            }
+        }
+        .listStyle(.plain)
+        .scrollContentBackground(.hidden)
+    }
+
+    /// 행 전체는 탭으로 선택, 별표 버튼은 독립적으로 동작(중첩 Button 금지).
+    private func operationRow(_ op: ParsedOperation, isFavorite: Bool) -> some View {
+        OperationRowView(
+            operation: op,
+            isSelected: op.id == selectedOperationID,
+            isFavorite: isFavorite,
+            onToggleFavorite: { onToggleFavorite(op) }
+        )
+        .contentShape(Rectangle())
+        .onTapGesture { onSelectOperation(op) }
+        .listRowInsets(EdgeInsets(top: 2, leading: 8, bottom: 2, trailing: 8))
+        .listRowBackground(Color.clear)
+    }
+
+    // MARK: - 히스토리 탭
+
+    private var historyTab: some View {
+        Group {
+            if historyStore.items.isEmpty {
+                ContentUnavailableView(
+                    "히스토리 없음",
+                    systemImage: "clock",
+                    description: Text("요청을 보내면 여기에 기록됩니다.")
+                )
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else {
+                VStack(spacing: 0) {
+                    HStack {
+                        Text("\(historyStore.items.count)개 요청")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                        Spacer()
+                        Button(role: .destructive) {
+                            onClearHistory()
+                        } label: {
+                            Label("전체 삭제", systemImage: "trash")
+                                .font(.caption)
+                        }
+                        .buttonStyle(.plain)
+                        .foregroundStyle(.red.opacity(0.85))
+                        .help("이 프로젝트의 히스토리를 모두 삭제합니다.")
+                    }
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 6)
+
+                    Divider()
+
                     List {
-                        // ── Favorites section (only if non-empty) ──
-                        if !favoriteStore.favorites.isEmpty {
-                            Section {
-                                ForEach(favoriteStore.favorites) { fav in
-                                    if let op = operationStore.operations.first(where: {
-                                        $0.method.rawValue == fav.method && $0.path == fav.path
-                                    }) {
-                                        Button { onSelectOperation(op) } label: {
-                                            OperationRowView(
-                                                operation: op,
-                                                isSelected: op.id == selectedOperationID,
-                                                isFavorite: true,
-                                                onToggleFavorite: { onToggleFavorite(op) }
-                                            )
-                                        }
-                                        .buttonStyle(.plain)
-                                        .listRowInsets(EdgeInsets(top: 2, leading: 8, bottom: 2, trailing: 8))
-                                        .listRowBackground(Color.clear)
-                                        .contextMenu {
-                                            Button("즐겨찾기 제거", role: .destructive) { onToggleFavorite(op) }
-                                        }
-                                    }
-                                }
-                                .onMove { source, dest in favoriteStore.move(from: source, to: dest) }
-                            } header: {
-                                Label("즐겨찾기", systemImage: "star.fill")
-                                    .foregroundStyle(.yellow)
-                                    .font(.caption.weight(.semibold))
-                            }
-                        }
-
-                        // ── Operations section ──
-                        ForEach(operationStore.operationsByTag, id: \.tag) { group in
-                            Section(group.tag) {
-                                ForEach(group.operations) { op in
-                                    Button { onSelectOperation(op) } label: {
-                                        OperationRowView(
-                                            operation: op,
-                                            isSelected: op.id == selectedOperationID,
-                                            isFavorite: favoriteStore.isFavorite(
-                                                method: op.method.rawValue,
-                                                path: op.path
-                                            ),
-                                            onToggleFavorite: { onToggleFavorite(op) }
-                                        )
-                                    }
-                                    .buttonStyle(.plain)
-                                    .listRowInsets(EdgeInsets(top: 2, leading: 8, bottom: 2, trailing: 8))
-                                    .listRowBackground(Color.clear)
-                                }
-                            }
-                        }
-
-                        // ── History section (only if non-empty) ──
-                        if !historyStore.items.isEmpty {
-                            Section {
-                                ForEach(historyStore.items.prefix(100)) { item in
-                                    HistoryRowView(
-                                        item: item,
-                                        onSelect: { onSelectHistory(item) },
-                                        onReplay: { onReplayHistory(item) }
-                                    )
-                                    .listRowInsets(EdgeInsets(top: 0, leading: 8, bottom: 0, trailing: 8))
-                                    .listRowBackground(Color.clear)
-                                    .contextMenu {
-                                        Button("삭제", role: .destructive) { onDeleteHistory(item) }
-                                        Button("히스토리 전체 삭제", role: .destructive) {
-                                            onClearHistory()
-                                        }
-                                    }
-                                }
-                            } header: {
-                                HStack {
-                                    Label("히스토리", systemImage: "clock")
-                                        .font(.caption.weight(.semibold))
-                                    Spacer()
-                                    Text("\(historyStore.items.count)")
-                                        .font(.caption2)
-                                        .foregroundStyle(.tertiary)
-                                }
+                        ForEach(historyStore.items.prefix(100)) { item in
+                            HistoryRowView(
+                                item: item,
+                                onSelect: { onSelectHistory(item) },
+                                onReplay: { onReplayHistory(item) },
+                                onDelete: { onDeleteHistory(item) }
+                            )
+                            .listRowInsets(EdgeInsets(top: 0, leading: 8, bottom: 0, trailing: 8))
+                            .listRowBackground(Color.clear)
+                            .contextMenu {
+                                Button("삭제", role: .destructive) { onDeleteHistory(item) }
+                                Button("히스토리 전체 삭제", role: .destructive) { onClearHistory() }
                             }
                         }
                     }
@@ -289,10 +354,19 @@ struct OperationRowView: View {
     var isFavorite: Bool = false
     var onToggleFavorite: (() -> Void)?
 
-    @State private var isHovered = false
-
     var body: some View {
         HStack(spacing: 6) {
+            // 즐겨찾기 별: 왼쪽 고정, 항상 표시 (호버해도 사라지지 않음)
+            if let onToggle = onToggleFavorite {
+                Button(action: onToggle) {
+                    Image(systemName: isFavorite ? "star.fill" : "star")
+                        .font(.system(size: 11))
+                        .foregroundStyle(isFavorite ? .yellow : Color.secondary.opacity(0.45))
+                }
+                .buttonStyle(.plain)
+                .help(isFavorite ? "즐겨찾기 제거" : "즐겨찾기 추가")
+            }
+
             HStack(spacing: 3) {
                 Image(systemName: operation.method.sfSymbol)
                     .font(.system(size: 9).bold())
@@ -315,16 +389,6 @@ struct OperationRowView: View {
             }
 
             Spacer()
-
-            if isHovered || isFavorite, let onToggle = onToggleFavorite {
-                Button(action: onToggle) {
-                    Image(systemName: isFavorite ? "star.fill" : "star")
-                        .font(.system(size: 11))
-                        .foregroundStyle(isFavorite ? .yellow : .secondary)
-                }
-                .buttonStyle(.plain)
-                .help(isFavorite ? "즐겨찾기 제거" : "즐겨찾기 추가")
-            }
         }
         .padding(.vertical, 4)
         .padding(.horizontal, 6)
@@ -342,6 +406,7 @@ struct OperationRowView: View {
                     lineWidth: 1
                 )
         )
-        .onHover { isHovered = $0 }
     }
 }
+
+// swiftlint:enable file_length
