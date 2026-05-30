@@ -66,10 +66,9 @@ jobs:
           # 자동 업데이트 서명(필수): 업데이터 아티팩트(.sig) + latest.json 생성
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
-          # 코드 서명(선택): 설정 시 macOS 공증 / Windows 서명에 사용
-          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
-          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
-          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
-          APPLE_ID: ${{ secrets.APPLE_ID }}
-          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
-          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          # 참고: Apple 코드서명/공증은 인증서가 없으면 env를 "설정하지 않아야" 한다.
+          # 빈 값(APPLE_SIGNING_IDENTITY="")을 넘기면 Tauri가 실제 codesign을 시도하다 실패하므로,
+          # 인증서를 보유하기 전까지는 ad-hoc 서명에 맡긴다(아래 변수는 의도적으로 미설정).
+          # 인증서 발급 후 활성화:
+          #   APPLE_CERTIFICATE / APPLE_CERTIFICATE_PASSWORD / APPLE_SIGNING_IDENTITY
+          #   APPLE_ID / APPLE_PASSWORD / APPLE_TEAM_ID
