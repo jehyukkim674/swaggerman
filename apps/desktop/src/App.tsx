@@ -18,7 +18,7 @@ import type { HTTPRequest, HTTPResponse, ParsedOperation, ParsedSpec } from "./c
 import { Sidebar } from "./components/Sidebar";
 import { RequestEditor } from "./components/RequestEditor";
 import { ResponseView } from "./components/ResponseView";
-import { AuthorizePanel } from "./components/AuthorizePanel";
+import { AuthorizeModal } from "./components/AuthorizeModal";
 import { EnvironmentsModal } from "./components/EnvironmentsModal";
 import { GlobalHeadersModal } from "./components/GlobalHeadersModal";
 
@@ -27,6 +27,17 @@ const DEFAULT_SPEC_URL = "http://localhost:8000/v3/api-docs";
 interface Project {
   url: string;
   title: string;
+}
+
+export interface EnvVar {
+  key: string;
+  value: string;
+}
+
+export interface Env {
+  name: string;
+  baseURL: string;
+  vars?: EnvVar[];
 }
 
 export default function App() {
@@ -54,16 +65,29 @@ export default function App() {
   // 현재 보고 있는 히스토리 항목(선택 시 표기). 직접 선택/전송하면 해제.
   const [selectedHistory, setSelectedHistory] = useState<HistoryItem | null>(null);
 
-  // 환경(여러 baseURL) — 프로젝트별 저장
-  const [envs, setEnvs] = useState<{ name: string; baseURL: string }[]>([]);
+  // 환경(여러 baseURL + 변수) — 프로젝트별 저장
+  const [envs, setEnvs] = useState<Env[]>([]);
   const [envModalOpen, setEnvModalOpen] = useState(false);
   useEffect(() => {
     if (activeSpecUrl) saveJSON(`swaggerman.envs.${activeSpecUrl}`, envs);
   }, [envs, activeSpecUrl]);
 
+  // 요청 체이닝으로 추출된 런타임 변수(응답에서 뽑은 값). 환경 변수보다 우선.
+  const [chainVars, setChainVars] = useState<Record<string, string>>({});
+
+  // 현재 적용 중인 변수 맵: 환경 변수 < 체인 변수
+  const activeVars = useMemo(() => {
+    const map: Record<string, string> = {};
+    const env = envs.find((e) => e.baseURL === baseURL);
+    for (const v of env?.vars ?? []) if (v.key) map[v.key] = v.value;
+    for (const [k, val] of Object.entries(chainVars)) map[k] = val;
+    return map;
+  }, [envs, baseURL, chainVars]);
+
   // 전역 헤더(모든 요청에 적용) — 프로젝트별 저장
   const [globalHeaders, setGlobalHeaders] = useState<RequestParam[]>([]);
   const [headerModalOpen, setHeaderModalOpen] = useState(false);
+  const [authModalOpen, setAuthModalOpen] = useState(false);
   useEffect(() => {
     if (activeSpecUrl) saveJSON(`swaggerman.headers.${activeSpecUrl}`, globalHeaders);
   }, [globalHeaders, activeSpecUrl]);
@@ -174,7 +198,8 @@ export default function App() {
       setFavorites(loadJSON(`swaggerman.fav.${targetUrl}`, [] as string[]));
       setHistory(loadJSON(`swaggerman.hist.${targetUrl}`, [] as HistoryItem[]));
       setAuthValues(loadJSON(`swaggerman.auth.${targetUrl}`, {} as Record<string, string>));
-      setEnvs(loadJSON(`swaggerman.envs.${targetUrl}`, [] as { name: string; baseURL: string }[]));
+      setEnvs(loadJSON(`swaggerman.envs.${targetUrl}`, [] as Env[]));
+      setChainVars({});
       setBodySamples(
         loadJSON(`swaggerman.samples.${targetUrl}`, {} as Record<string, { name: string; body: string }[]>),
       );
@@ -232,7 +257,7 @@ export default function App() {
     setSendError(null);
     try {
       const securityHeaders = computeSecurityHeaders(spec?.securitySchemes ?? [], authValues);
-      const request = buildRequest(baseURL, op, ins, securityHeaders, globalHeaders);
+      const request = buildRequest(baseURL, op, ins, securityHeaders, globalHeaders, activeVars);
       setLastRequest(request);
       const res = await executeRequest(request);
       if (sendIdRef.current !== myId) return; // 취소됨
@@ -405,7 +430,26 @@ export default function App() {
               )}
             </button>
           </div>
-          <AuthorizePanel schemes={spec.securitySchemes} values={authValues} onChange={setAuthValues} />
+          {spec.securitySchemes.length > 0 &&
+            (() => {
+              const activeCount = spec.securitySchemes.filter(
+                (s) => (authValues[s.name] ?? "").trim() !== "",
+              ).length;
+              return (
+                <button
+                  className="btn small authorize-btn"
+                  title="인증(보안 스킴) 토큰 설정"
+                  onClick={() => setAuthModalOpen(true)}
+                >
+                  {activeCount > 0 ? "🔓" : "🔒"} Authorize
+                  {activeCount > 0 && (
+                    <span className="count-badge">
+                      {activeCount}/{spec.securitySchemes.length}
+                    </span>
+                  )}
+                </button>
+              );
+            })()}
           <div className="zoom-controls">
             <button
               className="btn small"
@@ -449,6 +493,7 @@ export default function App() {
             inputs={inputs}
             baseURL={baseURL}
             globalHeaders={globalHeaders}
+            vars={activeVars}
             sending={sending}
             onChange={setInputs}
             onSend={send}
@@ -492,6 +537,14 @@ export default function App() {
           headers={globalHeaders}
           onChange={setGlobalHeaders}
           onClose={() => setHeaderModalOpen(false)}
+        />
+      )}
+      {authModalOpen && spec && (
+        <AuthorizeModal
+          schemes={spec.securitySchemes}
+          values={authValues}
+          onChange={setAuthValues}
+          onClose={() => setAuthModalOpen(false)}
         />
       )}
     </div>

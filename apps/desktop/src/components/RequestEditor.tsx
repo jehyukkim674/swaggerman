@@ -10,6 +10,7 @@ interface Props {
   inputs: RequestInputs | null;
   baseURL: string;
   globalHeaders: RequestParam[];
+  vars: Record<string, string>;
   sending: boolean;
   onChange: (inputs: RequestInputs) => void;
   onSend: () => void;
@@ -39,6 +40,7 @@ export function RequestEditor({
   inputs,
   baseURL,
   globalHeaders,
+  vars,
   sending,
   onChange,
   onSend,
@@ -97,8 +99,8 @@ export function RequestEditor({
         )}
       </div>
 
-      <div className="url-preview" title={buildRequestUrl(baseURL, operation, inputs, false)}>
-        {buildRequestUrl(baseURL, operation, inputs, false)}
+      <div className="url-preview" title={buildRequestUrl(baseURL, operation, inputs, false, vars)}>
+        {buildRequestUrl(baseURL, operation, inputs, false, vars)}
       </div>
 
       <div className="request-body-scroll">

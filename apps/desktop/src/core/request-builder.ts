@@ -1,4 +1,5 @@
 import type { HTTPMethod, HTTPRequest, ParsedOperation, ParsedSchema } from "./types";
+import { substituteVars } from "./variables";
 
 /** 스키마로부터 예시 JSON 값을 생성한다(요청 body 미리 채우기용). */
 export function schemaToExample(schema: ParsedSchema | undefined, depth = 0): unknown {
@@ -82,35 +83,38 @@ export function defaultBody(operation: ParsedOperation): string {
 
 /** baseURL + operation + 입력값으로 요청 URL을 계산.
  *  encode=false: 사람이 읽기 좋은 raw 문자열(미리보기용, 한글 그대로)
- *  encode=true(기본): 퍼센트 인코딩된 실제 요청 URL */
+ *  encode=true(기본): 퍼센트 인코딩된 실제 요청 URL
+ *  vars: `{{name}}` 변수 치환 맵(없으면 치환 안 함) */
 export function buildRequestUrl(
   baseURL: string,
   operation: ParsedOperation,
   inputs: RequestInputs,
   encode = true,
+  vars: Record<string, string> = {},
 ): string {
-  const base = baseURL.replace(/\/+$/, "");
+  const sub = (s: string) => substituteVars(s, vars);
+  const base = sub(baseURL).replace(/\/+$/, "");
 
   if (!encode) {
     let path = operation.path;
     for (const [key, value] of Object.entries(inputs.pathParams)) {
-      path = path.replace(`{${key}}`, value);
+      path = path.replace(`{${key}}`, sub(value));
     }
     const query = inputs.queryParams
       .filter((q) => q.enabled && q.key && q.value !== "")
-      .map((q) => `${q.key}=${q.value}`)
+      .map((q) => `${q.key}=${sub(q.value)}`)
       .join("&");
     return base + path + (query ? `?${query}` : "");
   }
 
   let path = operation.path;
   for (const [key, value] of Object.entries(inputs.pathParams)) {
-    path = path.replace(`{${key}}`, encodeURIComponent(value));
+    path = path.replace(`{${key}}`, encodeURIComponent(sub(value)));
   }
   try {
     const url = new URL(base + path);
     for (const q of inputs.queryParams) {
-      if (q.enabled && q.key && q.value !== "") url.searchParams.append(q.key, q.value);
+      if (q.enabled && q.key && q.value !== "") url.searchParams.append(q.key, sub(q.value));
     }
     return url.toString();
   } catch {
@@ -126,25 +130,27 @@ export function buildRequest(
   inputs: RequestInputs,
   securityHeaders: Record<string, string> = {},
   globalHeaders: RequestParam[] = [],
+  vars: Record<string, string> = {},
 ): HTTPRequest {
+  const sub = (s: string) => substituteVars(s, vars);
   const headers: Record<string, string> = {};
   // 전역 기본 헤더(모든 요청에 적용, 가장 낮은 우선순위)
   for (const h of globalHeaders) {
-    if (h.enabled && h.key && h.value !== "") headers[h.key] = h.value;
+    if (h.enabled && h.key && h.value !== "") headers[h.key] = sub(h.value);
   }
   // 요청별 헤더가 전역을 덮어씀
   for (const h of inputs.headers) {
-    if (h.enabled && h.key && h.value !== "") headers[h.key] = h.value;
+    if (h.enabled && h.key && h.value !== "") headers[h.key] = sub(h.value);
   }
   // 인증 헤더가 최우선(Authorize에서 설정한 값)
   for (const [key, value] of Object.entries(securityHeaders)) {
-    if (value) headers[key] = value;
+    if (value) headers[key] = sub(value);
   }
 
-  const body = inputs.body.trim();
+  const body = sub(inputs.body).trim();
   return {
     method: operation.method as HTTPMethod,
-    url: buildRequestUrl(baseURL, operation, inputs),
+    url: buildRequestUrl(baseURL, operation, inputs, true, vars),
     headers,
     body: body.length > 0 ? body : undefined,
   };

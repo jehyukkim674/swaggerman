@@ -117,6 +117,54 @@ describe("buildRequest", () => {
     });
     expect(req.body).toBeUndefined();
   });
+
+  it("변수({{...}})를 baseURL·헤더·body에서 치환", () => {
+    const operation = op({ method: "POST", path: "/x" });
+    const inputs = {
+      pathParams: {},
+      queryParams: [],
+      headers: [{ key: "Authorization", value: "Bearer {{token}}", enabled: true }],
+      body: '{"id":"{{uid}}"}',
+    };
+    const vars = { base: "https://prod.api", token: "T123", uid: "5" };
+    const req = buildRequest("{{base}}", operation, inputs, {}, [], vars);
+    expect(req.url).toBe("https://prod.api/x");
+    expect(req.headers.Authorization).toBe("Bearer T123");
+    expect(req.body).toBe('{"id":"5"}');
+  });
+
+  it("미정의 변수는 원문을 유지", () => {
+    const req = buildRequest(
+      "https://api.com",
+      op({ method: "GET", path: "/x" }),
+      { pathParams: {}, queryParams: [], headers: [{ key: "X-T", value: "{{nope}}", enabled: true }], body: "" },
+      {},
+      [],
+      {},
+    );
+    expect(req.headers["X-T"]).toBe("{{nope}}");
+  });
+});
+
+describe("buildRequestUrl 변수 치환", () => {
+  it("path/query 값의 변수를 치환", () => {
+    const operation = op({
+      method: "GET",
+      path: "/users/{id}",
+      parameters: [
+        { id: "1", name: "id", location: "path", required: true },
+        { id: "2", name: "q", location: "query", required: false },
+      ],
+    });
+    const inputs = {
+      pathParams: { id: "{{uid}}" },
+      queryParams: [{ key: "q", value: "{{kw}}", enabled: true }],
+      headers: [],
+      body: "",
+    };
+    const url = buildRequestUrl("https://api.com", operation, inputs, true, { uid: "9", kw: "hi" });
+    expect(url).toBe("https://api.com/users/9?q=hi");
+  });
 });
 
 describe("schemaToExample", () => {

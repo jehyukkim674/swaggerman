@@ -904,6 +904,7 @@ mark.hl.active {
   border-top: 1px solid var(--border);
   display: flex;
   justify-content: flex-end;
+  gap: 8px;
 }
 .env-item {
   display: flex;
@@ -1173,6 +1174,52 @@ mark.hl.active {
 }
 .auth-input {
   font-family: ui-monospace, monospace;
+}
+
+/* Authorize 모달 (Swagger UI 스타일) */
+.auth-modal {
+  width: 560px;
+}
+.auth-modal-row {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border);
+}
+.auth-modal-row:last-child {
+  border-bottom: none;
+}
+.auth-modal-meta {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+.auth-modal-meta .auth-name {
+  font-size: 13px;
+}
+.auth-modal-meta .auth-hint {
+  font-size: 11px;
+}
+.auth-applied {
+  margin-left: auto;
+  font-size: 10px;
+  color: var(--accent);
+  border: 1px solid var(--accent);
+  border-radius: 4px;
+  padding: 1px 6px;
+}
+.auth-modal-input {
+  display: flex;
+  gap: 8px;
+}
+.auth-modal-input .auth-input {
+  flex: 1;
+}
+.authorize-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
 }
 
 /* URL preview */
