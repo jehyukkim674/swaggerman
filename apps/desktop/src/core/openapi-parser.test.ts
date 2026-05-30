@@ -66,6 +66,34 @@ const SPEC = {
 describe("openapi-parser", () => {
   const spec = parseSpec(SPEC);
 
+  it("응답 example을 추출(media.example/examples)", () => {
+    const s = parseSpec({
+      openapi: "3.0.0",
+      info: { title: "T", version: "1" },
+      paths: {
+        "/a": {
+          get: {
+            responses: {
+              "200": {
+                description: "ok",
+                content: { "application/json": { example: { id: 1 } } },
+              },
+              "404": {
+                description: "nf",
+                content: {
+                  "application/json": { examples: { e1: { value: { error: "x" } } } },
+                },
+              },
+            },
+          },
+        },
+      },
+    });
+    const op = s.operations[0];
+    expect(op.responses.find((r) => r.statusCode === "200")?.example).toEqual({ id: 1 });
+    expect(op.responses.find((r) => r.statusCode === "404")?.example).toEqual({ error: "x" });
+  });
+
   it("info와 servers를 파싱", () => {
     expect(spec.info.title).toBe("Test API");
     expect(spec.info.version).toBe("1.2.3");

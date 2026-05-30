@@ -54,6 +54,7 @@ export interface ParsedResponse {
   statusCode: string; // "200", "404", "default"
   description?: string;
   schema?: ParsedSchema;
+  example?: unknown; // 스펙에 정의된 응답 example/examples (있으면 표시)
 }
 
 export interface ParsedOperation {

@@ -147,11 +147,23 @@ export function parseSpec(doc: AnyObj): ParsedSpec {
       const response = resolveRef(value as AnyObj);
       if (!response) continue;
       let schema: ParsedSchema | undefined;
+      let example: unknown;
       if (response.content && typeof response.content === "object") {
         const first = Object.values(response.content as AnyObj)[0] as AnyObj | undefined;
         schema = convertSchema(first?.schema);
+        // 응답 example: media.example > media.examples의 첫 value > 스키마 example
+        if (first?.example !== undefined) {
+          example = first.example;
+        } else if (first?.examples && typeof first.examples === "object") {
+          const firstEx = Object.values(first.examples as AnyObj)[0] as AnyObj | undefined;
+          if (firstEx && "value" in firstEx) example = firstEx.value;
+        }
+        if (example === undefined) {
+          const resolved = resolveRef(first?.schema);
+          if (resolved?.example !== undefined) example = resolved.example;
+        }
       }
-      result.push({ statusCode, description: response.description, schema });
+      result.push({ statusCode, description: response.description, schema, example });
     }
     return result.sort(
       (a, b) => (parseInt(a.statusCode, 10) || 999) - (parseInt(b.statusCode, 10) || 999),

@@ -1582,3 +1582,25 @@ mark.hl.active {
 .schema-issue-msg {
   color: var(--muted);
 }
+
+/* 예제 응답 (Docs) */
+.docs-example {
+  margin-top: 6px;
+}
+.docs-example summary {
+  cursor: pointer;
+  font-size: 11px;
+  color: var(--muted);
+}
+.docs-example-body {
+  margin: 4px 0 0;
+  padding: 8px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-family: ui-monospace, monospace;
+  font-size: 11px;
+  max-height: 240px;
+  overflow: auto;
+  white-space: pre-wrap;
+}

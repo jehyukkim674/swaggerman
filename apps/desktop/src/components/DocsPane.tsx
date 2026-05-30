@@ -53,6 +53,16 @@ export function DocsPane({ operation }: { operation: ParsedOperation }) {
                   <SchemaTree schema={r.schema} />
                 </div>
               )}
+              {r.example !== undefined && (
+                <details className="docs-example">
+                  <summary>예제 응답</summary>
+                  <pre className="docs-example-body">
+                    {typeof r.example === "string"
+                      ? r.example
+                      : JSON.stringify(r.example, null, 2)}
+                  </pre>
+                </details>
+              )}
             </div>
           ))}
         </section>
