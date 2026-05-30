@@ -1,12 +1,37 @@
 // 변수 치환 · 응답 값 추출(체이닝) · 어서션 로직.
 // 순수 함수만 모아 단위 테스트로 검증한다.
 
-/** `{{ name }}` 패턴을 vars 맵 값으로 치환한다. 미정의 변수는 원문 그대로 남긴다. */
+/** 동적 변수(`$`로 시작) 값을 계산한다. 미지원이면 null. (Postman 유사) */
+export function dynamicValue(name: string): string | null {
+  switch (name) {
+    case "$timestamp":
+      return String(Math.floor(Date.now() / 1000));
+    case "$isoTimestamp":
+      return new Date().toISOString();
+    case "$guid":
+    case "$randomUUID":
+      return typeof crypto !== "undefined" && crypto.randomUUID
+        ? crypto.randomUUID()
+        : `${Date.now()}-${Math.floor(Math.random() * 1e9)}`;
+    case "$randomInt":
+      return String(Math.floor(Math.random() * 1000));
+    default:
+      return null;
+  }
+}
+
+/** `{{ name }}` 패턴을 치환한다.
+ *  우선순위: vars 맵 → 동적 변수(`{{$...}}`) → 미정의면 원문 유지. */
 export function substituteVars(text: string, vars: Record<string, string>): string {
   if (!text) return text;
-  return text.replace(/\{\{\s*([\w.-]+)\s*\}\}/g, (match, name: string) =>
-    Object.prototype.hasOwnProperty.call(vars, name) ? vars[name] : match,
-  );
+  return text.replace(/\{\{\s*([\w.$-]+)\s*\}\}/g, (match, name: string) => {
+    if (Object.prototype.hasOwnProperty.call(vars, name)) return vars[name];
+    if (name.startsWith("$")) {
+      const dyn = dynamicValue(name);
+      if (dyn !== null) return dyn;
+    }
+    return match;
+  });
 }
 
 /** 텍스트에 등장하는 변수 이름 목록(중복 제거, 등장 순). */

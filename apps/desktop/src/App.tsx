@@ -29,6 +29,7 @@ import { Sidebar } from "./components/Sidebar";
 import { RequestEditor } from "./components/RequestEditor";
 import { ResponseView } from "./components/ResponseView";
 import { AuthorizeModal } from "./components/AuthorizeModal";
+import { CurlImportModal } from "./components/CurlImportModal";
 import { EnvironmentsModal } from "./components/EnvironmentsModal";
 import { GlobalHeadersModal } from "./components/GlobalHeadersModal";
 
@@ -109,6 +110,7 @@ export default function App() {
   const [globalHeaders, setGlobalHeaders] = useState<RequestParam[]>([]);
   const [headerModalOpen, setHeaderModalOpen] = useState(false);
   const [authModalOpen, setAuthModalOpen] = useState(false);
+  const [curlModalOpen, setCurlModalOpen] = useState(false);
 
   // OAuth2 토큰 발급 설정 — 프로젝트별 저장
   const [oauth2Config, setOauth2Config] = useState<OAuth2Config>(emptyOAuth2Config());
@@ -381,6 +383,36 @@ export default function App() {
     setSending(false);
   }
 
+  // cURL 가져오기: ad-hoc 오퍼레이션으로 요청 화면에 표시
+  function importCurl(op: ParsedOperation, ins: RequestInputs, importedBaseURL: string) {
+    stashCurrent();
+    setSelectedHistory(null);
+    setAssertResults([]);
+    setBaseURL(importedBaseURL);
+    setSelected(op);
+    setInputs(ins);
+    setResponse(null);
+    setLastRequest(null);
+    setSendError(null);
+    setResponseTab("docs");
+    log.info("curl", `import: ${op.method} ${importedBaseURL}${op.path}`);
+  }
+
+  // 최신 send를 ref로 보관(전역 단축키에서 stale closure 방지)
+  const sendRef = useRef(send);
+  sendRef.current = send;
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      // ⌘/Ctrl + Enter: 전송
+      if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
+        e.preventDefault();
+        if (!sending) sendRef.current();
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [sending]);
+
   function toggleFavorite(opId: string) {
     setFavorites((prev) =>
       prev.includes(opId) ? prev.filter((x) => x !== opId) : [...prev, opId],
@@ -471,6 +503,13 @@ export default function App() {
         />
         <button className="btn primary" onClick={() => loadSpec()} disabled={loading}>
           {loading ? "로딩…" : "Load"}
+        </button>
+        <button
+          className="btn"
+          title="cURL 명령을 붙여넣어 요청으로 가져오기"
+          onClick={() => setCurlModalOpen(true)}
+        >
+          cURL
         </button>
         {activeSpecUrl && projects.some((p) => p.url === activeSpecUrl) && (
           <button
@@ -657,6 +696,9 @@ export default function App() {
           onChange={setGlobalHeaders}
           onClose={() => setHeaderModalOpen(false)}
         />
+      )}
+      {curlModalOpen && (
+        <CurlImportModal onImport={importCurl} onClose={() => setCurlModalOpen(false)} />
       )}
       {authModalOpen && spec && (
         <AuthorizeModal

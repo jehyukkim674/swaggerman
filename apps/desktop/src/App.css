@@ -1378,3 +1378,14 @@ mark.hl.active {
   color: #ff7b72;
   font-size: 11px;
 }
+
+/* cURL 가져오기 모달 */
+.curl-modal {
+  width: 640px;
+}
+.curl-input {
+  width: 100%;
+  font-family: ui-monospace, monospace;
+  font-size: 12px;
+  resize: vertical;
+}

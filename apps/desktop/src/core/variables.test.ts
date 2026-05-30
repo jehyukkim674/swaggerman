@@ -6,6 +6,7 @@ import {
   extractByPath,
   applyExtractRules,
   runAssertions,
+  dynamicValue,
   type Assertion,
 } from "./variables";
 
@@ -31,6 +32,34 @@ describe("substituteVars", () => {
 
   it("값이 빈 문자열인 변수도 치환한다", () => {
     expect(substituteVars("x={{q}}", { q: "" })).toBe("x=");
+  });
+});
+
+describe("dynamicValue / 동적 변수 치환", () => {
+  it("$timestamp는 숫자 문자열", () => {
+    expect(dynamicValue("$timestamp")).toMatch(/^\d+$/);
+  });
+
+  it("$guid/$randomUUID는 UUID 형식", () => {
+    expect(dynamicValue("$guid")).toMatch(
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i,
+    );
+  });
+
+  it("$isoTimestamp는 ISO 형식", () => {
+    expect(dynamicValue("$isoTimestamp")).toMatch(/^\d{4}-\d{2}-\d{2}T/);
+  });
+
+  it("미지원 동적 변수는 null", () => {
+    expect(dynamicValue("$nope")).toBeNull();
+  });
+
+  it("substituteVars가 동적 변수를 채운다(사용자 변수 우선)", () => {
+    expect(substituteVars("id={{$randomInt}}", {})).toMatch(/^id=\d+$/);
+    // 사용자 정의가 동적보다 우선
+    expect(substituteVars("{{$timestamp}}", { $timestamp: "fixed" })).toBe("fixed");
+    // 미지원 동적은 원문 유지
+    expect(substituteVars("{{$unknown}}", {})).toBe("{{$unknown}}");
   });
 });
 
