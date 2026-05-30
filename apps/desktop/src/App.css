@@ -776,6 +776,18 @@ mark.hl.active {
 .match.none {
   color: #f85149;
 }
+.search-clear {
+  background: transparent;
+  border: none;
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 12px;
+  padding: 2px 6px;
+  flex-shrink: 0;
+}
+.search-clear:hover {
+  color: var(--text);
+}
 .match-nav {
   display: flex;
   align-items: center;

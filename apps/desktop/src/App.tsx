@@ -96,6 +96,19 @@ export default function App() {
   // 요청 취소(소프트): 진행 중 요청 id가 바뀌면 결과를 무시한다.
   const sendIdRef = useRef(0);
 
+  // 오퍼레이션별 상태 캐시(입력값/응답). 다른 화면 갔다 와도 결과가 유지되도록.
+  const opCacheRef = useRef<
+    Map<
+      string,
+      {
+        inputs: RequestInputs;
+        response: HTTPResponse | null;
+        lastRequest: HTTPRequest | null;
+        sendError: string | null;
+      }
+    >
+  >(new Map());
+
   // 영속화: 스펙별 키로 저장
   useEffect(() => {
     if (activeSpecUrl) saveJSON(`swaggerman.fav.${activeSpecUrl}`, favorites);
@@ -126,6 +139,7 @@ export default function App() {
       setHistory(loadJSON(`swaggerman.hist.${targetUrl}`, [] as HistoryItem[]));
       setAuthValues(loadJSON(`swaggerman.auth.${targetUrl}`, {} as Record<string, string>));
       setEnvs(loadJSON(`swaggerman.envs.${targetUrl}`, [] as { name: string; baseURL: string }[]));
+      opCacheRef.current.clear();
       setSelected(null);
       setInputs(null);
       setResponse(null);
@@ -144,12 +158,30 @@ export default function App() {
     localStorage.removeItem(`swaggerman.auth.${url}`);
   }
 
+  // 현재 오퍼레이션의 라이브 상태를 캐시에 저장
+  function stashCurrent() {
+    if (selected && inputs) {
+      opCacheRef.current.set(selected.id, { inputs, response, lastRequest, sendError });
+    }
+  }
+
   function selectOperation(op: ParsedOperation) {
+    stashCurrent();
     setSelected(op);
-    setInputs(defaultInputs(op));
-    setResponse(null);
-    setSendError(null);
-    setResponseTab("docs");
+    const cached = opCacheRef.current.get(op.id);
+    if (cached) {
+      setInputs(cached.inputs);
+      setResponse(cached.response);
+      setLastRequest(cached.lastRequest);
+      setSendError(cached.sendError);
+      setResponseTab(cached.response ? "response" : "docs");
+    } else {
+      setInputs(defaultInputs(op));
+      setResponse(null);
+      setLastRequest(null);
+      setSendError(null);
+      setResponseTab("docs");
+    }
   }
 
   async function sendWith(op: ParsedOperation, ins: RequestInputs) {
@@ -164,6 +196,7 @@ export default function App() {
       if (sendIdRef.current !== myId) return; // 취소됨
       setResponse(res);
       setResponseTab("response");
+      opCacheRef.current.set(op.id, { inputs: ins, response: res, lastRequest: request, sendError: null });
       const item: HistoryItem = {
         id: newId(),
         opId: op.id,
@@ -204,6 +237,7 @@ export default function App() {
   }
 
   function selectHistory(item: HistoryItem) {
+    stashCurrent();
     const op = spec?.operations.find((o) => o.id === item.opId);
     if (op) {
       setSelected(op);

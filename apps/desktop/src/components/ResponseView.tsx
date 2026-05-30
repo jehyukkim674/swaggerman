@@ -183,6 +183,18 @@ export function ResponseView({ response, request, operation, sending, error, tab
           placeholder="검색 후 Enter"
           spellCheck={false}
         />
+        {(search || submitted) && (
+          <button
+            className="search-clear"
+            onClick={() => {
+              setSearch("");
+              setSubmitted("");
+            }}
+            title="검색 지우기 (Esc)"
+          >
+            ✕
+          </button>
+        )}
         {submitted &&
           (matchCount === 0 ? (
             <span className="match none">일치 없음</span>
