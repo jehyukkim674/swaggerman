@@ -3,6 +3,7 @@ import type { HTTPRequest, HTTPResponse, ParsedOperation } from "../core/types";
 import { statusColor } from "./method";
 import { Minimap } from "./Minimap";
 import { DocsPane } from "./DocsPane";
+import { JsonView } from "./JsonView";
 import { buildSnippet, SNIPPET_LANGS, type SnippetLang } from "../core/snippet-builder";
 
 interface Props {
@@ -40,7 +41,7 @@ export function ResponseView({ response, request, operation, sending, error, tab
   const [submitted, setSubmitted] = useState("");
   const [active, setActive] = useState(0);
   const [snippetOpen, setSnippetOpen] = useState(false);
-  const bodyRef = useRef<HTMLPreElement>(null);
+  const bodyRef = useRef<HTMLDivElement>(null);
 
   const body = useMemo(() => (response ? prettyBody(response.body) : ""), [response]);
   const lines = useMemo(() => body.split("\n"), [body]);
@@ -201,9 +202,7 @@ export function ResponseView({ response, request, operation, sending, error, tab
       </div>
 
       <div className="resp-body-wrap">
-        <pre ref={bodyRef} className="resp-body">
-          {renderHighlighted(body, submitted, active)}
-        </pre>
+        <JsonView text={body} query={submitted} active={active} containerRef={bodyRef} />
         <Minimap text={body} scrollRef={bodyRef} matchLines={matchLines} />
       </div>
     </>
@@ -226,29 +225,3 @@ export function ResponseView({ response, request, operation, sending, error, tab
   );
 }
 
-function renderHighlighted(body: string, query: string, active: number): React.ReactNode {
-  if (!query) return body;
-  const parts: React.ReactNode[] = [];
-  const lower = body.toLowerCase();
-  const lq = query.toLowerCase();
-  let i = 0;
-  let matchIndex = 0;
-  let idx = lower.indexOf(lq);
-  while (idx !== -1) {
-    if (idx > i) parts.push(body.slice(i, idx));
-    parts.push(
-      <mark
-        key={matchIndex}
-        data-match={matchIndex}
-        className={matchIndex === active ? "hl active" : "hl"}
-      >
-        {body.slice(idx, idx + query.length)}
-      </mark>,
-    );
-    i = idx + query.length;
-    matchIndex += 1;
-    idx = lower.indexOf(lq, i);
-  }
-  parts.push(body.slice(i));
-  return parts;
-}

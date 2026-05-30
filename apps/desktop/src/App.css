@@ -613,6 +613,64 @@ mark.hl {
   border-radius: 2px;
 }
 mark.hl.active {
+  background: #fb8500;
+  outline: 1px solid #fff;
+}
+
+/* Code view (line numbers + JSON 구문 색상) */
+.code-view {
+  flex: 1;
+  overflow: auto;
+  font-family: ui-monospace, monospace;
+  font-size: 12px;
+  line-height: 1.5;
+  padding: 0;
+}
+.code-view.plain {
+  white-space: pre;
+  padding: 8px 12px;
+}
+.code-line {
+  display: flex;
+}
+.code-line .ln {
+  flex-shrink: 0;
+  width: 52px;
+  text-align: right;
+  padding: 0 10px 0 4px;
+  color: #6e7681;
+  user-select: none;
+  position: sticky;
+  left: 0;
+  background: var(--bg);
+  border-right: 1px solid var(--border);
+}
+.code-line .lc {
+  white-space: pre;
+  padding-left: 10px;
+}
+.code-line:hover {
+  background: #ffffff06;
+}
+.tk-key {
+  color: #79c0ff;
+}
+.tk-str {
+  color: #a5d6ff;
+}
+.tk-num {
+  color: #f0883e;
+}
+.tk-bool {
+  color: #ffa657;
+}
+.tk-null {
+  color: #8b949e;
+}
+.tk-punct {
+  color: #c9d1d9;
+}
+mark.hl.active {
   background: #f85149;
   color: #fff;
   box-shadow: 0 0 0 1px #f85149;
