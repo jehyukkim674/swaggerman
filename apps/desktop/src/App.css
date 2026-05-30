@@ -52,12 +52,6 @@ body {
   width: 240px;
 }
 .project-select {
-  background: var(--bg);
-  color: var(--text);
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  padding: 5px 8px;
-  font-size: 12px;
   max-width: 200px;
 }
 .zoom-controls {
@@ -68,12 +62,6 @@ body {
 }
 .tag-select {
   margin: 0 8px 8px;
-  background: var(--bg);
-  color: var(--text);
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  padding: 4px 8px;
-  font-size: 11px;
 }
 .btn.send.cancel {
   background: #f85149;
@@ -86,13 +74,7 @@ body {
   align-items: center;
 }
 .env-select {
-  background: var(--bg);
-  color: var(--text);
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  padding: 4px 6px;
-  font-size: 11px;
-  max-width: 130px;
+  max-width: 140px;
 }
 .env-add {
   display: flex;
@@ -240,10 +222,37 @@ textarea {
   font-size: 12px;
   font-family: inherit;
 }
+input,
+textarea {
+  transition:
+    border-color 0.12s,
+    box-shadow 0.12s;
+}
 input:focus,
-textarea:focus {
+textarea:focus,
+select:focus {
   outline: none;
   border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(56, 139, 253, 0.22);
+}
+
+/* 모던 select (네이티브 OS 스타일 제거 + 커스텀 chevron) */
+select {
+  appearance: none;
+  -webkit-appearance: none;
+  background-color: var(--bg-3);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 5px 26px 5px 10px;
+  font-size: 12px;
+  cursor: pointer;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%238b949e' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 8px center;
+}
+select:hover {
+  border-color: #484f58;
 }
 
 .btn {
@@ -254,9 +263,19 @@ textarea:focus {
   padding: 6px 12px;
   cursor: pointer;
   font-size: 12px;
+  transition:
+    border-color 0.12s,
+    background 0.12s,
+    filter 0.12s;
 }
 .btn:hover {
-  border-color: var(--accent);
+  border-color: #484f58;
+  background: #2d333b;
+}
+.btn.primary:hover {
+  background: #4493f8;
+  border-color: #4493f8;
+  filter: none;
 }
 .btn.primary {
   background: var(--accent);
@@ -310,23 +329,31 @@ textarea:focus {
 /* Sidebar */
 .sidebar-tabs {
   display: flex;
-  padding: 6px 8px 0;
-  gap: 4px;
+  gap: 2px;
+  margin: 8px;
+  padding: 3px;
+  background: var(--bg-3);
+  border-radius: 8px;
 }
 .sidebar-tabs button {
   flex: 1;
-  background: var(--bg);
+  background: transparent;
   color: var(--muted);
-  border: 1px solid var(--border);
-  border-bottom: none;
-  border-radius: 6px 6px 0 0;
+  border: none;
+  border-radius: 6px;
   padding: 6px;
   cursor: pointer;
   font-size: 12px;
+  transition:
+    background 0.12s,
+    color 0.12s;
+}
+.sidebar-tabs button:hover {
+  color: var(--text);
 }
 .sidebar-tabs button.active {
-  background: var(--bg-3);
-  color: var(--text);
+  background: var(--accent);
+  color: #fff;
   font-weight: 600;
 }
 .sidebar .search {
