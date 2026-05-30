@@ -25,12 +25,19 @@ struct OperationHeaderView: View {
             Spacer()
 
             if isSending {
+                // 응답이 다 올 때까지 로딩 표시. 클릭하면 취소(중복 전송 방지).
                 Button(action: onCancel) {
-                    Label("Cancel", systemImage: "xmark.circle.fill")
-                        .frame(width: 70)
+                    HStack(spacing: 5) {
+                        ProgressView()
+                            .controlSize(.small)
+                            .scaleEffect(0.7)
+                        Text("전송 중")
+                    }
+                    .frame(width: 70)
                 }
                 .buttonStyle(.bordered)
-                .tint(.red)
+                .tint(.secondary)
+                .help("응답을 기다리는 중입니다. 클릭하면 취소합니다.")
                 .keyboardShortcut(.escape, modifiers: [])
             } else {
                 Button(action: onSend) {
