@@ -17,6 +17,7 @@ interface Props {
   onReplayHistory: (item: HistoryItem) => void;
   onDeleteHistory: (id: string) => void;
   onClearHistory: () => void;
+  selectedHistoryId: string | null;
 }
 
 const FILTER_METHODS: HTTPMethod[] = ["GET", "POST", "PUT", "DELETE", "PATCH"];
@@ -177,6 +178,7 @@ export function Sidebar(props: Props) {
       ) : (
         <HistoryTab
           history={props.history}
+          selectedId={props.selectedHistoryId}
           onSelect={props.onSelectHistory}
           onReplay={props.onReplayHistory}
           onDelete={props.onDeleteHistory}
@@ -189,12 +191,14 @@ export function Sidebar(props: Props) {
 
 function HistoryTab({
   history,
+  selectedId,
   onSelect,
   onReplay,
   onDelete,
   onClear,
 }: {
   history: HistoryItem[];
+  selectedId: string | null;
   onSelect: (item: HistoryItem) => void;
   onReplay: (item: HistoryItem) => void;
   onDelete: (id: string) => void;
@@ -213,7 +217,11 @@ function HistoryTab({
       </div>
       <div className="op-list">
         {history.map((item) => (
-          <div key={item.id} className="hist-row" onClick={() => onSelect(item)}>
+          <div
+            key={item.id}
+            className={`hist-row${item.id === selectedId ? " selected" : ""}`}
+            onClick={() => onSelect(item)}
+          >
             <span className="method" style={{ color: methodColor(item.method) }}>
               {item.method}
             </span>

@@ -5,6 +5,8 @@ import { Minimap } from "./Minimap";
 import { DocsPane } from "./DocsPane";
 import { JsonView } from "./JsonView";
 import { buildSnippet, SNIPPET_LANGS, type SnippetLang } from "../core/snippet-builder";
+import { HistoryBanner } from "./RequestEditor";
+import type { HistoryItem } from "../core/history";
 
 interface Props {
   response: HTTPResponse | null;
@@ -14,6 +16,7 @@ interface Props {
   error: string | null;
   tab: "docs" | "response";
   onTab: (tab: "docs" | "response") => void;
+  historyItem: HistoryItem | null;
 }
 
 function prettyBody(body: string): string {
@@ -35,7 +38,16 @@ function copy(text: string, done: () => void) {
   done();
 }
 
-export function ResponseView({ response, request, operation, sending, error, tab, onTab }: Props) {
+export function ResponseView({
+  response,
+  request,
+  operation,
+  sending,
+  error,
+  tab,
+  onTab,
+  historyItem,
+}: Props) {
   const [copied, setCopied] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [submitted, setSubmitted] = useState("");
@@ -222,6 +234,7 @@ export function ResponseView({ response, request, operation, sending, error, tab
 
   return (
     <section className="response-pane">
+      {historyItem && <HistoryBanner item={historyItem} />}
       {operation && (
         <div className="resp-tabs">
           <button className={tab === "docs" ? "active" : ""} onClick={() => onTab("docs")}>

@@ -1,7 +1,8 @@
 import { useState } from "react";
 import type { ParsedOperation } from "../core/types";
 import { buildRequestUrl, type RequestInputs, type RequestParam } from "../core/request-builder";
-import { methodColor } from "./method";
+import { relativeTime, type HistoryItem } from "../core/history";
+import { methodColor, statusColor } from "./method";
 import { TrashIcon } from "./icons";
 
 interface Props {
@@ -15,6 +16,21 @@ interface Props {
   samples: { name: string; body: string }[];
   onSaveSample: (name: string) => void;
   onDeleteSample: (name: string) => void;
+  historyItem: HistoryItem | null;
+}
+
+export function HistoryBanner({ item }: { item: HistoryItem }) {
+  return (
+    <div className="history-banner">
+      <span className="hb-tag">🕘 히스토리 보기</span>
+      <span className="hb-meta">
+        {item.method} {item.path} · {relativeTime(item.executedAt)}
+      </span>
+      <span className="hb-status" style={{ color: statusColor(item.status) }}>
+        {item.status}
+      </span>
+    </div>
+  );
 }
 
 export function RequestEditor({
@@ -28,6 +44,7 @@ export function RequestEditor({
   samples,
   onSaveSample,
   onDeleteSample,
+  historyItem,
 }: Props) {
   const [sampleName, setSampleName] = useState<string | null>(null);
   const [activeSample, setActiveSample] = useState("");
@@ -61,6 +78,7 @@ export function RequestEditor({
 
   return (
     <main className="request-pane">
+      {historyItem && <HistoryBanner item={historyItem} />}
       <div className="request-header">
         <span className="method-badge" style={{ color: methodColor(operation.method) }}>
           {operation.method}

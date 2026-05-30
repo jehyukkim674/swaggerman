@@ -466,7 +466,20 @@ select:hover {
   background: var(--bg-2);
 }
 .op-row.selected {
-  background: var(--bg-3);
+  background: rgba(56, 139, 253, 0.16);
+  border-left-color: var(--accent);
+}
+.op-row.selected .op-path {
+  color: #fff;
+  font-weight: 600;
+}
+.hist-row.selected {
+  background: rgba(56, 139, 253, 0.16);
+  box-shadow: inset 3px 0 0 var(--accent);
+}
+.hist-row.selected .op-path {
+  color: #fff;
+  font-weight: 600;
 }
 .method {
   font-family: ui-monospace, monospace;
@@ -768,6 +781,107 @@ mark.hl.active {
 }
 .tk-punct {
   color: #c9d1d9;
+}
+
+/* 히스토리 보기 배너 */
+.history-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 12px;
+  background: rgba(56, 139, 253, 0.13);
+  border-bottom: 2px solid var(--accent);
+  font-size: 12px;
+}
+.hb-tag {
+  color: var(--accent);
+  font-weight: 700;
+}
+.hb-meta {
+  color: var(--muted);
+  font-family: ui-monospace, monospace;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.hb-status {
+  font-family: ui-monospace, monospace;
+  font-weight: 700;
+  margin-left: auto;
+}
+
+/* 모달 */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+.modal {
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  width: 620px;
+  max-width: 92vw;
+  max-height: 82vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.6);
+}
+.modal-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+}
+.modal-head h3 {
+  margin: 0;
+  font-size: 14px;
+}
+.modal-body {
+  padding: 14px 16px;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.modal-foot {
+  padding: 10px 16px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  justify-content: flex-end;
+}
+.env-item {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.env-item-header {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 600;
+  padding-bottom: 2px;
+}
+.env-col-name,
+.env-item-name {
+  width: 130px;
+  flex-shrink: 0;
+}
+.env-col-url,
+.env-item-url {
+  flex: 1;
+  min-width: 0;
+}
+.env-col-actions {
+  width: 86px;
+  flex-shrink: 0;
+}
+.env-item-url {
+  font-family: ui-monospace, monospace;
 }
 mark.hl.active {
   background: #f85149;
