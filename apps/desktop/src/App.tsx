@@ -6,11 +6,13 @@ import { loadSpec as loadSpecFromUrl } from "./core/spec-loader";
 import { executeRequest } from "./core/http-client";
 import {
   buildRequest,
+  buildRequestUrl,
   defaultInputs,
   deriveBaseURL,
   type RequestInputs,
   type RequestParam,
 } from "./core/request-builder";
+import { savedToRequest, type Collection } from "./core/collections";
 import { computeSecurityHeaders } from "./core/security";
 import {
   applyExtractRules,
@@ -37,6 +39,7 @@ import { RequestEditor } from "./components/RequestEditor";
 import { ResponseView } from "./components/ResponseView";
 import { AuthorizeModal } from "./components/AuthorizeModal";
 import { CurlImportModal } from "./components/CurlImportModal";
+import { CollectionsModal } from "./components/CollectionsModal";
 import { SettingsModal } from "./components/SettingsModal";
 import { EnvironmentsModal } from "./components/EnvironmentsModal";
 import { GlobalHeadersModal } from "./components/GlobalHeadersModal";
@@ -120,6 +123,15 @@ export default function App() {
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [curlModalOpen, setCurlModalOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [collectionsOpen, setCollectionsOpen] = useState(false);
+
+  // 컬렉션(저장 요청) — 전역 저장
+  const [collections, setCollections] = useState<Collection[]>(() =>
+    loadJSON("swaggerman.collections", [] as Collection[]),
+  );
+  useEffect(() => {
+    saveJSON("swaggerman.collections", collections);
+  }, [collections]);
 
   // 전역 네트워크 설정(타임아웃/SSL/프록시) — 전역 저장
   const [netSettings, setNetSettings] = useState<NetworkSettings>(() =>
@@ -530,6 +542,13 @@ export default function App() {
         </button>
         <button
           className="btn"
+          title="컬렉션(저장 요청) · Postman/네이티브 가져오기·내보내기"
+          onClick={() => setCollectionsOpen(true)}
+        >
+          컬렉션
+        </button>
+        <button
+          className="btn"
           title="네트워크 설정(타임아웃/SSL/프록시) · 쿠키 관리"
           onClick={() => setSettingsOpen(true)}
         >
@@ -729,6 +748,27 @@ export default function App() {
           settings={netSettings}
           onChange={setNetSettings}
           onClose={() => setSettingsOpen(false)}
+        />
+      )}
+      {collectionsOpen && (
+        <CollectionsModal
+          collections={collections}
+          onChange={setCollections}
+          current={
+            selected && inputs
+              ? {
+                  method: selected.method,
+                  url: buildRequestUrl(baseURL, selected, inputs, false, activeVars),
+                  headers: inputs.headers,
+                  body: inputs.body,
+                }
+              : null
+          }
+          onLoad={(s) => {
+            const { operation, inputs: ins, baseURL: b } = savedToRequest(s);
+            importCurl(operation, ins, b);
+          }}
+          onClose={() => setCollectionsOpen(false)}
         />
       )}
       {authModalOpen && spec && (

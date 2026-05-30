@@ -90,6 +90,18 @@ fn clear_cookies() {
     store.lock().unwrap().clear();
 }
 
+/// 텍스트 파일을 읽는다(컬렉션 import 용).
+#[tauri::command]
+fn read_text_file(path: String) -> Result<String, String> {
+    std::fs::read_to_string(&path).map_err(|e| format!("파일 읽기 실패({path}): {e}"))
+}
+
+/// 텍스트 파일을 쓴다(컬렉션 export 용).
+#[tauri::command]
+fn write_text_file(path: String, contents: String) -> Result<(), String> {
+    std::fs::write(&path, contents).map_err(|e| format!("파일 쓰기 실패({path}): {e}"))
+}
+
 /// 임의 호스트로 HTTP 요청을 보낸다(웹뷰 CORS/스코프 제약 없음 — API 클라이언트 목적).
 #[tauri::command]
 async fn http_request(args: HttpRequestArgs) -> Result<HttpResult, String> {
@@ -207,7 +219,9 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             http_request,
             list_cookies,
-            clear_cookies
+            clear_cookies,
+            read_text_file,
+            write_text_file
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

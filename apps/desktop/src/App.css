@@ -1475,3 +1475,64 @@ mark.hl.active {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
+/* 컬렉션 모달 */
+.collections-modal {
+  width: 660px;
+}
+.col-actions {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  flex-wrap: wrap;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border);
+}
+.col-msg {
+  font-size: 11px;
+  color: var(--accent);
+  margin-left: auto;
+}
+.col-save {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border);
+  flex-wrap: wrap;
+}
+.col-save .kv-input {
+  flex: 1;
+  min-width: 120px;
+}
+.col-card {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px;
+  margin-top: 8px;
+}
+.col-card-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 4px;
+}
+.col-name {
+  font-weight: 600;
+}
+.saved-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 3px 0;
+}
+.saved-name {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12px;
+}
+.saved-folder {
+  color: var(--muted);
+}

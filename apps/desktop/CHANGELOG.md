@@ -5,6 +5,32 @@
 릴리스 빌드(설치본)는 `SwaggerMan-v*` 태그 푸시 시 GitHub Actions가 생성하며,
 **Releases** 페이지에서 OS별 설치본을 내려받을 수 있습니다.
 
+## v0.2.2
+
+Postman/Insomnia 류 기능 대거 추가.
+
+### 빠른 편의
+- 동적 변수: `{{$timestamp}}`, `{{$isoTimestamp}}`, `{{$guid}}`/`{{$randomUUID}}`, `{{$randomInt}}`
+- cURL 가져오기: 명령 붙여넣기 → ad-hoc 요청 생성
+- 키보드 단축키: ⌘/Ctrl+Enter 전송
+
+### Body 타입
+- `form-urlencoded` · `multipart/form-data` · **파일 업로드**(dialog로 파일 선택)
+- Body 형식 선택(None/JSON/urlencoded/multipart)
+
+### 네트워킹
+- 쿠키 jar(요청 간 자동 유지) + 쿠키 조회·전체 삭제
+- 전역 설정: 타임아웃, SSL 인증서 검증 무시, 프록시 URL
+
+### 컬렉션
+- 컬렉션/폴더로 요청 저장·불러오기(스펙과 무관)
+- Import: Postman 컬렉션 v2.1 · SwaggerMan 네이티브 JSON
+- Export: 네이티브 JSON으로 내보내기
+
+### 품질
+- 단위 테스트 95개(curl·동적변수·body모드·collections 포함), ESLint+타입체크 무결
+- reqwest multipart/cookies, reqwest_cookie_store, tauri-plugin-dialog 등 라이브러리 적극 활용
+
 ## v0.2.1
 
 안정성 점검 및 수정.
