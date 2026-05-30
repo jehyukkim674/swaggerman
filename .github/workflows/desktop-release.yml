@@ -23,8 +23,9 @@ jobs:
       fail-fast: false
       matrix:
         include:
+          # macOS는 Apple Silicon(arm64) 전용 — 빌드 시간 절반(Intel 미지원).
           - platform: macos-latest
-            args: "--target universal-apple-darwin"
+            args: "--target aarch64-apple-darwin"
           - platform: windows-latest
             args: ""
 
@@ -42,7 +43,7 @@ jobs:
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
         with:
-          targets: ${{ matrix.platform == 'macos-latest' && 'aarch64-apple-darwin,x86_64-apple-darwin' || '' }}
+          targets: ${{ matrix.platform == 'macos-latest' && 'aarch64-apple-darwin' || '' }}
 
       - name: Rust cache
         uses: swatinem/rust-cache@v2

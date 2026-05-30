@@ -1,4 +1,10 @@
-import type { HTTPMethod, HTTPRequest, ParsedOperation, ParsedSchema } from "./types";
+import type {
+  HTTPMethod,
+  HTTPRequest,
+  ParsedOperation,
+  ParsedParameter,
+  ParsedSchema,
+} from "./types";
 import { substituteVars } from "./variables";
 
 /** 스키마로부터 예시 JSON 값을 생성한다(요청 body 미리 채우기용). */
@@ -59,14 +65,24 @@ export interface RequestInputs {
   form?: FormField[];
 }
 
-/** operation의 기본 입력값(빈 path/query, 기본 헤더) 생성. */
+/** 파라미터의 스펙 기본값: example → default → enum 첫값 → 빈 문자열. */
+export function defaultParamValue(param: ParsedParameter): string {
+  const s = param.schema;
+  if (!s) return "";
+  if (s.example != null && s.example !== "") return String(s.example);
+  if (s.defaultValue != null && s.defaultValue !== "") return String(s.defaultValue);
+  if (s.enumValues && s.enumValues.length > 0) return s.enumValues[0];
+  return "";
+}
+
+/** operation의 기본 입력값(스펙 example/default/enum로 path·query 미리 채움, 기본 헤더) 생성. */
 export function defaultInputs(operation: ParsedOperation): RequestInputs {
   const pathParams: Record<string, string> = {};
   const queryParams: RequestParam[] = [];
   for (const param of operation.parameters) {
-    if (param.location === "path") pathParams[param.name] = "";
+    if (param.location === "path") pathParams[param.name] = defaultParamValue(param);
     if (param.location === "query")
-      queryParams.push({ key: param.name, value: "", enabled: true });
+      queryParams.push({ key: param.name, value: defaultParamValue(param), enabled: true });
   }
   const headers: RequestParam[] = [{ key: "Accept", value: "application/json", enabled: true }];
   if (operation.requestBody) {

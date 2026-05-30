@@ -146,6 +146,32 @@ describe("buildRequest", () => {
   });
 });
 
+describe("defaultInputs 파라미터 prefill", () => {
+  it("query/path를 스펙 example·default·enum로 채운다", () => {
+    const operation = op({
+      method: "GET",
+      path: "/items/{id}",
+      parameters: [
+        { id: "1", name: "id", location: "path", required: true, schema: { type: "string", example: "42" } },
+        { id: "2", name: "page", location: "query", required: false, schema: { type: "integer", defaultValue: "1" } },
+        {
+          id: "3",
+          name: "sort",
+          location: "query",
+          required: false,
+          schema: { type: "string", enumValues: ["asc", "desc"] },
+        },
+        { id: "4", name: "q", location: "query", required: false, schema: { type: "string" } },
+      ],
+    });
+    const inputs = defaultInputs(operation);
+    expect(inputs.pathParams.id).toBe("42");
+    expect(inputs.queryParams.find((p) => p.key === "page")?.value).toBe("1");
+    expect(inputs.queryParams.find((p) => p.key === "sort")?.value).toBe("asc");
+    expect(inputs.queryParams.find((p) => p.key === "q")?.value).toBe(""); // 값 없으면 빈값
+  });
+});
+
 describe("buildRequest body 모드", () => {
   const postOp = op({ method: "POST", path: "/x" });
   const base = (over: Partial<import("./request-builder").RequestInputs>) => ({

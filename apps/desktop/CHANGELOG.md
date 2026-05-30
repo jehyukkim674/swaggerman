@@ -5,6 +5,11 @@
 릴리스 빌드(설치본)는 `SwaggerMan-v*` 태그 푸시 시 GitHub Actions가 생성하며,
 **Releases** 페이지에서 OS별 설치본을 내려받을 수 있습니다.
 
+## v0.2.4
+
+- 요청 파라미터 미리 채우기: query·path 값을 스펙의 example/default/enum에서 자동 입력
+- 빌드: macOS를 Apple Silicon(arm64) 전용으로 — 빌드 시간 절반(Intel 미지원)
+
 ## v0.2.3
 
 스펙 인지 기능 + 생산성 도구.
