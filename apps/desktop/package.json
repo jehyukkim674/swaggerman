@@ -14,7 +14,8 @@
     "@tauri-apps/plugin-opener": "^2",
     "js-yaml": "^4.1.1",
     "react": "^19.1.0",
-    "react-dom": "^19.1.0"
+    "react-dom": "^19.1.0",
+    "react-resizable-panels": "^2.1.9"
   },
   "devDependencies": {
     "@tauri-apps/cli": "^2",
