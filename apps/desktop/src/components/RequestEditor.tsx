@@ -9,6 +9,7 @@ interface Props {
   operation: ParsedOperation | null;
   inputs: RequestInputs | null;
   baseURL: string;
+  globalHeaders: RequestParam[];
   sending: boolean;
   onChange: (inputs: RequestInputs) => void;
   onSend: () => void;
@@ -37,6 +38,7 @@ export function RequestEditor({
   operation,
   inputs,
   baseURL,
+  globalHeaders,
   sending,
   onChange,
   onSend,
@@ -129,6 +131,25 @@ export function RequestEditor({
           onRemove={(i) => removeRow("queryParams", i)}
           onAdd={() => addRow("queryParams")}
         />
+
+        {globalHeaders.filter((h) => h.enabled && h.key).length > 0 && (
+          <section className="section">
+            <h4>
+              전역 헤더 <span className="section-note">모든 요청 적용 · “전역 헤더”에서 수정</span>
+            </h4>
+            {globalHeaders
+              .filter((h) => h.enabled && h.key)
+              .map((h, i) => (
+                <div className="kv-row global-row" key={i}>
+                  <span className="global-badge" title="전역 헤더(읽기 전용)">
+                    🌐
+                  </span>
+                  <span className="kv-key fixed">{h.key}</span>
+                  <span className="global-val">{h.value}</span>
+                </div>
+              ))}
+          </section>
+        )}
 
         <ParamSection
           title="Headers"

@@ -567,6 +567,32 @@ select:hover {
   min-width: 0;
   font-family: ui-monospace, monospace;
 }
+.section-note {
+  font-weight: 400;
+  text-transform: none;
+  letter-spacing: 0;
+  color: var(--muted);
+  font-size: 10px;
+  margin-left: 6px;
+}
+.global-row {
+  opacity: 0.9;
+}
+.global-badge {
+  font-size: 11px;
+  width: 18px;
+  flex-shrink: 0;
+  text-align: center;
+}
+.global-val {
+  flex: 1;
+  min-width: 0;
+  font-family: ui-monospace, monospace;
+  color: var(--muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 .icon-btn {
   background: transparent;
   border: none;

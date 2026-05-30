@@ -445,6 +445,7 @@ export default function App() {
             operation={selected}
             inputs={inputs}
             baseURL={baseURL}
+            globalHeaders={globalHeaders}
             sending={sending}
             onChange={setInputs}
             onSend={send}
