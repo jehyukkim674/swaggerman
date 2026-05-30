@@ -1,6 +1,8 @@
+import { useState } from "react";
 import type { ParsedOperation } from "../core/types";
 import { buildRequestUrl, type RequestInputs, type RequestParam } from "../core/request-builder";
 import { methodColor } from "./method";
+import { TrashIcon } from "./icons";
 
 interface Props {
   operation: ParsedOperation | null;
@@ -10,6 +12,9 @@ interface Props {
   onChange: (inputs: RequestInputs) => void;
   onSend: () => void;
   onCancel: () => void;
+  samples: { name: string; body: string }[];
+  onSaveSample: (name: string) => void;
+  onDeleteSample: (name: string) => void;
 }
 
 export function RequestEditor({
@@ -20,7 +25,12 @@ export function RequestEditor({
   onChange,
   onSend,
   onCancel,
+  samples,
+  onSaveSample,
+  onDeleteSample,
 }: Props) {
+  const [sampleName, setSampleName] = useState<string | null>(null);
+  const [activeSample, setActiveSample] = useState("");
   if (!operation || !inputs) {
     return (
       <main className="request-pane">
@@ -114,7 +124,92 @@ export function RequestEditor({
 
         {operation.requestBody && (
           <section className="section">
-            <h4>Body ({operation.requestBody.contentType})</h4>
+            <div className="body-head">
+              <h4>Body ({operation.requestBody.contentType})</h4>
+              <div className="sample-bar">
+                {samples.length > 0 && (
+                  <>
+                    <select
+                      className="sample-select"
+                      value={activeSample}
+                      onChange={(e) => {
+                        setActiveSample(e.target.value);
+                        const s = samples.find((x) => x.name === e.target.value);
+                        if (s) onChange({ ...inputs, body: s.body });
+                      }}
+                      title="저장한 body 샘플 불러오기"
+                    >
+                      <option value="">샘플 선택…</option>
+                      {samples.map((s) => (
+                        <option key={s.name} value={s.name}>
+                          {s.name}
+                        </option>
+                      ))}
+                    </select>
+                    {activeSample && (
+                      <>
+                        <button
+                          className="btn small"
+                          title="현재 body로 이 샘플 덮어쓰기(수정)"
+                          onClick={() => onSaveSample(activeSample)}
+                        >
+                          수정
+                        </button>
+                        <button
+                          className="btn small icon"
+                          title="이 샘플 삭제"
+                          onClick={() => {
+                            onDeleteSample(activeSample);
+                            setActiveSample("");
+                          }}
+                        >
+                          <TrashIcon />
+                        </button>
+                      </>
+                    )}
+                  </>
+                )}
+                {sampleName === null ? (
+                  <button
+                    className="btn small"
+                    title="현재 body를 샘플로 저장"
+                    onClick={() => setSampleName(`샘플 ${samples.length + 1}`)}
+                  >
+                    ＋샘플
+                  </button>
+                ) : (
+                  <span className="sample-add">
+                    <input
+                      className="sample-name-input"
+                      autoFocus
+                      value={sampleName}
+                      onChange={(e) => setSampleName(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          if (sampleName.trim()) onSaveSample(sampleName.trim());
+                          setSampleName(null);
+                        }
+                        if (e.key === "Escape") setSampleName(null);
+                      }}
+                      placeholder="샘플 이름"
+                      spellCheck={false}
+                    />
+                    <button
+                      className="btn small"
+                      onClick={() => {
+                        if (sampleName.trim()) onSaveSample(sampleName.trim());
+                        setSampleName(null);
+                      }}
+                    >
+                      ✓
+                    </button>
+                    <button className="btn small" onClick={() => setSampleName(null)}>
+                      ✕
+                    </button>
+                  </span>
+                )}
+              </div>
+            </div>
             <textarea
               className="body-input"
               value={inputs.body}

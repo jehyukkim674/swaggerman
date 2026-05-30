@@ -47,6 +47,7 @@ export interface ParsedRequestBody {
   required: boolean;
   contentType: string;
   schema?: ParsedSchema;
+  example?: unknown; // 스펙에 정의된 example/examples (있으면 body 미리 채우기에 우선 사용)
 }
 
 export interface ParsedResponse {

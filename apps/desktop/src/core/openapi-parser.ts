@@ -120,11 +120,23 @@ export function parseSpec(doc: AnyObj): ParsedSpec {
     const preferred =
       entries.find(([ct]) => ct.includes("json")) ?? entries[0];
     if (!preferred) return undefined;
-    const [contentType, media] = preferred;
+    const [contentType, mediaRaw] = preferred;
+    const media = mediaRaw as AnyObj;
+    // 스펙 example 우선순위: mediaType.example → mediaType.examples[*].value → schema.example
+    let example: unknown = media?.example;
+    if (example === undefined && media?.examples && typeof media.examples === "object") {
+      const first = Object.values(media.examples as AnyObj)[0] as AnyObj | undefined;
+      example = first?.value;
+    }
+    if (example === undefined) {
+      const resolvedSchema = resolveRef(media?.schema);
+      if (resolvedSchema?.example !== undefined) example = resolvedSchema.example;
+    }
     return {
       required: body.required === true,
       contentType,
-      schema: convertSchema((media as AnyObj)?.schema),
+      schema: convertSchema(media?.schema),
+      example,
     };
   };
 

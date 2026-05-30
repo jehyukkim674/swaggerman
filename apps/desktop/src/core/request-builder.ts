@@ -1,4 +1,37 @@
-import type { HTTPMethod, HTTPRequest, ParsedOperation } from "./types";
+import type { HTTPMethod, HTTPRequest, ParsedOperation, ParsedSchema } from "./types";
+
+/** 스키마로부터 예시 JSON 값을 생성한다(요청 body 미리 채우기용). */
+export function schemaToExample(schema: ParsedSchema | undefined, depth = 0): unknown {
+  if (!schema || depth > 6) return null;
+  switch (schema.type) {
+    case "object": {
+      const obj: Record<string, unknown> = {};
+      if (schema.properties) {
+        for (const [key, value] of Object.entries(schema.properties)) {
+          obj[key] = schemaToExample(value, depth + 1);
+        }
+      }
+      return obj;
+    }
+    case "array":
+      return schema.items ? [schemaToExample(schema.items, depth + 1)] : [];
+    case "string":
+      if (schema.enumValues && schema.enumValues.length > 0) return schema.enumValues[0];
+      if (schema.example != null) return schema.example;
+      if (schema.defaultValue != null) return schema.defaultValue;
+      return "";
+    case "integer":
+    case "number": {
+      const raw = schema.example ?? schema.defaultValue;
+      const n = raw != null ? Number(raw) : NaN;
+      return Number.isNaN(n) ? 0 : n;
+    }
+    case "boolean":
+      return schema.defaultValue === "true";
+    default:
+      return null;
+  }
+}
 
 export interface RequestParam {
   key: string;
@@ -30,8 +63,21 @@ export function defaultInputs(operation: ParsedOperation): RequestInputs {
     pathParams,
     queryParams,
     headers,
-    body: operation.requestBody ? "{}" : "",
+    body: defaultBody(operation),
   };
+}
+
+/** 요청 body 초기값: 스펙 example 우선 → 스키마 생성 → 빈 객체. */
+export function defaultBody(operation: ParsedOperation): string {
+  const requestBody = operation.requestBody;
+  if (!requestBody) return "";
+  if (requestBody.example !== undefined) {
+    return JSON.stringify(requestBody.example, null, 2);
+  }
+  if (requestBody.schema) {
+    return JSON.stringify(schemaToExample(requestBody.schema), null, 2);
+  }
+  return "{}";
 }
 
 /** baseURL + operation + 입력값으로 요청 URL을 계산(미리보기/전송 공용). */

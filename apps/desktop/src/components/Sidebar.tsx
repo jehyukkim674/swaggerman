@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import type { HTTPMethod, ParsedOperation, ParsedSpec } from "../core/types";
 import { methodColor, statusColor } from "./method";
 import { relativeTime, type HistoryItem } from "../core/history";
+import { ReplayIcon, TrashIcon } from "./icons";
 
 interface Props {
   spec: ParsedSpec | null;
@@ -231,7 +232,7 @@ function HistoryTab({
                   onReplay(item);
                 }}
               >
-                ↻
+                <ReplayIcon size={14} />
               </button>
               <button
                 title="삭제"
@@ -240,7 +241,7 @@ function HistoryTab({
                   onDelete(item.id);
                 }}
               >
-                🗑
+                <TrashIcon size={14} />
               </button>
             </span>
           </div>

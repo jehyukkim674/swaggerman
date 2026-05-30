@@ -1,0 +1,157 @@
+import { describe, it, expect } from "vitest";
+import {
+  buildRequest,
+  buildRequestUrl,
+  defaultBody,
+  defaultInputs,
+  deriveBaseURL,
+  schemaToExample,
+} from "./request-builder";
+import type { ParsedOperation, ParsedSchema } from "./types";
+
+function op(partial: Partial<ParsedOperation>): ParsedOperation {
+  return {
+    id: "GET /x",
+    method: "GET",
+    path: "/x",
+    tags: [],
+    parameters: [],
+    responses: [],
+    ...partial,
+  };
+}
+
+describe("buildRequestUrl", () => {
+  const operation = op({
+    method: "GET",
+    path: "/users/{id}/posts/{postId}",
+    parameters: [
+      { id: "1", name: "id", location: "path", required: true },
+      { id: "2", name: "postId", location: "path", required: true },
+      { id: "3", name: "tag", location: "query", required: false },
+    ],
+  });
+
+  it("path 파라미터 치환 + query 추가", () => {
+    const inputs = {
+      pathParams: { id: "42", postId: "7" },
+      queryParams: [{ key: "tag", value: "news", enabled: true }],
+      headers: [],
+      body: "",
+    };
+    const url = buildRequestUrl("https://api.com", operation, inputs);
+    expect(url).toBe("https://api.com/users/42/posts/7?tag=news");
+  });
+
+  it("비활성/빈 query는 제외", () => {
+    const inputs = {
+      pathParams: { id: "1", postId: "2" },
+      queryParams: [
+        { key: "a", value: "", enabled: true },
+        { key: "b", value: "x", enabled: false },
+      ],
+      headers: [],
+      body: "",
+    };
+    expect(buildRequestUrl("https://api.com", operation, inputs)).toBe(
+      "https://api.com/users/1/posts/2",
+    );
+  });
+
+  it("baseURL 끝 슬래시 정리", () => {
+    expect(buildRequestUrl("https://api.com/", op({ path: "/a" }), defaultInputs(op({ path: "/a" })))).toBe(
+      "https://api.com/a",
+    );
+  });
+});
+
+describe("buildRequest", () => {
+  it("활성 헤더만 포함하고 보안 헤더가 우선", () => {
+    const operation = op({ method: "POST", path: "/x", requestBody: { required: true, contentType: "application/json" } });
+    const inputs = {
+      pathParams: {},
+      queryParams: [],
+      headers: [
+        { key: "Accept", value: "application/json", enabled: true },
+        { key: "X-Skip", value: "v", enabled: false },
+        { key: "Authorization", value: "manual", enabled: true },
+      ],
+      body: '{"a":1}',
+    };
+    const req = buildRequest("https://api.com", operation, inputs, { Authorization: "Bearer T" });
+    expect(req.headers.Accept).toBe("application/json");
+    expect(req.headers["X-Skip"]).toBeUndefined();
+    expect(req.headers.Authorization).toBe("Bearer T"); // 보안 헤더가 수동 헤더 덮어씀
+    expect(req.body).toBe('{"a":1}');
+  });
+
+  it("빈 body는 undefined", () => {
+    const req = buildRequest("https://api.com", op({ path: "/x" }), {
+      pathParams: {},
+      queryParams: [],
+      headers: [],
+      body: "  ",
+    });
+    expect(req.body).toBeUndefined();
+  });
+});
+
+describe("schemaToExample", () => {
+  it("객체/배열/원시 타입 예시 생성", () => {
+    const schema: ParsedSchema = {
+      type: "object",
+      properties: {
+        id: { type: "integer" },
+        name: { type: "string" },
+        active: { type: "boolean" },
+        tags: { type: "array", items: { type: "string" } },
+        role: { type: "string", enumValues: ["admin", "user"] },
+      },
+    };
+    expect(schemaToExample(schema)).toEqual({
+      id: 0,
+      name: "",
+      active: false,
+      tags: [""],
+      role: "admin",
+    });
+  });
+
+  it("example/default 값 우선", () => {
+    expect(schemaToExample({ type: "integer", example: "42" })).toBe(42);
+    expect(schemaToExample({ type: "string", defaultValue: "hi" })).toBe("hi");
+  });
+});
+
+describe("defaultBody", () => {
+  it("스펙 example 우선", () => {
+    const operation = op({
+      requestBody: { required: true, contentType: "application/json", example: { x: 1 } },
+    });
+    expect(defaultBody(operation)).toBe(JSON.stringify({ x: 1 }, null, 2));
+  });
+
+  it("example 없으면 스키마로 생성", () => {
+    const operation = op({
+      requestBody: {
+        required: true,
+        contentType: "application/json",
+        schema: { type: "object", properties: { a: { type: "integer" } } },
+      },
+    });
+    expect(defaultBody(operation)).toBe(JSON.stringify({ a: 0 }, null, 2));
+  });
+
+  it("requestBody 없으면 빈 문자열", () => {
+    expect(defaultBody(op({}))).toBe("");
+  });
+});
+
+describe("deriveBaseURL", () => {
+  it("서버 절대 URL 우선", () => {
+    expect(deriveBaseURL("http://x/v3/api-docs", ["https://api.com"])).toBe("https://api.com");
+  });
+  it("서버 없으면 spec origin", () => {
+    expect(deriveBaseURL("http://localhost:8000/v3/api-docs", [])).toBe("http://localhost:8000");
+  });
+});

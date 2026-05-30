@@ -51,6 +51,27 @@ export default function App() {
     if (activeSpecUrl) saveJSON(`swaggerman.envs.${activeSpecUrl}`, envs);
   }, [envs, activeSpecUrl]);
 
+  // 오퍼레이션별 body 샘플(이름→body) — 프로젝트별 저장
+  const [bodySamples, setBodySamples] = useState<Record<string, { name: string; body: string }[]>>(
+    {},
+  );
+  useEffect(() => {
+    if (activeSpecUrl) saveJSON(`swaggerman.samples.${activeSpecUrl}`, bodySamples);
+  }, [bodySamples, activeSpecUrl]);
+
+  function saveSample(opId: string, name: string, body: string) {
+    setBodySamples((prev) => {
+      const list = (prev[opId] ?? []).filter((s) => s.name !== name);
+      return { ...prev, [opId]: [...list, { name, body }] };
+    });
+  }
+  function deleteSample(opId: string, name: string) {
+    setBodySamples((prev) => ({
+      ...prev,
+      [opId]: (prev[opId] ?? []).filter((s) => s.name !== name),
+    }));
+  }
+
   function confirmAddEnv() {
     const name = (newEnvName ?? "").trim();
     if (name) {
@@ -120,6 +141,12 @@ export default function App() {
     if (activeSpecUrl) saveJSON(`swaggerman.auth.${activeSpecUrl}`, authValues);
   }, [authValues, activeSpecUrl]);
 
+  // 시작 시 마지막으로 사용한 spec 자동 로드
+  useEffect(() => {
+    if (specUrl) loadSpec(specUrl);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   async function loadSpec(targetUrl: string = specUrl) {
     setSpecUrl(targetUrl);
     setLoading(true);
@@ -139,6 +166,9 @@ export default function App() {
       setHistory(loadJSON(`swaggerman.hist.${targetUrl}`, [] as HistoryItem[]));
       setAuthValues(loadJSON(`swaggerman.auth.${targetUrl}`, {} as Record<string, string>));
       setEnvs(loadJSON(`swaggerman.envs.${targetUrl}`, [] as { name: string; baseURL: string }[]));
+      setBodySamples(
+        loadJSON(`swaggerman.samples.${targetUrl}`, {} as Record<string, { name: string; body: string }[]>),
+      );
       opCacheRef.current.clear();
       setSelected(null);
       setInputs(null);
@@ -419,6 +449,13 @@ export default function App() {
             onChange={setInputs}
             onSend={send}
             onCancel={cancelSend}
+            samples={selected ? (bodySamples[selected.id] ?? []) : []}
+            onSaveSample={(name) => {
+              if (selected && inputs) saveSample(selected.id, name, inputs.body);
+            }}
+            onDeleteSample={(name) => {
+              if (selected) deleteSample(selected.id, name);
+            }}
           />
         </Panel>
         <PanelResizeHandle className="resize-handle" />

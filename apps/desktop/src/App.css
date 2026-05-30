@@ -570,6 +570,47 @@ select:hover {
   font-family: ui-monospace, monospace;
   resize: vertical;
 }
+.body-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+.body-head h4 {
+  margin: 0;
+}
+.sample-bar {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+.sample-select {
+  min-width: 160px;
+  max-width: 240px;
+  font-size: 12px;
+  padding-top: 6px;
+  padding-bottom: 6px;
+}
+.btn.icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px 7px;
+}
+.hist-actions button {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px;
+}
+.sample-add {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+.sample-name-input {
+  width: 110px;
+}
 
 /* Response pane */
 .response-status {
