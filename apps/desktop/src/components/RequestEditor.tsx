@@ -2,8 +2,10 @@ import { useState } from "react";
 import type { ParsedOperation } from "../core/types";
 import { buildRequestUrl, type RequestInputs, type RequestParam } from "../core/request-builder";
 import { relativeTime, type HistoryItem } from "../core/history";
+import type { Assertion, AssertionResult, ExtractRule } from "../core/variables";
 import { methodColor, statusColor } from "./method";
 import { TrashIcon } from "./icons";
+import { TestPanel } from "./TestPanel";
 
 interface Props {
   operation: ParsedOperation | null;
@@ -19,6 +21,11 @@ interface Props {
   onSaveSample: (name: string) => void;
   onDeleteSample: (name: string) => void;
   historyItem: HistoryItem | null;
+  extractRules: ExtractRule[];
+  assertions: Assertion[];
+  assertResults: AssertionResult[];
+  onExtractChange: (rules: ExtractRule[]) => void;
+  onAssertChange: (asserts: Assertion[]) => void;
 }
 
 export function HistoryBanner({ item }: { item: HistoryItem }) {
@@ -49,6 +56,11 @@ export function RequestEditor({
   onSaveSample,
   onDeleteSample,
   historyItem,
+  extractRules,
+  assertions,
+  assertResults,
+  onExtractChange,
+  onAssertChange,
 }: Props) {
   const [sampleName, setSampleName] = useState<string | null>(null);
   const [activeSample, setActiveSample] = useState("");
@@ -260,6 +272,14 @@ export function RequestEditor({
             />
           </section>
         )}
+
+        <TestPanel
+          extractRules={extractRules}
+          assertions={assertions}
+          results={assertResults}
+          onExtractChange={onExtractChange}
+          onAssertChange={onAssertChange}
+        />
       </div>
     </main>
   );

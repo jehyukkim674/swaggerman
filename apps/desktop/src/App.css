@@ -1233,3 +1233,83 @@ mark.hl.active {
   overflow: hidden;
   text-overflow: ellipsis;
 }
+
+/* 환경 변수 카드 */
+.env-modal {
+  width: 620px;
+}
+.env-card {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.env-vars {
+  border-top: 1px dashed var(--border);
+  padding-top: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.env-vars-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--muted);
+}
+.env-var-row {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+/* 테스트 & 체이닝 패널 */
+.test-panel summary {
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.test-badge {
+  font-size: 10px;
+  border-radius: 4px;
+  padding: 1px 6px;
+}
+.test-badge.pass {
+  color: #5ad19b;
+  border: 1px solid #2e6b52;
+}
+.test-badge.fail {
+  color: #ff7b72;
+  border: 1px solid #6b2e2e;
+}
+.test-block {
+  margin-top: 8px;
+}
+.test-block-head {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--muted);
+  margin-bottom: 4px;
+}
+.assert-row {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  margin-bottom: 4px;
+}
+.assert-kind,
+.assert-op {
+  flex: 0 0 auto;
+}
+.assert-ok {
+  color: #5ad19b;
+  font-weight: 700;
+}
+.assert-bad {
+  color: #ff7b72;
+  font-weight: 700;
+}

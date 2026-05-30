@@ -12,6 +12,13 @@ import {
   type RequestParam,
 } from "./core/request-builder";
 import { computeSecurityHeaders } from "./core/security";
+import {
+  applyExtractRules,
+  runAssertions,
+  type Assertion,
+  type AssertionResult,
+  type ExtractRule,
+} from "./core/variables";
 import { loadJSON, saveJSON } from "./core/storage";
 import { newId, type HistoryItem } from "./core/history";
 import type { HTTPRequest, HTTPResponse, ParsedOperation, ParsedSpec } from "./core/types";
@@ -74,6 +81,17 @@ export default function App() {
 
   // 요청 체이닝으로 추출된 런타임 변수(응답에서 뽑은 값). 환경 변수보다 우선.
   const [chainVars, setChainVars] = useState<Record<string, string>>({});
+
+  // 오퍼레이션별 응답 추출 규칙 / 어서션 — 프로젝트별 저장
+  const [extractRules, setExtractRules] = useState<Record<string, ExtractRule[]>>({});
+  const [assertions, setAssertions] = useState<Record<string, Assertion[]>>({});
+  const [assertResults, setAssertResults] = useState<AssertionResult[]>([]);
+  useEffect(() => {
+    if (activeSpecUrl) saveJSON(`swaggerman.extract.${activeSpecUrl}`, extractRules);
+  }, [extractRules, activeSpecUrl]);
+  useEffect(() => {
+    if (activeSpecUrl) saveJSON(`swaggerman.assert.${activeSpecUrl}`, assertions);
+  }, [assertions, activeSpecUrl]);
 
   // 현재 적용 중인 변수 맵: 환경 변수 < 체인 변수
   const activeVars = useMemo(() => {
@@ -200,6 +218,11 @@ export default function App() {
       setAuthValues(loadJSON(`swaggerman.auth.${targetUrl}`, {} as Record<string, string>));
       setEnvs(loadJSON(`swaggerman.envs.${targetUrl}`, [] as Env[]));
       setChainVars({});
+      setExtractRules(
+        loadJSON(`swaggerman.extract.${targetUrl}`, {} as Record<string, ExtractRule[]>),
+      );
+      setAssertions(loadJSON(`swaggerman.assert.${targetUrl}`, {} as Record<string, Assertion[]>));
+      setAssertResults([]);
       setBodySamples(
         loadJSON(`swaggerman.samples.${targetUrl}`, {} as Record<string, { name: string; body: string }[]>),
       );
@@ -233,6 +256,7 @@ export default function App() {
   function selectOperation(op: ParsedOperation) {
     stashCurrent();
     setSelectedHistory(null);
+    setAssertResults([]);
     setSelected(op);
     const cached = opCacheRef.current.get(op.id);
     if (cached) {
@@ -263,6 +287,13 @@ export default function App() {
       if (sendIdRef.current !== myId) return; // 취소됨
       setResponse(res);
       setResponseTab("response");
+      // 체이닝: 응답에서 변수 추출 → 다음 요청에 사용
+      const extracted = applyExtractRules(res.body, extractRules[op.id] ?? []);
+      if (Object.keys(extracted).length > 0) {
+        setChainVars((prev) => ({ ...prev, ...extracted }));
+      }
+      // 어서션: 응답 검증 결과 표시
+      setAssertResults(runAssertions(res.statusCode, res.body, assertions[op.id] ?? []));
       opCacheRef.current.set(op.id, { inputs: ins, response: res, lastRequest: request, sendError: null });
       const item: HistoryItem = {
         id: newId(),
@@ -305,6 +336,7 @@ export default function App() {
 
   function selectHistory(item: HistoryItem) {
     stashCurrent();
+    setAssertResults([]);
     setSelectedHistory(item);
     const op = spec?.operations.find((o) => o.id === item.opId);
     if (op) {
@@ -506,6 +538,15 @@ export default function App() {
               if (selected) deleteSample(selected.id, name);
             }}
             historyItem={selectedHistory}
+            extractRules={selected ? (extractRules[selected.id] ?? []) : []}
+            assertions={selected ? (assertions[selected.id] ?? []) : []}
+            assertResults={assertResults}
+            onExtractChange={(rules) => {
+              if (selected) setExtractRules((prev) => ({ ...prev, [selected.id]: rules }));
+            }}
+            onAssertChange={(asserts) => {
+              if (selected) setAssertions((prev) => ({ ...prev, [selected.id]: asserts }));
+            }}
           />
         </Panel>
         <PanelResizeHandle className="resize-handle" />
