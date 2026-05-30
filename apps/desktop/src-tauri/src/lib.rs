@@ -58,7 +58,7 @@ fn cookie_store() -> Arc<CookieStoreMutex> {
         .clone()
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, Debug)]
 #[serde(rename_all = "camelCase")]
 struct CookieInfo {
     name: String,
@@ -330,5 +330,55 @@ mod tests {
         write_text_file(path.clone(), "{\"x\":1}".into()).unwrap();
         assert_eq!(read_text_file(path.clone()).unwrap(), "{\"x\":1}");
         let _ = std::fs::remove_file(&path);
+    }
+
+    /// 요청 `count`건을 받아 각 요청을 캡처하고 매번 동일 응답을 반환.
+    fn spawn_server_multi(response: &'static str, count: usize) -> (String, mpsc::Receiver<String>) {
+        let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+        let addr = listener.local_addr().unwrap();
+        let (tx, rx) = mpsc::channel();
+        std::thread::spawn(move || {
+            let mut served = 0;
+            for stream in listener.incoming() {
+                let mut s = match stream {
+                    Ok(s) => s,
+                    Err(_) => break,
+                };
+                let mut buf = vec![0u8; 8192];
+                let n = s.read(&mut buf).unwrap_or(0);
+                let _ = tx.send(String::from_utf8_lossy(&buf[..n]).to_string());
+                let _ = s.write_all(response.as_bytes());
+                served += 1;
+                if served >= count {
+                    break;
+                }
+            }
+        });
+        (format!("http://{addr}/"), rx)
+    }
+
+    #[tokio::test]
+    async fn cookie_jar_persists_and_clears() {
+        clear_cookies();
+        let resp = "HTTP/1.1 200 OK\r\nSet-Cookie: sid=abc; Path=/\r\nContent-Length: 2\r\n\r\nok";
+        let (url, rx) = spawn_server_multi(resp, 2);
+
+        // 1st: Set-Cookie 수신
+        http_request(args(url.clone())).await.unwrap();
+        let cookies = list_cookies();
+        assert!(
+            cookies.iter().any(|c| c.name == "sid" && c.value == "abc"),
+            "쿠키 저장 실패: {cookies:?}"
+        );
+
+        // 2nd: 저장된 쿠키가 자동 첨부되는지
+        http_request(args(url)).await.unwrap();
+        let _first = rx.recv_timeout(Duration::from_secs(3)).unwrap();
+        let second = rx.recv_timeout(Duration::from_secs(3)).unwrap().to_lowercase();
+        assert!(second.contains("cookie: sid=abc"), "쿠키 미첨부: {second}");
+
+        // clear 후 비어있는지
+        clear_cookies();
+        assert!(list_cookies().iter().all(|c| c.name != "sid"));
     }
 }

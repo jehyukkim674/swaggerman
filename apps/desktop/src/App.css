@@ -1735,3 +1735,26 @@ mark.hl.active {
   white-space: nowrap;
   max-width: 50%;
 }
+
+/* 사이드바 탭 건수 배지 */
+.sidebar-tabs button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+.tab-badge {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 0 6px;
+  min-width: 16px;
+  border-radius: 10px;
+  background: var(--bg);
+  color: var(--muted);
+  border: 1px solid var(--border);
+}
+.sidebar-tabs button.active .tab-badge {
+  background: rgba(255, 255, 255, 0.25);
+  color: #fff;
+  border-color: transparent;
+}

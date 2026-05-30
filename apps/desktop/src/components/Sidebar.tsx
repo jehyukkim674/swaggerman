@@ -111,7 +111,10 @@ export function Sidebar(props: Props) {
           API
         </button>
         <button className={tab === "history" ? "active" : ""} onClick={() => setTab("history")}>
-          히스토리{props.history.length > 0 ? ` ${props.history.length}` : ""}
+          히스토리
+          {props.history.length > 0 && (
+            <span className="tab-badge">{props.history.length}</span>
+          )}
         </button>
       </div>
 
