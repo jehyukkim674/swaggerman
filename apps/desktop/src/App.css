@@ -1313,3 +1313,45 @@ mark.hl.active {
   color: #ff7b72;
   font-weight: 700;
 }
+
+/* OAuth2 토큰 발급 폼 */
+.oauth2-block {
+  margin-top: 6px;
+  border-top: 1px solid var(--border);
+  padding-top: 8px;
+}
+.oauth2-block summary {
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text);
+}
+.oauth2-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-top: 8px;
+}
+.oauth2-field {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.oauth2-field span {
+  font-size: 10px;
+  color: var(--muted);
+}
+.oauth2-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 10px;
+}
+.oauth2-ok {
+  color: #5ad19b;
+  font-size: 11px;
+}
+.oauth2-bad {
+  color: #ff7b72;
+  font-size: 11px;
+}

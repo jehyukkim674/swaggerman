@@ -19,6 +19,7 @@ import {
   type AssertionResult,
   type ExtractRule,
 } from "./core/variables";
+import { emptyOAuth2Config, fetchOAuth2Token, type OAuth2Config } from "./core/oauth2";
 import { loadJSON, saveJSON } from "./core/storage";
 import { newId, type HistoryItem } from "./core/history";
 import type { HTTPRequest, HTTPResponse, ParsedOperation, ParsedSpec } from "./core/types";
@@ -106,6 +107,12 @@ export default function App() {
   const [globalHeaders, setGlobalHeaders] = useState<RequestParam[]>([]);
   const [headerModalOpen, setHeaderModalOpen] = useState(false);
   const [authModalOpen, setAuthModalOpen] = useState(false);
+
+  // OAuth2 토큰 발급 설정 — 프로젝트별 저장
+  const [oauth2Config, setOauth2Config] = useState<OAuth2Config>(emptyOAuth2Config());
+  useEffect(() => {
+    if (activeSpecUrl) saveJSON(`swaggerman.oauth2.${activeSpecUrl}`, oauth2Config);
+  }, [oauth2Config, activeSpecUrl]);
   useEffect(() => {
     if (activeSpecUrl) saveJSON(`swaggerman.headers.${activeSpecUrl}`, globalHeaders);
   }, [globalHeaders, activeSpecUrl]);
@@ -223,6 +230,7 @@ export default function App() {
       );
       setAssertions(loadJSON(`swaggerman.assert.${targetUrl}`, {} as Record<string, Assertion[]>));
       setAssertResults([]);
+      setOauth2Config(loadJSON(`swaggerman.oauth2.${targetUrl}`, emptyOAuth2Config()));
       setBodySamples(
         loadJSON(`swaggerman.samples.${targetUrl}`, {} as Record<string, { name: string; body: string }[]>),
       );
@@ -586,6 +594,9 @@ export default function App() {
           values={authValues}
           onChange={setAuthValues}
           onClose={() => setAuthModalOpen(false)}
+          oauth2={oauth2Config}
+          onOauth2Change={setOauth2Config}
+          onFetchToken={(cfg) => fetchOAuth2Token(cfg, executeRequest)}
         />
       )}
     </div>
