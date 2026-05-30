@@ -80,17 +80,33 @@ export function defaultBody(operation: ParsedOperation): string {
   return "{}";
 }
 
-/** baseURL + operation + 입력값으로 요청 URL을 계산(미리보기/전송 공용). */
+/** baseURL + operation + 입력값으로 요청 URL을 계산.
+ *  encode=false: 사람이 읽기 좋은 raw 문자열(미리보기용, 한글 그대로)
+ *  encode=true(기본): 퍼센트 인코딩된 실제 요청 URL */
 export function buildRequestUrl(
   baseURL: string,
   operation: ParsedOperation,
   inputs: RequestInputs,
+  encode = true,
 ): string {
+  const base = baseURL.replace(/\/+$/, "");
+
+  if (!encode) {
+    let path = operation.path;
+    for (const [key, value] of Object.entries(inputs.pathParams)) {
+      path = path.replace(`{${key}}`, value);
+    }
+    const query = inputs.queryParams
+      .filter((q) => q.enabled && q.key && q.value !== "")
+      .map((q) => `${q.key}=${q.value}`)
+      .join("&");
+    return base + path + (query ? `?${query}` : "");
+  }
+
   let path = operation.path;
   for (const [key, value] of Object.entries(inputs.pathParams)) {
     path = path.replace(`{${key}}`, encodeURIComponent(value));
   }
-  const base = baseURL.replace(/\/+$/, "");
   try {
     const url = new URL(base + path);
     for (const q of inputs.queryParams) {

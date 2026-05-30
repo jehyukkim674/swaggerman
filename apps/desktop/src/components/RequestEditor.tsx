@@ -97,8 +97,8 @@ export function RequestEditor({
         )}
       </div>
 
-      <div className="url-preview" title={buildRequestUrl(baseURL, operation, inputs)}>
-        {buildRequestUrl(baseURL, operation, inputs)}
+      <div className="url-preview" title={buildRequestUrl(baseURL, operation, inputs, false)}>
+        {buildRequestUrl(baseURL, operation, inputs, false)}
       </div>
 
       <div className="request-body-scroll">

@@ -38,12 +38,21 @@ async fn http_request(args: HttpRequestArgs) -> Result<HttpResult, String> {
     let method = reqwest::Method::from_bytes(args.method.to_uppercase().as_bytes())
         .map_err(|e| format!("잘못된 메서드: {e}"))?;
 
-    let mut request = client.request(method, &args.url);
+    // 헤더 이름은 ASCII 토큰만 유효하므로, 파싱 불가한 헤더(예: 한글 이름)는 건너뛴다.
+    // (값은 UTF-8 바이트 허용) — 잘못된 헤더 하나로 요청 전체가 실패("builder error")하지 않도록.
+    let mut header_map = reqwest::header::HeaderMap::new();
     for (key, value) in &args.headers {
-        if !key.is_empty() {
-            request = request.header(key, value);
+        if key.is_empty() {
+            continue;
+        }
+        if let (Ok(name), Ok(val)) = (
+            reqwest::header::HeaderName::from_bytes(key.as_bytes()),
+            reqwest::header::HeaderValue::from_bytes(value.as_bytes()),
+        ) {
+            header_map.insert(name, val);
         }
     }
+    let mut request = client.request(method, &args.url).headers(header_map);
     if let Some(body) = args.body {
         if !body.is_empty() {
             request = request.body(body);

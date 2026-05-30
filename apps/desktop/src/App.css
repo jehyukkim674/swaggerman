@@ -315,17 +315,31 @@ select:hover {
   flex-direction: column;
 }
 
-/* 드래그 리사이즈 핸들 */
+/* 드래그 리사이즈 핸들 (넓은 히트영역 + 가는 중앙선) */
 .resize-handle {
-  width: 6px;
+  width: 10px;
   flex-shrink: 0;
-  background: var(--border);
+  background: transparent;
   cursor: col-resize;
-  transition: background 0.12s;
+  position: relative;
 }
-.resize-handle:hover,
-.resize-handle[data-resize-handle-state="hover"],
-.resize-handle[data-resize-handle-state="drag"] {
+.resize-handle::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 1px;
+  background: var(--border);
+  transition:
+    background 0.12s,
+    width 0.12s;
+}
+.resize-handle:hover::after,
+.resize-handle[data-resize-handle-state="hover"]::after,
+.resize-handle[data-resize-handle-state="drag"]::after {
+  width: 3px;
   background: var(--accent);
 }
 
@@ -661,6 +675,16 @@ select:hover {
   color: #f85149;
   background: #f8514918;
   border-color: #f85149;
+}
+.count-badge {
+  margin-left: 6px;
+  background: var(--accent);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 10px;
+  vertical-align: middle;
 }
 .hist-actions button {
   display: inline-flex;

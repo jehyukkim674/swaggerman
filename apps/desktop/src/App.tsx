@@ -397,9 +397,12 @@ export default function App() {
               title="모든 요청에 적용되는 전역 헤더 관리"
               onClick={() => setHeaderModalOpen(true)}
             >
-              전역 헤더
-              {globalHeaders.filter((h) => h.enabled && h.key).length > 0 &&
-                ` ${globalHeaders.filter((h) => h.enabled && h.key).length}`}
+              전역 헤더 설정
+              {globalHeaders.filter((h) => h.enabled && h.key).length > 0 && (
+                <span className="count-badge">
+                  {globalHeaders.filter((h) => h.enabled && h.key).length}개
+                </span>
+              )}
             </button>
           </div>
           <AuthorizePanel schemes={spec.securitySchemes} values={authValues} onChange={setAuthValues} />
