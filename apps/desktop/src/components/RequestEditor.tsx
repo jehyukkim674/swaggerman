@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { open } from "@tauri-apps/plugin-dialog";
 import type { ParsedOperation } from "../core/types";
+import { validateRequestInputs } from "../core/schema-validate";
 import {
   buildRequestUrl,
   type BodyMode,
@@ -71,6 +72,10 @@ export function RequestEditor({
 }: Props) {
   const [sampleName, setSampleName] = useState<string | null>(null);
   const [activeSample, setActiveSample] = useState("");
+  const reqIssues = useMemo(
+    () => (operation && inputs ? validateRequestInputs(operation, inputs) : []),
+    [operation, inputs],
+  );
   if (!operation || !inputs) {
     return (
       <main className="request-pane">
@@ -137,6 +142,12 @@ export function RequestEditor({
       <div className="url-preview" title={buildRequestUrl(baseURL, operation, inputs, false, vars)}>
         {buildRequestUrl(baseURL, operation, inputs, false, vars)}
       </div>
+
+      {reqIssues.length > 0 && (
+        <div className="req-warn" title="스펙 기준 필수 항목 누락(전송은 가능)">
+          ⚠ 필수 누락: {reqIssues.map((i) => i.path).join(", ")}
+        </div>
+      )}
 
       <div className="request-body-scroll">
         {operation.summary && <p className="op-desc">{operation.summary}</p>}

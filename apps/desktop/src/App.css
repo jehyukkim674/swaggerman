@@ -1536,3 +1536,49 @@ mark.hl.active {
 .saved-folder {
   color: var(--muted);
 }
+
+/* 스펙 인지: 요청 경고 / 응답 스키마 검증 */
+.req-warn {
+  margin: 0 12px 8px;
+  padding: 4px 8px;
+  font-size: 11px;
+  color: #d29922;
+  background: #d2992218;
+  border: 1px solid #d2992255;
+  border-radius: 6px;
+}
+.schema-check {
+  margin: 6px 0;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 6px 8px;
+}
+.schema-check summary {
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 600;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.schema-ok {
+  color: #5ad19b;
+  font-size: 11px;
+}
+.schema-bad {
+  color: #ff7b72;
+  font-size: 11px;
+}
+.schema-issue {
+  display: flex;
+  gap: 8px;
+  font-family: ui-monospace, monospace;
+  font-size: 11px;
+  padding: 1px 0 1px 10px;
+}
+.schema-issue-path {
+  color: #79c0ff;
+}
+.schema-issue-msg {
+  color: var(--muted);
+}

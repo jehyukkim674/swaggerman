@@ -7,6 +7,7 @@ import { JsonView } from "./JsonView";
 import { buildSnippet, SNIPPET_LANGS, type SnippetLang } from "../core/snippet-builder";
 import { HistoryBanner } from "./RequestEditor";
 import type { HistoryItem } from "../core/history";
+import type { ValidationIssue } from "../core/schema-validate";
 
 interface Props {
   response: HTTPResponse | null;
@@ -17,6 +18,7 @@ interface Props {
   tab: "docs" | "response";
   onTab: (tab: "docs" | "response") => void;
   historyItem: HistoryItem | null;
+  schemaIssues: ValidationIssue[];
 }
 
 function prettyBody(body: string): string {
@@ -47,6 +49,7 @@ export function ResponseView({
   tab,
   onTab,
   historyItem,
+  schemaIssues,
 }: Props) {
   const [copied, setCopied] = useState<string | null>(null);
   const [search, setSearch] = useState("");
@@ -159,6 +162,25 @@ export function ResponseView({
           <span className="method-mini">{request.method}</span>
           <span className="req-url-text">{request.url}</span>
         </div>
+      )}
+
+      {operation && operation.responses.some((r) => r.schema) && (
+        <details className="schema-check" open={schemaIssues.length > 0}>
+          <summary>
+            스키마 검증
+            {schemaIssues.length === 0 ? (
+              <span className="schema-ok">✓ 일치</span>
+            ) : (
+              <span className="schema-bad">✕ {schemaIssues.length}건 불일치</span>
+            )}
+          </summary>
+          {schemaIssues.map((issue, i) => (
+            <div className="schema-issue" key={i}>
+              <span className="schema-issue-path">{issue.path}</span>
+              <span className="schema-issue-msg">{issue.message}</span>
+            </div>
+          ))}
+        </details>
       )}
 
       <details className="resp-headers">

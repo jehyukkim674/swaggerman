@@ -13,6 +13,7 @@ import {
   type RequestParam,
 } from "./core/request-builder";
 import { savedToRequest, type Collection } from "./core/collections";
+import { validateResponseBody, type ValidationIssue } from "./core/schema-validate";
 import { computeSecurityHeaders } from "./core/security";
 import {
   applyExtractRules,
@@ -101,6 +102,7 @@ export default function App() {
   const [extractRules, setExtractRules] = useState<Record<string, ExtractRule[]>>({});
   const [assertions, setAssertions] = useState<Record<string, Assertion[]>>({});
   const [assertResults, setAssertResults] = useState<AssertionResult[]>([]);
+  const [schemaIssues, setSchemaIssues] = useState<ValidationIssue[]>([]);
   useEffect(() => {
     if (activeSpecUrl) saveJSON(`swaggerman.extract.${activeSpecUrl}`, extractRules);
   }, [extractRules, activeSpecUrl]);
@@ -277,6 +279,7 @@ export default function App() {
       );
       setAssertions(loadJSON(`swaggerman.assert.${targetUrl}`, {} as Record<string, Assertion[]>));
       setAssertResults([]);
+      setSchemaIssues([]);
       setOauth2Config(loadJSON(`swaggerman.oauth2.${targetUrl}`, emptyOAuth2Config()));
       setBodySamples(
         loadJSON(`swaggerman.samples.${targetUrl}`, {} as Record<string, { name: string; body: string }[]>),
@@ -334,6 +337,7 @@ export default function App() {
       setLastRequest(null);
       setSendError(null);
       setAssertResults([]);
+      setSchemaIssues([]);
       setResponseTab("docs");
     }
     log.debug("ui", `오퍼레이션 선택: ${op.method} ${op.path}`);
@@ -369,6 +373,10 @@ export default function App() {
         log.info("assert", `${results.filter((r) => r.ok).length}/${results.length} 통과`);
       }
       setAssertResults(results);
+      // 스펙 인지: 응답을 OpenAPI 응답 스키마와 대조
+      const issues = validateResponseBody(op, res.statusCode, res.body);
+      if (issues.length > 0) log.warn("schema", `응답 스키마 불일치 ${issues.length}건`);
+      setSchemaIssues(issues);
       opCacheRef.current.set(op.id, {
         inputs: ins,
         response: res,
@@ -398,6 +406,7 @@ export default function App() {
       setSendError(msg);
       setResponse(null);
       setAssertResults([]);
+      setSchemaIssues([]);
     } finally {
       if (sendIdRef.current === myId) setSending(false);
     }
@@ -417,6 +426,7 @@ export default function App() {
     stashCurrent();
     setSelectedHistory(null);
     setAssertResults([]);
+    setSchemaIssues([]);
     setBaseURL(importedBaseURL);
     setSelected(op);
     setInputs(ins);
@@ -451,6 +461,7 @@ export default function App() {
   function selectHistory(item: HistoryItem) {
     stashCurrent();
     setAssertResults([]);
+    setSchemaIssues([]);
     setSelectedHistory(item);
     const op = spec?.operations.find((o) => o.id === item.opId);
     if (op) {
@@ -720,6 +731,7 @@ export default function App() {
             tab={responseTab}
             onTab={setResponseTab}
             historyItem={selectedHistory}
+            schemaIssues={schemaIssues}
           />
         </Panel>
       </PanelGroup>
