@@ -42,6 +42,7 @@ import { AuthorizeModal } from "./components/AuthorizeModal";
 import { CurlImportModal } from "./components/CurlImportModal";
 import { CollectionsModal } from "./components/CollectionsModal";
 import { RunnerModal, type RunResult } from "./components/RunnerModal";
+import { CommandPalette } from "./components/CommandPalette";
 import { SettingsModal } from "./components/SettingsModal";
 import { EnvironmentsModal } from "./components/EnvironmentsModal";
 import { GlobalHeadersModal } from "./components/GlobalHeadersModal";
@@ -200,6 +201,16 @@ export default function App() {
   useEffect(() => {
     saveJSON("swaggerman.projects", projects);
   }, [projects]);
+
+  // 테마(다크/라이트) — 전역 저장
+  const [theme, setTheme] = useState<"dark" | "light">(() => loadJSON("swaggerman.theme", "dark"));
+  useEffect(() => {
+    document.documentElement.setAttribute("data-theme", theme);
+    saveJSON("swaggerman.theme", theme);
+  }, [theme]);
+
+  // 커맨드 팔레트(⌘K)
+  const [paletteOpen, setPaletteOpen] = useState(false);
 
   // 전역 줌 (Cmd/Ctrl +/-/0)
   const [zoom, setZoom] = useState<number>(() => loadJSON("swaggerman.zoom", 1));
@@ -467,6 +478,11 @@ export default function App() {
         e.preventDefault();
         if (!sending) sendRef.current();
       }
+      // ⌘/Ctrl + K: 커맨드 팔레트
+      if ((e.metaKey || e.ctrlKey) && (e.key === "k" || e.key === "K")) {
+        e.preventDefault();
+        setPaletteOpen(true);
+      }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
@@ -681,6 +697,13 @@ export default function App() {
                 </button>
               );
             })()}
+          <button
+            className="btn small"
+            title={theme === "dark" ? "라이트 테마로" : "다크 테마로"}
+            onClick={() => setTheme((t) => (t === "dark" ? "light" : "dark"))}
+          >
+            {theme === "dark" ? "☀︎" : "☾"}
+          </button>
           <div className="zoom-controls">
             <button
               className="btn small"
@@ -788,6 +811,18 @@ export default function App() {
           settings={netSettings}
           onChange={setNetSettings}
           onClose={() => setSettingsOpen(false)}
+        />
+      )}
+      {paletteOpen && (
+        <CommandPalette
+          operations={spec?.operations ?? []}
+          collections={collections}
+          onSelectOperation={selectOperation}
+          onSelectSaved={(s) => {
+            const { operation, inputs: ins, baseURL: b } = savedToRequest(s);
+            importCurl(operation, ins, b);
+          }}
+          onClose={() => setPaletteOpen(false)}
         />
       )}
       {runnerOpen && (

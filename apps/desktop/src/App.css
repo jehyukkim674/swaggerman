@@ -1666,3 +1666,72 @@ mark.hl.active {
   white-space: pre-wrap;
   word-break: break-all;
 }
+
+/* 라이트 테마 */
+:root[data-theme="light"] {
+  --bg: #ffffff;
+  --bg-2: #f6f8fa;
+  --bg-3: #eaeef2;
+  --border: #d0d7de;
+  --text: #1f2328;
+  --muted: #59636e;
+  --accent: #0969da;
+}
+
+/* 커맨드 팔레트 */
+.palette-overlay {
+  align-items: flex-start;
+}
+.palette {
+  margin-top: 12vh;
+  width: 640px;
+  max-width: 90vw;
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.5);
+  overflow: hidden;
+}
+.palette-input {
+  width: 100%;
+  border: none;
+  border-bottom: 1px solid var(--border);
+  border-radius: 0;
+  padding: 12px 14px;
+  font-size: 14px;
+}
+.palette-input:focus {
+  box-shadow: none;
+}
+.palette-list {
+  max-height: 50vh;
+  overflow: auto;
+}
+.palette-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 12px;
+  cursor: pointer;
+}
+.palette-item.active {
+  background: var(--accent);
+  color: #fff;
+}
+.palette-item.active .palette-sub,
+.palette-item.active .method-mini {
+  color: #e8f0ff !important;
+}
+.palette-label {
+  font-family: ui-monospace, monospace;
+  font-size: 13px;
+}
+.palette-sub {
+  color: var(--muted);
+  font-size: 11px;
+  margin-left: auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 50%;
+}
