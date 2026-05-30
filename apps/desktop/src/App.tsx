@@ -209,6 +209,7 @@ export default function App() {
   // 시작 시 업데이트 확인(가능한 환경에서만)
   const [update, setUpdate] = useState<AvailableUpdate | null>(null);
   const [updating, setUpdating] = useState(false);
+  const [updateError, setUpdateError] = useState<string | null>(null);
   useEffect(() => {
     checkForUpdate().then(setUpdate);
   }, []);
@@ -390,11 +391,12 @@ export default function App() {
             disabled={updating}
             onClick={async () => {
               setUpdating(true);
+              setUpdateError(null);
               try {
                 await update.install();
               } catch (e) {
                 setUpdating(false);
-                alert(`업데이트 실패: ${e instanceof Error ? e.message : String(e)}`);
+                setUpdateError(e instanceof Error ? e.message : String(e));
               }
             }}
           >
@@ -403,6 +405,7 @@ export default function App() {
           <button className="btn small" onClick={() => setUpdate(null)}>
             나중에
           </button>
+          {updateError && <span className="update-error">설치 실패: {updateError}</span>}
         </div>
       )}
       <header className="topbar">

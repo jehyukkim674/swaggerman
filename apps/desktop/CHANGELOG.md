@@ -5,6 +5,13 @@
 릴리스 빌드(설치본)는 `SwaggerMan-v*` 태그 푸시 시 GitHub Actions가 생성하며,
 **Releases** 페이지에서 OS별 설치본을 내려받을 수 있습니다.
 
+## v0.2.1
+
+안정성 점검 및 수정.
+
+- 업데이트 설치 실패 시 `alert()` 대신 인라인 에러 표시 (WKWebView에서 alert/confirm/prompt는 동작이 불안정 — 크래시/무반응 가능성 제거)
+- 코드 전반 크래시·버그 위험 지점 점검(변수 치환/체이닝/OAuth2/업데이터, localStorage 안전 파싱, Rust http 커맨드 패닉 없음 확인)
+
 ## v0.2.0
 
 API 클라이언트 사용성 강화 + 자동 업데이트.
