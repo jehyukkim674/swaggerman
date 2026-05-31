@@ -50,7 +50,7 @@ import { GlobalHeadersModal } from "./components/GlobalHeadersModal";
 import { AiPanel } from "./components/AiPanel";
 import { getProvider } from "./core/ai/provider";
 import { buildAiContext } from "./core/ai/context";
-import { applySuggestion } from "./core/ai/schema";
+import { applySuggestion, applySuggestionForOp, filterKnownParams } from "./core/ai/schema";
 import { diagnosePrompt, explainPrompt } from "./core/ai/prompts";
 import type { RequestSuggestion } from "./core/ai/types";
 
@@ -275,11 +275,14 @@ export default function App() {
   // AI 제안을 현재 폼에 적용(실행하지 않음 — 사용자가 ⌘Enter로 실행)
   function applyAiSuggestion(s: RequestSuggestion) {
     if (!inputs) return;
-    setInputs(applySuggestion(inputs, s));
+    // 제안 카드는 op 전환·히스토리 복원 후에도 남으므로, 적용 시점에 현재 op 기준으로
+    // 다시 필터링한다(다른 op의 path/query 키가 폼에 새는 것 방지).
+    setInputs(applySuggestionForOp(inputs, s, opParamNames));
+    const filtered = filterKnownParams(s, opParamNames);
     const keys = [
-      ...Object.keys(s.pathParams ?? {}),
-      ...Object.keys(s.queryParams ?? {}),
-      ...Object.keys(s.headers ?? {}),
+      ...Object.keys(filtered.pathParams ?? {}),
+      ...Object.keys(filtered.queryParams ?? {}),
+      ...Object.keys(filtered.headers ?? {}),
     ];
     setHighlightedKeys(keys);
     if (highlightTimerRef.current) window.clearTimeout(highlightTimerRef.current);

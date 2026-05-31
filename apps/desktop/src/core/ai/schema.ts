@@ -120,3 +120,16 @@ export function filterKnownParams(s: RequestSuggestion, opParamNames: string[]):
     // headers는 표준/커스텀 헤더가 많아 op 파라미터명에 없어도 통과시킨다.
   };
 }
+
+/**
+ * 제안을 "현재 op" 기준으로 정제해 폼에 적용한다.
+ * 제안 카드는 op 전환·히스토리 복원 후에도 살아남으므로, 적용 시점에 다시 필터링해야
+ * 다른 op의 path/query 키(예: POST /device에 deviceId)가 폼에 새는 것을 막는다.
+ */
+export function applySuggestionForOp(
+  inputs: RequestInputs,
+  s: RequestSuggestion,
+  opParamNames: string[],
+): RequestInputs {
+  return applySuggestion(inputs, filterKnownParams(s, opParamNames));
+}
