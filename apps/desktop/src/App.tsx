@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels";
+import { Panel, PanelGroup, PanelResizeHandle, type ImperativePanelHandle } from "react-resizable-panels";
 import { getCurrentWebview } from "@tauri-apps/api/webview";
 import "./App.css";
 import { loadSpec as loadSpecFromUrl } from "./core/spec-loader";
@@ -222,6 +222,16 @@ export default function App() {
   useEffect(() => {
     saveJSON("swaggerman.aiOpen", aiOpen);
   }, [aiOpen]);
+
+  // AI 패널 접기(folding) — 열린 상태에서 좁게 접기/펼치기, 전역 저장
+  const [aiCollapsed, setAiCollapsed] = useState<boolean>(() =>
+    loadJSON("swaggerman.aiCollapsed", false),
+  );
+  useEffect(() => {
+    saveJSON("swaggerman.aiCollapsed", aiCollapsed);
+  }, [aiCollapsed]);
+  const aiPanelRef = useRef<ImperativePanelHandle>(null);
+
   const aiProvider = useMemo(() => getProvider("claude"), []);
 
   // AI에 줄 현재 컨텍스트 조립(엔드포인트/폼/응답/환경변수명)
@@ -853,12 +863,46 @@ export default function App() {
         {aiOpen && (
           <>
             <PanelResizeHandle className="resize-handle" />
-            <Panel id="ai" order={4} defaultSize={26} minSize={16} className="pane">
-              <AiPanel
-                provider={aiProvider}
-                buildContext={currentAiContext}
-                onApplySuggestion={applyAiSuggestion}
-              />
+            <Panel
+              id="ai"
+              order={4}
+              ref={aiPanelRef}
+              collapsible
+              collapsedSize={4}
+              defaultSize={aiCollapsed ? 4 : 26}
+              minSize={16}
+              onCollapse={() => setAiCollapsed(true)}
+              onExpand={() => setAiCollapsed(false)}
+              className="pane"
+            >
+              {aiCollapsed ? (
+                <button
+                  className="ai-collapsed-strip"
+                  title="AI 패널 펼치기"
+                  onClick={() => aiPanelRef.current?.expand()}
+                >
+                  ✦
+                </button>
+              ) : (
+                <div className="ai-panel-wrap">
+                  <div className="ai-collapse-bar">
+                    <button
+                      className="ai-collapse-btn"
+                      title="AI 패널 접기"
+                      onClick={() => aiPanelRef.current?.collapse()}
+                    >
+                      ›
+                    </button>
+                  </div>
+                  <div className="ai-panel-body">
+                    <AiPanel
+                      provider={aiProvider}
+                      buildContext={currentAiContext}
+                      onApplySuggestion={applyAiSuggestion}
+                    />
+                  </div>
+                </div>
+              )}
             </Panel>
           </>
         )}
