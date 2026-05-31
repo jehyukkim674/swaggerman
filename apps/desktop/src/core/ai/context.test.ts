@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { buildAiContext } from "./context";
 import type { ParsedOperation, HTTPResponse } from "../types";
+import type { RequestInputs } from "../request-builder";
 
 const op: ParsedOperation = {
   id: "POST /products",
@@ -39,7 +40,37 @@ describe("buildAiContext", () => {
     expect(ctx).toContain("stock");
   });
 
-  it("환경변수는 이름만 넣고 값은 넣지 않는다", () => {
+  // Fix 1: nested object schemas should expand sub-fields recursively
+  it("중첩 객체 스키마의 하위 필드를 재귀적으로 펼친다", () => {
+    const nestedOp: ParsedOperation = {
+      ...op,
+      requestBody: {
+        required: true,
+        contentType: "application/json",
+        schema: {
+          type: "object",
+          properties: {
+            name: { type: "string" },
+            address: {
+              type: "object",
+              properties: {
+                city: { type: "string" },
+                zip: { type: "string" },
+              },
+            },
+          },
+          required: ["name"],
+        },
+      },
+    };
+    const ctx = buildAiContext({ op: nestedOp, inputs: null, response: null, envVarNames: [], baseURL: "" });
+    expect(ctx).toContain("address");
+    expect(ctx).toContain("city");
+    expect(ctx).toContain("zip");
+  });
+
+  // Fix 2: env var names should appear as {{NAME}} syntax
+  it("환경변수는 이름만 {{NAME}} 형식으로 넣고 값은 넣지 않는다", () => {
     const ctx = buildAiContext({
       op,
       inputs: null,
@@ -47,9 +78,22 @@ describe("buildAiContext", () => {
       envVarNames: ["TOKEN", "USER_ID"],
       baseURL: "",
     });
-    expect(ctx).toContain("TOKEN");
-    expect(ctx).toContain("USER_ID");
-    expect(ctx).not.toContain("secret-value");
+    expect(ctx).toContain("{{TOKEN}}");
+    expect(ctx).toContain("{{USER_ID}}");
+  });
+
+  // Fix 3: headers are deliberately excluded for security
+  it("inputs.headers의 값(인증 토큰 등)은 컨텍스트에 포함되지 않는다", () => {
+    const inputs: RequestInputs = {
+      pathParams: {},
+      queryParams: [],
+      headers: [{ key: "Authorization", value: "Bearer super-secret-token", enabled: true }],
+      body: "",
+      bodyMode: "raw",
+      form: [],
+    };
+    const ctx = buildAiContext({ op, inputs, response: null, envVarNames: [], baseURL: "" });
+    expect(ctx).not.toContain("super-secret-token");
   });
 
   it("직전 응답이 있으면 상태코드와 본문 일부를 포함한다", () => {
@@ -65,7 +109,8 @@ describe("buildAiContext", () => {
     expect(ctx).toContain("unauthorized");
   });
 
-  it("매우 긴 응답 본문은 잘라낸다(2000자 이하)", () => {
+  // Fix 4: tighten truncation bound to <2500
+  it("매우 긴 응답 본문은 잘라낸다(2500자 이하)", () => {
     const response: HTTPResponse = {
       statusCode: 200,
       headers: {},
@@ -74,6 +119,6 @@ describe("buildAiContext", () => {
       size: 5000,
     };
     const ctx = buildAiContext({ op, inputs: null, response, envVarNames: [], baseURL: "" });
-    expect(ctx.length).toBeLessThan(4000);
+    expect(ctx.length).toBeLessThan(2500);
   });
 });
