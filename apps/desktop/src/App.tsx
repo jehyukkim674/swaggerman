@@ -931,6 +931,7 @@ export default function App() {
                     onApplySuggestion={applyAiSuggestion}
                     paramNames={opParamNames}
                     onMentions={setMentionedKeys}
+                    specUrl={activeSpecUrl}
                   />
                 </div>
               </div>

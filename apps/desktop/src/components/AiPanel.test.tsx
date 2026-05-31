@@ -156,6 +156,29 @@ describe("AiPanel", () => {
     fireEvent.click(screen.getByText("전송"));
     await waitFor(() => expect(onMentions).toHaveBeenCalledWith(["keyword"]));
   });
+
+  it("specUrl 저장본을 마운트 시 복원한다", () => {
+    localStorage.clear();
+    localStorage.setItem(
+      "swaggerman.aichat.http://x",
+      JSON.stringify({ messages: [{ role: "assistant", text: "복원됨" }], totals: { input: 0, output: 0 } }),
+    );
+    const provider = makeProvider();
+    render(<AiPanel provider={provider} buildContext={ctx} onApplySuggestion={() => {}} specUrl="http://x" />);
+    expect(screen.getByText("복원됨")).toBeTruthy();
+  });
+
+  it("새 대화는 저장본도 비운다", () => {
+    localStorage.clear();
+    localStorage.setItem(
+      "swaggerman.aichat.http://x",
+      JSON.stringify({ messages: [{ role: "assistant", text: "옛날" }], totals: { input: 0, output: 0 } }),
+    );
+    const provider = makeProvider();
+    render(<AiPanel provider={provider} buildContext={ctx} onApplySuggestion={() => {}} specUrl="http://x" />);
+    fireEvent.click(screen.getByText("새 대화"));
+    expect(localStorage.getItem("swaggerman.aichat.http://x")).toBeNull();
+  });
 });
 
 describe("detectMentions", () => {

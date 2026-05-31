@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import type { AiProvider, AiHandle } from "../core/ai/provider";
 import type { AiEvent, RequestSuggestion } from "../core/ai/types";
-import { parseSuggestion, requestSuggestionSchema } from "../core/ai/schema";
+import { parseSuggestion, requestSuggestionSchema, filterKnownParams } from "../core/ai/schema";
+import { loadChat, saveChat, clearChat } from "../core/ai/history";
 import { CHAT_MODELS, DEFAULT_CHAT_MODEL, COMPLETE_MODEL } from "../core/ai/models";
 import { AiSuggestionCard } from "./AiSuggestionCard";
 
@@ -18,6 +19,7 @@ interface Props {
   onApplySuggestion: (s: RequestSuggestion) => void;
   paramNames?: string[];
   onMentions?: (keys: string[]) => void;
+  specUrl?: string;
 }
 
 /** 답변 텍스트에서 주어진 파라미터명 중 실제로 등장한 것만 골라낸다(대소문자 무시, 부분 단어 오탐 최소화). */
@@ -41,12 +43,12 @@ const REQUEST_PREFIX = "/요청";
 const CHAT_SYSTEM =
   "당신은 OpenAPI 클라이언트의 어시스턴트입니다. 사용자가 보고 있는 엔드포인트 컨텍스트를 바탕으로 한국어로 간결히 답하세요. 어떤 도구(셸/MCP/네트워크)도 사용하지 말고, 직접 실행을 시도하지 마세요. 이미 정의된 API에 대한 설명/안내만 텍스트로 제공합니다.";
 const REQUEST_SYSTEM =
-  "사용자 의도에 맞는 HTTP 요청 필드를 채우세요. 주어진 JSON 스키마에 맞는 객체만 출력합니다. 어떤 도구도 사용하지 말고 실제 요청을 실행하지 마세요. body에는 마크다운 코드펜스 없이 순수 문자열만 넣고, 스키마에 정의된 키만 사용하세요. 환경 변수는 {{이름}} 형태로 참조할 수 있습니다.";
+  "사용자 의도에 맞는 HTTP 요청 필드를 채우세요. 주어진 JSON 스키마에 맞는 객체만 출력합니다. 어떤 도구도 사용하지 말고 실제 요청을 실행하지 마세요. body에는 마크다운 코드펜스 없이 순수 문자열만 넣고, 스키마에 정의된 키만 사용하세요. 제공된 파라미터 목록에 없는 키는 만들지 말고, 모르면 비워 두세요. 환경 변수는 {{이름}} 형태로 참조할 수 있습니다.";
 
 // 요청 식별용 단조 증가 카운터(취소 매칭용). 모듈 스코프 — 단일 패널 인스턴스 가정.
 let reqCounter = 1;
 
-export function AiPanel({ provider, buildContext, onApplySuggestion, paramNames = [], onMentions }: Props) {
+export function AiPanel({ provider, buildContext, onApplySuggestion, paramNames = [], onMentions, specUrl }: Props) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [totals, setTotals] = useState({ input: 0, output: 0 });
   const [input, setInput] = useState("");
@@ -70,6 +72,7 @@ export function AiPanel({ provider, buildContext, onApplySuggestion, paramNames 
     setBusy(false);
     setBuilding(false);
     onMentions?.([]);
+    if (specUrl) clearChat(specUrl);
   }
 
   async function handleRequestBuild(question: string) {
@@ -86,11 +89,12 @@ export function AiPanel({ provider, buildContext, onApplySuggestion, paramNames 
         schema: JSON.stringify(requestSuggestionSchema),
       });
       if (genRef.current !== myGen) return;
-      const suggestion = parseSuggestion(raw);
-      if (!suggestion) {
+      const parsed = parseSuggestion(raw);
+      const filtered = parsed ? filterKnownParams(parsed, paramNames) : null;
+      if (!filtered) {
         setError("제안을 해석하지 못했습니다. 다시 시도해 주세요.");
       } else {
-        setMessages((m) => [...m, { role: "assistant", text: suggestion.notes ?? "요청을 제안했습니다.", suggestion }]);
+        setMessages((m) => [...m, { role: "assistant", text: filtered.notes ?? "요청을 제안했습니다.", suggestion: filtered }]);
       }
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
@@ -152,6 +156,23 @@ export function AiPanel({ provider, buildContext, onApplySuggestion, paramNames 
     };
   }, []);
 
+  // specUrl별 저장본 복원(specUrl 변경 시 교체).
+  useEffect(() => {
+    if (!specUrl) return;
+    const stored = loadChat(specUrl);
+    setMessages(stored?.messages ?? []);
+    setTotals(stored?.totals ?? { input: 0, output: 0 });
+    sessionRef.current = stored?.sessionId;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [specUrl]);
+
+  // 메시지/누적 변경 시 저장. 빈 대화는 저장하지 않는다(새 대화로 지운 직후
+  // 빈 상태가 저장본을 되살리는 것을 막고, 마운트 시 복원 전 클로버링도 방지).
+  useEffect(() => {
+    if (!specUrl || messages.length === 0) return;
+    saveChat(specUrl, { messages, sessionId: sessionRef.current, totals });
+  }, [messages, totals, specUrl]);
+
   // 마운트 시 claude CLI 가용성 확인(없으면 경고 표시).
   useEffect(() => {
     let alive = true;
@@ -179,13 +200,14 @@ export function AiPanel({ provider, buildContext, onApplySuggestion, paramNames 
         schema: JSON.stringify(requestSuggestionSchema),
       });
       if (genRef.current !== myGen) return;
-      const suggestion = parseSuggestion(raw);
-      if (!suggestion) {
+      const parsed = parseSuggestion(raw);
+      const filtered = parsed ? filterKnownParams(parsed, paramNames) : null;
+      if (!filtered) {
         setError("폼 제안을 해석하지 못했습니다. 다시 시도해 주세요.");
       } else {
         setMessages((arr) => {
           const copy = [...arr];
-          if (copy[index]) copy[index] = { ...copy[index], suggestion };
+          if (copy[index]) copy[index] = { ...copy[index], suggestion: filtered };
           return copy;
         });
       }
