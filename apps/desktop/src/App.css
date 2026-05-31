@@ -1822,6 +1822,23 @@ mark.hl.active {
   gap: 6px;
   margin-top: 8px;
 }
+.ai-fillform-btn {
+  margin-top: 6px;
+  font-size: 11px;
+  padding: 2px 8px;
+  background: transparent;
+  color: var(--accent);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  cursor: pointer;
+}
+.ai-fillform-btn:hover:not(:disabled) {
+  border-color: var(--accent);
+}
+.ai-fillform-btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
 
 /* 라이트 테마 */
 :root[data-theme="light"] {
