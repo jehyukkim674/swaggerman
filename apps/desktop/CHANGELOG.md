@@ -5,6 +5,15 @@
 릴리스 빌드(설치본)는 `SwaggerMan-v*` 태그 푸시 시 GitHub Actions가 생성하며,
 **Releases** 페이지에서 OS별 설치본을 내려받을 수 있습니다.
 
+> **macOS 설치 시 "손상되어 열 수 없습니다"가 뜨면** (서명 미인증 앱): 터미널에서
+> `xattr -dr com.apple.quarantine /Applications/SwaggerMan.app` 실행 후 다시 여세요.
+
+## v0.3.6
+
+- 개선: AI 어시스턴트 패널을 기본으로 열어 둠(이전엔 닫혀 있어 ✦ AI를 눌러야 보였음)
+- 버그수정: 스펙 로드에도 "SSL 검증 끄기" 설정 적용 — 사내 CA·자체서명 인증서 서버의 OpenAPI 스펙을 로드할 수 있음(기존엔 요청 실행만 적용돼 로드가 실패)
+- 변경: 프로세스명을 `desktop` → `SwaggerMan`으로 변경(작업 관리자/Activity Monitor 표기)
+
 ## v0.3.5
 
 - 유지보수: 자동업데이트 검증용 릴리스(공개 미러 레포 자동업데이트 동작 확인)

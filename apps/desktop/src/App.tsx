@@ -220,7 +220,7 @@ export default function App() {
   const [paletteOpen, setPaletteOpen] = useState(false);
 
   // AI 어시스턴트 패널(우측) 토글 — 전역 저장
-  const [aiOpen, setAiOpen] = useState<boolean>(() => loadJSON("swaggerman.aiOpen", false));
+  const [aiOpen, setAiOpen] = useState<boolean>(() => loadJSON("swaggerman.aiOpen", true));
   useEffect(() => {
     saveJSON("swaggerman.aiOpen", aiOpen);
   }, [aiOpen]);
@@ -410,7 +410,7 @@ export default function App() {
     setLoadError(null);
     log.info("spec", `로딩 시작: ${targetUrl}`);
     try {
-      const parsed = await loadSpecFromUrl(targetUrl);
+      const parsed = await loadSpecFromUrl(targetUrl, netSettings.insecure);
       log.info(
         "spec",
         `로딩 성공: "${parsed.info.title}" (오퍼레이션 ${parsed.operations.length}개)`,

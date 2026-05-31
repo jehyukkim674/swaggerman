@@ -1,7 +1,8 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "SwaggerMan",
-  "version": "0.3.5",
+  "mainBinaryName": "SwaggerMan",
+  "version": "0.3.6",
   "identifier": "com.gimjaehyeog.desktop",
   "build": {
     "beforeDevCommand": "npm run dev",

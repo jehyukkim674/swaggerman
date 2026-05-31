@@ -43,9 +43,10 @@ export async function executeRequest(
 export async function rawGet(
   url: string,
   headers: Record<string, string> = {},
+  insecure = false,
 ): Promise<{ status: number; body: string }> {
   const result = await invoke<RawHttpResult>("http_request", {
-    args: { method: "GET", url, headers, body: undefined, timeoutMs: 15_000 },
+    args: { method: "GET", url, headers, body: undefined, timeoutMs: 15_000, insecure },
   });
   return { status: result.status, body: result.body };
 }

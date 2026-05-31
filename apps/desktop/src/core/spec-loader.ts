@@ -66,13 +66,13 @@ function absolutize(base: URL, path: string): string | null {
 }
 
 /** swagger-config(JSON)에서 spec URL들을 추출. 단일 url + 그룹 urls[] 모두 처리. */
-async function configSpecUrls(base: URL): Promise<string[]> {
+async function configSpecUrls(base: URL, insecure: boolean): Promise<string[]> {
   const urls: string[] = [];
   for (const path of CONFIG_PATHS) {
     const configUrl = absolutize(base, path);
     if (!configUrl) continue;
     try {
-      const { status, body } = await rawGet(configUrl);
+      const { status, body } = await rawGet(configUrl, {}, insecure);
       if (status < 200 || status >= 300) continue;
       const config = JSON.parse(body);
       if (typeof config.url === "string" && config.url) {
@@ -99,9 +99,9 @@ type ProbeResult =
   | { kind: "unauthorized" }
   | { kind: "miss" };
 
-async function probe(url: string): Promise<ProbeResult> {
+async function probe(url: string, insecure: boolean): Promise<ProbeResult> {
   try {
-    const { status, body } = await rawGet(url);
+    const { status, body } = await rawGet(url, {}, insecure);
     if (status === 401 || status === 403) return { kind: "unauthorized" };
     if (status < 200 || status >= 300) return { kind: "miss" };
     if (isHtml(body)) return { kind: "miss" };
@@ -112,7 +112,7 @@ async function probe(url: string): Promise<ProbeResult> {
   }
 }
 
-async function discover(specUrl: string, html: string): Promise<ParsedSpec> {
+async function discover(specUrl: string, html: string, insecure: boolean): Promise<ParsedSpec> {
   const base = new URL(specUrl);
   base.search = "";
 
@@ -123,14 +123,14 @@ async function discover(specUrl: string, html: string): Promise<ParsedSpec> {
     const u = absolutize(base, path);
     if (u) candidates.add(u);
   }
-  for (const u of await configSpecUrls(base)) candidates.add(u);
+  for (const u of await configSpecUrls(base, insecure)) candidates.add(u);
   for (const extracted of extractUrlsFromHtml(html)) {
     const u = extracted.startsWith("http") ? extracted : absolutize(base, extracted);
     if (u) candidates.add(u);
   }
 
   // 병렬 probe — 유효 spec(found)을 우선. 일부 401이어도 중단하지 않음.
-  const results = await Promise.all([...candidates].map(probe));
+  const results = await Promise.all([...candidates].map((u) => probe(u, insecure)));
   const found = results.find((r) => r.kind === "found");
   if (found && found.kind === "found") return found.spec;
 
@@ -143,8 +143,8 @@ async function discover(specUrl: string, html: string): Promise<ParsedSpec> {
 }
 
 /** spec URL을 로드해 ParsedSpec 반환. HTML이면 디스커버리 수행. */
-export async function loadSpec(specUrl: string): Promise<ParsedSpec> {
-  const { status, body } = await rawGet(specUrl);
+export async function loadSpec(specUrl: string, insecure = false): Promise<ParsedSpec> {
+  const { status, body } = await rawGet(specUrl, {}, insecure);
 
   if (!isHtml(body)) {
     if (status === 401 || status === 403) {
@@ -159,5 +159,5 @@ export async function loadSpec(specUrl: string): Promise<ParsedSpec> {
     return parseSpecText(body);
   }
 
-  return discover(specUrl, body);
+  return discover(specUrl, body, insecure);
 }
