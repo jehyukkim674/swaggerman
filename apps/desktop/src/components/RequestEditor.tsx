@@ -4,6 +4,7 @@ import type { ParsedOperation } from "../core/types";
 import { validateRequestInputs } from "../core/schema-validate";
 import {
   buildRequestUrl,
+  defaultInputs,
   type BodyMode,
   type FormField,
   type RequestInputs,
@@ -72,6 +73,7 @@ export function RequestEditor({
 }: Props) {
   const [sampleName, setSampleName] = useState<string | null>(null);
   const [activeSample, setActiveSample] = useState("");
+  const [confirmReset, setConfirmReset] = useState(false);
   const reqIssues = useMemo(
     () => (operation && inputs ? validateRequestInputs(operation, inputs) : []),
     [operation, inputs],
@@ -126,6 +128,13 @@ export function RequestEditor({
     }
   };
 
+  // 스펙 기본값으로 path/query 파라미터 초기화(삭제한 파라미터도 복원)
+  const resetParams = () => {
+    const fresh = defaultInputs(operation);
+    onChange({ ...inputs, pathParams: fresh.pathParams, queryParams: fresh.queryParams });
+    setConfirmReset(false);
+  };
+
   return (
     <main className="request-pane">
       {historyItem && <HistoryBanner item={historyItem} />}
@@ -134,6 +143,13 @@ export function RequestEditor({
           {operation.method}
         </span>
         <span className="req-path">{operation.path}</span>
+        <button
+          className="btn small"
+          title="path/query 파라미터를 스펙 기본값으로 초기화"
+          onClick={() => setConfirmReset(true)}
+        >
+          ↺ 초기화
+        </button>
         {sending ? (
           <button className="btn send cancel" onClick={onCancel} title="요청 취소">
             ✕ 취소
@@ -148,6 +164,18 @@ export function RequestEditor({
       <div className="url-preview" title={buildRequestUrl(baseURL, operation, inputs, false, vars)}>
         {buildRequestUrl(baseURL, operation, inputs, false, vars)}
       </div>
+
+      {confirmReset && (
+        <div className="reset-warn">
+          ⚠ 파라미터를 스펙 기본값으로 초기화합니다. 현재 입력값은 사라집니다.
+          <button className="btn small danger" onClick={resetParams}>
+            초기화
+          </button>
+          <button className="btn small" onClick={() => setConfirmReset(false)}>
+            취소
+          </button>
+        </div>
+      )}
 
       {reqIssues.length > 0 && (
         <div className="req-warn" title="스펙 기준 필수 항목 누락(전송은 가능)">
@@ -372,8 +400,10 @@ function ParamSection({
   onAdd,
 }: ParamSectionProps) {
   return (
-    <section className="section">
-      <h4>{title}</h4>
+    <details className="section param-section" open>
+      <summary>
+        {title} <span className="muted">({list.length})</span>
+      </summary>
       {list.map((param, index) => {
         const required = meta?.get(param.key);
         return (
@@ -408,7 +438,7 @@ function ParamSection({
       <button className="add-row" onClick={onAdd}>
         + 추가
       </button>
-    </section>
+    </details>
   );
 }
 
