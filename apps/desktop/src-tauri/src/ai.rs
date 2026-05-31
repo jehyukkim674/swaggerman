@@ -189,7 +189,13 @@ pub fn ai_detect() -> AiDetect {
     if let Ok(p) = which("claude") {
         claude_candidates.push(p);
     }
-    claude_candidates.push(format!("{}/.claude/local/claude", home()));
+    // Finder로 실행한 .app은 셸 PATH(~/.local/bin, /opt/homebrew/bin 등)를 못 받으므로
+    // which 실패에 대비해 흔한 설치 위치를 명시 후보로 보강한다.
+    let h = home();
+    claude_candidates.push(format!("{h}/.claude/local/claude"));
+    claude_candidates.push(format!("{h}/.local/bin/claude"));
+    claude_candidates.push("/opt/homebrew/bin/claude".into());
+    claude_candidates.push("/usr/local/bin/claude".into());
     if let Some(path) = pick_executable(&claude_candidates) {
         if let Some(version) = version_of(&path) {
             d.claude = Some(CliInfo { path, version });

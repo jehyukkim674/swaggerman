@@ -5,6 +5,10 @@
 릴리스 빌드(설치본)는 `SwaggerMan-v*` 태그 푸시 시 GitHub Actions가 생성하며,
 **Releases** 페이지에서 OS별 설치본을 내려받을 수 있습니다.
 
+## v0.3.3
+
+- 버그수정: 설치본(.dmg/.exe)을 Finder/탐색기로 실행하면 셸 PATH를 못 받아 `claude` CLI를 못 찾아 **AI 패널이 동작하지 않던** 문제 수정. `~/.local/bin`, `/opt/homebrew/bin`, `/usr/local/bin` 등 흔한 설치 위치를 탐지 후보에 보강
+
 ## v0.3.2
 
 - AI: 폼 채우기 3.5배 가속(약 30초→8.5초). `--json-schema` 강제 모드의 다중 턴 에이전트 루프 제거(1턴), 도구 완전 비활성화, 폼 컨텍스트 경량화
