@@ -1,3 +1,5 @@
+mod ai;
+
 use std::collections::HashMap;
 use std::sync::{Arc, OnceLock};
 use std::time::{Duration, Instant};
