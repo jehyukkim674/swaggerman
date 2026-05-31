@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { requestSuggestionSchema, parseSuggestion, applySuggestion } from "./schema";
+import { requestSuggestionSchema, parseSuggestion, applySuggestion, filterKnownParams } from "./schema";
 import type { RequestInputs } from "../request-builder";
 
 function emptyInputs(): RequestInputs {
@@ -125,5 +125,33 @@ describe("applySuggestion", () => {
   it("body 빈 문자열로 명시적 초기화", () => {
     const out = applySuggestion({ ...emptyInputs(), body: '{"x":1}' }, { body: "" });
     expect(out.body).toBe("");
+  });
+});
+
+describe("filterKnownParams", () => {
+  it("op에 없는 query/path 키를 제거한다", () => {
+    const s = { queryParams: { keyword: "dell", endpoint: "x" }, pathParams: { id: "1", bogus: "y" } };
+    const out = filterKnownParams(s, ["keyword", "id"]);
+    expect(out.queryParams).toEqual({ keyword: "dell" });
+    expect(out.pathParams).toEqual({ id: "1" });
+  });
+
+  it("headers는 그대로 통과시킨다(커스텀 헤더 허용)", () => {
+    const s = { headers: { "X-Trace": "abc" } };
+    expect(filterKnownParams(s, [])).toEqual({ headers: { "X-Trace": "abc" } });
+  });
+
+  it("body/notes는 보존한다", () => {
+    const s = { body: "{}", notes: "n", queryParams: { bad: "1" } };
+    const out = filterKnownParams(s, []);
+    expect(out.body).toBe("{}");
+    expect(out.notes).toBe("n");
+    expect(out.queryParams).toEqual({});
+  });
+
+  it("원본을 변형하지 않는다", () => {
+    const s = { queryParams: { bad: "1" } };
+    filterKnownParams(s, []);
+    expect(s.queryParams).toEqual({ bad: "1" });
   });
 });

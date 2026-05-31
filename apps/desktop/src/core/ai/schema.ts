@@ -102,3 +102,20 @@ export function applySuggestion(inputs: RequestInputs, s: RequestSuggestion): Re
     body: s.body !== undefined ? s.body : inputs.body,
   };
 }
+
+/** 제안의 query/path 키를 op 실제 파라미터명으로 필터링한다(폼 오염 방지). header는 통과. 불변. */
+export function filterKnownParams(s: RequestSuggestion, opParamNames: string[]): RequestSuggestion {
+  const allowed = new Set(opParamNames);
+  const keep = (rec?: Record<string, string>) => {
+    if (!rec) return rec;
+    const out: Record<string, string> = {};
+    for (const [k, v] of Object.entries(rec)) if (allowed.has(k)) out[k] = v;
+    return out;
+  };
+  return {
+    ...s,
+    pathParams: keep(s.pathParams),
+    queryParams: keep(s.queryParams),
+    // headers는 표준/커스텀 헤더가 많아 op 파라미터명에 없어도 통과시킨다.
+  };
+}
