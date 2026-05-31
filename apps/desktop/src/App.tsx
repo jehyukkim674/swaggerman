@@ -23,7 +23,7 @@ import {
   type ExtractRule,
 } from "./core/variables";
 import { emptyOAuth2Config, fetchOAuth2Token, type OAuth2Config } from "./core/oauth2";
-import { checkForUpdate, type AvailableUpdate } from "./core/updater";
+import { checkForUpdate, checkUpdateStatus, type AvailableUpdate } from "./core/updater";
 import { loadJSON, saveJSON } from "./core/storage";
 import { log } from "./core/log";
 import { newId, type HistoryItem } from "./core/history";
@@ -276,9 +276,26 @@ export default function App() {
   const [update, setUpdate] = useState<AvailableUpdate | null>(null);
   const [updating, setUpdating] = useState(false);
   const [updateError, setUpdateError] = useState<string | null>(null);
+  const [checkingUpdate, setCheckingUpdate] = useState(false);
+  const [updateMsg, setUpdateMsg] = useState<string | null>(null);
   useEffect(() => {
     checkForUpdate().then(setUpdate);
   }, []);
+
+  async function manualCheckUpdate() {
+    setCheckingUpdate(true);
+    setUpdateMsg(null);
+    const result = await checkUpdateStatus();
+    if (result.kind === "available") {
+      setUpdate(result.update);
+      setUpdateMsg(`새 버전 v${result.update.version} 사용 가능`);
+    } else if (result.kind === "latest") {
+      setUpdateMsg("최신 버전입니다");
+    } else {
+      setUpdateMsg(`확인 실패: ${result.message}`);
+    }
+    setCheckingUpdate(false);
+  }
 
   async function loadSpec(targetUrl: string = specUrl) {
     setSpecUrl(targetUrl);
@@ -697,6 +714,15 @@ export default function App() {
                 </button>
               );
             })()}
+          <button
+            className="btn small"
+            title="업데이트 확인"
+            onClick={manualCheckUpdate}
+            disabled={checkingUpdate}
+          >
+            {checkingUpdate ? "확인 중…" : "업데이트 확인"}
+          </button>
+          {updateMsg && <span className="update-msg">{updateMsg}</span>}
           <button
             className="btn small"
             title={theme === "dark" ? "라이트 테마로" : "다크 테마로"}

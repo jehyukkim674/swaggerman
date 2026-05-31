@@ -1814,3 +1814,10 @@ details[open] > summary::before {
 .reset-warn .btn.small.danger {
   margin-left: auto;
 }
+
+/* 업데이트 확인 상태 메시지 */
+.update-msg {
+  font-size: 11px;
+  color: var(--muted);
+  white-space: nowrap;
+}
