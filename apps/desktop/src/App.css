@@ -594,6 +594,20 @@ select:hover {
   100% { background: transparent; }
 }
 
+/* AI 답변 언급 파라미터 하이라이팅(노랑 점선 — 적용=파랑과 구분) */
+.kv-row.kv-mention .kv-input,
+.kv-row.kv-mention .global-val {
+  border-color: #d29922;
+  border-style: dashed;
+  box-shadow: 0 0 0 2px rgba(210, 153, 34, 0.18);
+}
+/* 적용(파랑)이 언급(노랑)보다 우선 보이도록: 두 클래스가 동시에 있으면 파랑 유지 */
+.kv-row.kv-highlight.kv-mention .kv-input,
+.kv-row.kv-highlight.kv-mention .global-val {
+  border-color: var(--accent);
+  border-style: solid;
+}
+
 .section-note {
   font-weight: 400;
   text-transform: none;

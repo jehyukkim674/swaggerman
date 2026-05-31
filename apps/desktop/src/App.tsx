@@ -252,6 +252,15 @@ export default function App() {
   const [highlightedKeys, setHighlightedKeys] = useState<string[]>([]);
   const highlightTimerRef = useRef<number | null>(null);
 
+  // AI 답변이 언급한 파라미터명 하이라이팅(노랑 점선, 적용=파랑과 구분)
+  const [mentionedKeys, setMentionedKeys] = useState<string[]>([]);
+
+  // 현재 선택된 오퍼레이션의 파라미터명 목록(AiPanel에 전달해 언급 감지에 사용)
+  const opParamNames = useMemo(
+    () => (selected ? selected.parameters.map((p) => p.name) : []),
+    [selected],
+  );
+
   // AI 제안을 현재 폼에 적용(실행하지 않음 — 사용자가 ⌘Enter로 실행)
   function applyAiSuggestion(s: RequestSuggestion) {
     if (!inputs) return;
@@ -426,6 +435,7 @@ export default function App() {
     stashCurrent();
     setSelectedHistory(null);
     setHighlightedKeys([]);
+    setMentionedKeys([]);
     setSelected(op);
     const cached = opCacheRef.current.get(op.id);
     if (cached) {
@@ -572,6 +582,7 @@ export default function App() {
     setAssertResults([]);
     setSchemaIssues([]);
     setHighlightedKeys([]);
+    setMentionedKeys([]);
     setSelectedHistory(item);
     const op = spec?.operations.find((o) => o.id === item.opId);
     if (op) {
@@ -859,6 +870,7 @@ export default function App() {
               if (selected) setAssertions((prev) => ({ ...prev, [selected.id]: asserts }));
             }}
             highlightKeys={highlightedKeys}
+            mentionKeys={mentionedKeys}
           />
         </Panel>
         <PanelResizeHandle className="resize-handle" />
@@ -917,6 +929,8 @@ export default function App() {
                     provider={aiProvider}
                     buildContext={currentAiContext}
                     onApplySuggestion={applyAiSuggestion}
+                    paramNames={opParamNames}
+                    onMentions={setMentionedKeys}
                   />
                 </div>
               </div>
