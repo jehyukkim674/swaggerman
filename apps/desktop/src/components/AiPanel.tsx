@@ -9,6 +9,7 @@ interface Message {
   role: "user" | "assistant";
   text: string;
   suggestion?: RequestSuggestion;
+  usage?: { input: number; output: number };
 }
 
 interface Props {
@@ -28,6 +29,7 @@ let reqCounter = 1;
 
 export function AiPanel({ provider, buildContext, onApplySuggestion }: Props) {
   const [messages, setMessages] = useState<Message[]>([]);
+  const [totals, setTotals] = useState({ input: 0, output: 0 });
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
   const [model, setModel] = useState(DEFAULT_CHAT_MODEL);
@@ -42,6 +44,7 @@ export function AiPanel({ provider, buildContext, onApplySuggestion }: Props) {
     handleRef.current?.cancel();
     handleRef.current = null;
     setMessages([]);
+    setTotals({ input: 0, output: 0 });
     sessionRef.current = undefined;
     setError(null);
     setBusy(false);
@@ -89,6 +92,19 @@ export function AiPanel({ provider, buildContext, onApplySuggestion }: Props) {
         });
       } else if (e.kind === "done") {
         if (e.sessionId) sessionRef.current = e.sessionId;
+        const inTok = e.inputTokens ?? 0;
+        const outTok = e.outputTokens ?? 0;
+        if (inTok || outTok) {
+          setMessages((m) => {
+            const copy = [...m];
+            const last = copy[copy.length - 1];
+            if (last && last.role === "assistant") {
+              copy[copy.length - 1] = { ...last, usage: { input: inTok, output: outTok } };
+            }
+            return copy;
+          });
+          setTotals((t) => ({ input: t.input + inTok, output: t.output + outTok }));
+        }
         setBusy(false);
         handleRef.current = null;
       } else if (e.kind === "error") {
@@ -145,6 +161,11 @@ export function AiPanel({ provider, buildContext, onApplySuggestion }: Props) {
         <button className="btn small" onClick={reset} title="새 대화">
           새 대화
         </button>
+        {(totals.input > 0 || totals.output > 0) && (
+          <span className="ai-usage-total" title="이번 대화 누적 토큰(입력/출력)">
+            ↑{totals.input.toLocaleString()} ↓{totals.output.toLocaleString()}
+          </span>
+        )}
       </div>
 
       <div className="ai-messages">
@@ -161,6 +182,9 @@ export function AiPanel({ provider, buildContext, onApplySuggestion }: Props) {
         {messages.map((m, i) => (
           <div key={i} className={`ai-msg ai-msg-${m.role}`}>
             <div className="ai-msg-text">{m.text}</div>
+            {m.usage && (
+              <div className="ai-msg-usage">↑{m.usage.input.toLocaleString()} ↓{m.usage.output.toLocaleString()} 토큰</div>
+            )}
             {m.suggestion && (
               <AiSuggestionCard
                 suggestion={m.suggestion}

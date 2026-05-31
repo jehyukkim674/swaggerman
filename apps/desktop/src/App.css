@@ -1729,6 +1729,15 @@ mark.hl.active {
   white-space: pre-wrap;
   word-break: break-word;
 }
+.ai-usage-total {
+  font-size: 11px;
+  color: var(--muted);
+}
+.ai-msg-usage {
+  font-size: 11px;
+  color: var(--muted);
+  margin-top: 4px;
+}
 .ai-error {
   color: #f85149;
   font-size: 12px;

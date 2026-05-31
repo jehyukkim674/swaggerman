@@ -36,7 +36,13 @@ pub struct AiCompleteArgs {
 #[serde(tag = "kind", rename_all = "camelCase", rename_all_fields = "camelCase")]
 pub enum AiEvent {
     Delta { text: String },
-    Done { session_id: Option<String> },
+    Done {
+        session_id: Option<String>,
+        #[serde(default)]
+        input_tokens: Option<u64>,
+        #[serde(default)]
+        output_tokens: Option<u64>,
+    },
     Error { message: String },
 }
 
@@ -114,7 +120,10 @@ pub fn parse_stream_line(line: &str) -> Option<AiEvent> {
                 return Some(AiEvent::Error { message: msg });
             }
             let session_id = v.get("session_id").and_then(|x| x.as_str()).map(|s| s.to_string());
-            Some(AiEvent::Done { session_id })
+            let usage = v.get("usage");
+            let input_tokens = usage.and_then(|u| u.get("input_tokens")).and_then(|x| x.as_u64());
+            let output_tokens = usage.and_then(|u| u.get("output_tokens")).and_then(|x| x.as_u64());
+            Some(AiEvent::Done { session_id, input_tokens, output_tokens })
         }
         _ => None,
     }
@@ -404,8 +413,20 @@ mod tests {
     fn parse_result_done_with_session() {
         let line = r#"{"type":"result","is_error":false,"session_id":"abc","result":"hi"}"#;
         match parse_stream_line(line) {
-            Some(AiEvent::Done { session_id }) => assert_eq!(session_id.as_deref(), Some("abc")),
+            Some(AiEvent::Done { session_id, .. }) => assert_eq!(session_id.as_deref(), Some("abc")),
             _ => panic!("expected done"),
+        }
+    }
+
+    #[test]
+    fn parse_result_done_extracts_usage_tokens() {
+        let line = r#"{"type":"result","is_error":false,"session_id":"s","usage":{"input_tokens":12,"output_tokens":34}}"#;
+        match parse_stream_line(line) {
+            Some(AiEvent::Done { input_tokens, output_tokens, .. }) => {
+                assert_eq!(input_tokens, Some(12));
+                assert_eq!(output_tokens, Some(34));
+            }
+            _ => panic!("expected done with usage"),
         }
     }
 

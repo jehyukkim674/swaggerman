@@ -3,7 +3,7 @@
 /** Rust ai_chat이 Channel로 보내는 스트리밍 이벤트. */
 export type AiEvent =
   | { kind: "delta"; text: string }
-  | { kind: "done"; sessionId?: string }
+  | { kind: "done"; sessionId?: string; inputTokens?: number; outputTokens?: number }
   | { kind: "error"; message: string };
 
 /** ai_chat 호출 인자(프론트 → Rust). */

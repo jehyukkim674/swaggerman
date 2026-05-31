@@ -68,6 +68,21 @@ describe("AiPanel", () => {
     expect(screen.queryByText("폼에 적용")).toBeNull();
   });
 
+  it("done 이벤트의 토큰 사용량을 답변 아래 표시한다", async () => {
+    const provider = makeProvider({
+      chat: vi.fn((_req, onEvent): AiHandle => {
+        onEvent({ kind: "delta", text: "답" });
+        onEvent({ kind: "done", sessionId: "s1", inputTokens: 12, outputTokens: 34 });
+        return { cancel: vi.fn() };
+      }),
+    });
+    render(<AiPanel provider={provider} buildContext={ctx} onApplySuggestion={() => {}} />);
+    fireEvent.change(screen.getByPlaceholderText(/질문/), { target: { value: "안녕" } });
+    fireEvent.click(screen.getByText("전송"));
+    await waitFor(() => expect(screen.getAllByText(/12/).length).toBeGreaterThan(0));
+    expect(screen.getAllByText(/34/).length).toBeGreaterThan(0);
+  });
+
   it("claude 미발견 시 경고를 표시한다", async () => {
     const provider = makeProvider({ detect: vi.fn().mockResolvedValue({}) });
     render(<AiPanel provider={provider} buildContext={ctx} onApplySuggestion={() => {}} />);
