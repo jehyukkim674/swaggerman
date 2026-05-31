@@ -1778,11 +1778,15 @@ details > summary::-webkit-details-marker {
   display: none;
 }
 details > summary::before {
-  content: "▸";
+  content: "";
   display: inline-block;
-  margin-right: 6px;
-  color: var(--muted);
-  font-size: 10px;
+  width: 0;
+  height: 0;
+  border-left: 5px solid var(--muted);
+  border-top: 4px solid transparent;
+  border-bottom: 4px solid transparent;
+  margin-right: 8px;
+  vertical-align: middle;
   transition: transform 0.12s;
 }
 details[open] > summary::before {
