@@ -165,7 +165,6 @@ export function AiPanel({ provider, buildContext, onApplySuggestion, paramNames 
     setMessages(stored?.messages ?? []);
     setTotals(stored?.totals ?? { input: 0, output: 0 });
     sessionRef.current = stored?.sessionId;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [specUrl]);
 
   // 메시지/누적 변경 시 저장. 빈 대화는 저장하지 않는다(새 대화로 지운 직후

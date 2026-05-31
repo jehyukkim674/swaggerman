@@ -50,6 +50,7 @@ import { AiPanel } from "./components/AiPanel";
 import { getProvider } from "./core/ai/provider";
 import { buildAiContext } from "./core/ai/context";
 import { applySuggestion } from "./core/ai/schema";
+import { diagnosePrompt, explainPrompt } from "./core/ai/prompts";
 import type { RequestSuggestion } from "./core/ai/types";
 
 const DEFAULT_SPEC_URL = "http://localhost:8000/v3/api-docs";
@@ -222,6 +223,13 @@ export default function App() {
   useEffect(() => {
     saveJSON("swaggerman.aiOpen", aiOpen);
   }, [aiOpen]);
+
+  // 응답 기반 AI 액션: 패널을 열고 보류 프롬프트를 내려 자동 전송시킨다.
+  const [aiPendingPrompt, setAiPendingPrompt] = useState<string | null>(null);
+  function askAiAboutResponse(kind: "diagnose" | "explain") {
+    setAiOpen(true);
+    setAiPendingPrompt(kind === "diagnose" ? diagnosePrompt() : explainPrompt());
+  }
 
   // AI 패널 접기(folding) — 열린 상태에서 좁게 접기/펼치기, 전역 저장
   const [aiCollapsed, setAiCollapsed] = useState<boolean>(() =>
@@ -885,6 +893,7 @@ export default function App() {
             onTab={setResponseTab}
             historyItem={selectedHistory}
             schemaIssues={schemaIssues}
+            onAskAi={askAiAboutResponse}
           />
         </Panel>
         {aiOpen && (
@@ -932,6 +941,8 @@ export default function App() {
                     paramNames={opParamNames}
                     onMentions={setMentionedKeys}
                     specUrl={activeSpecUrl}
+                    pendingPrompt={aiPendingPrompt ?? undefined}
+                    onPendingConsumed={() => setAiPendingPrompt(null)}
                   />
                 </div>
               </div>
@@ -976,6 +987,9 @@ export default function App() {
             importCurl(operation, ins, b);
           }}
           onClose={() => setPaletteOpen(false)}
+          onAskAiResponse={askAiAboutResponse}
+          hasResponse={!!response}
+          responseIsError={!!response && response.statusCode >= 400}
         />
       )}
       {runnerOpen && (
