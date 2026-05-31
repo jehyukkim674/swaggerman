@@ -11,7 +11,8 @@
     "test:watch": "vitest",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
-    "tauri": "tauri"
+    "tauri": "tauri",
+    "ai:e2e": "npx -y tsx scripts/ai-e2e.ts"
   },
   "dependencies": {
     "@tauri-apps/api": "^2",
