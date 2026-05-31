@@ -1756,6 +1756,11 @@ mark.hl.active {
   white-space: pre-wrap;
   word-break: break-word;
 }
+.ai-resp-actions {
+  display: inline-flex;
+  gap: 6px;
+  margin-left: 8px;
+}
 .ai-thinking {
   display: inline-flex;
   gap: 4px;
