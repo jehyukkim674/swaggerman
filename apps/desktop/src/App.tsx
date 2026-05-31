@@ -46,6 +46,11 @@ import { CommandPalette } from "./components/CommandPalette";
 import { SettingsModal } from "./components/SettingsModal";
 import { EnvironmentsModal } from "./components/EnvironmentsModal";
 import { GlobalHeadersModal } from "./components/GlobalHeadersModal";
+import { AiPanel } from "./components/AiPanel";
+import { getProvider } from "./core/ai/provider";
+import { buildAiContext } from "./core/ai/context";
+import { applySuggestion } from "./core/ai/schema";
+import type { RequestSuggestion } from "./core/ai/types";
 
 const DEFAULT_SPEC_URL = "http://localhost:8000/v3/api-docs";
 
@@ -211,6 +216,34 @@ export default function App() {
 
   // 커맨드 팔레트(⌘K)
   const [paletteOpen, setPaletteOpen] = useState(false);
+
+  // AI 어시스턴트 패널(우측) 토글 — 전역 저장
+  const [aiOpen, setAiOpen] = useState<boolean>(() => loadJSON("swaggerman.aiOpen", false));
+  useEffect(() => {
+    saveJSON("swaggerman.aiOpen", aiOpen);
+  }, [aiOpen]);
+  const aiProvider = useMemo(() => getProvider("claude"), []);
+
+  // AI에 줄 현재 컨텍스트 조립(엔드포인트/폼/응답/환경변수명)
+  function currentAiContext(): string {
+    if (!selected) return "현재 선택된 엔드포인트가 없습니다.";
+    const env = envs.find((e) => e.baseURL === baseURL);
+    const envVarNames = (env?.vars ?? []).map((v) => v.key).filter(Boolean);
+    return buildAiContext({
+      op: selected,
+      inputs,
+      response,
+      envVarNames,
+      baseURL,
+    });
+  }
+
+  // AI 제안을 현재 폼에 적용(실행하지 않음 — 사용자가 ⌘Enter로 실행)
+  function applyAiSuggestion(s: RequestSuggestion) {
+    if (!inputs) return;
+    setInputs(applySuggestion(inputs, s));
+    log.info("ai", "요청 제안을 폼에 적용");
+  }
 
   // 전역 줌 (Cmd/Ctrl +/-/0)
   const [zoom, setZoom] = useState<number>(() => loadJSON("swaggerman.zoom", 1));
@@ -723,6 +756,13 @@ export default function App() {
           </button>
           {updateMsg && <span className="update-msg">{updateMsg}</span>}
           <button
+            className={aiOpen ? "btn small primary" : "btn small"}
+            title="AI 어시스턴트 패널 열기/닫기"
+            onClick={() => setAiOpen((v) => !v)}
+          >
+            ✦ AI
+          </button>
+          <button
             className="btn small"
             title={theme === "dark" ? "라이트 테마로" : "다크 테마로"}
             onClick={() => setTheme((t) => (t === "dark" ? "light" : "dark"))}
@@ -748,7 +788,7 @@ export default function App() {
       )}
 
       <PanelGroup direction="horizontal" className="panes" autoSaveId="swaggerman-panes">
-        <Panel defaultSize={24} minSize={14} className="pane">
+        <Panel id="sidebar" order={1} defaultSize={24} minSize={14} className="pane">
           <Sidebar
             spec={spec}
             loading={loading}
@@ -766,7 +806,7 @@ export default function App() {
           />
         </Panel>
         <PanelResizeHandle className="resize-handle" />
-        <Panel defaultSize={38} minSize={20} className="pane">
+        <Panel id="request" order={2} defaultSize={38} minSize={20} className="pane">
           <RequestEditor
             operation={selected}
             inputs={inputs}
@@ -797,7 +837,7 @@ export default function App() {
           />
         </Panel>
         <PanelResizeHandle className="resize-handle" />
-        <Panel defaultSize={38} minSize={20} className="pane">
+        <Panel id="response" order={3} defaultSize={38} minSize={20} className="pane">
           <ResponseView
             response={response}
             request={lastRequest}
@@ -810,6 +850,18 @@ export default function App() {
             schemaIssues={schemaIssues}
           />
         </Panel>
+        {aiOpen && (
+          <>
+            <PanelResizeHandle className="resize-handle" />
+            <Panel id="ai" order={4} defaultSize={26} minSize={16} className="pane">
+              <AiPanel
+                provider={aiProvider}
+                buildContext={currentAiContext}
+                onApplySuggestion={applyAiSuggestion}
+              />
+            </Panel>
+          </>
+        )}
       </PanelGroup>
 
       {envModalOpen && (
