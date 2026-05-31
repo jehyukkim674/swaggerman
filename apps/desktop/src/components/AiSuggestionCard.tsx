@@ -4,10 +4,12 @@ interface Props {
   suggestion: RequestSuggestion;
   onApply: (s: RequestSuggestion) => void;
   onDismiss: () => void;
+  onCopyCurl?: (s: RequestSuggestion) => void;
+  onSaveVars?: (s: RequestSuggestion) => void;
 }
 
-/** 요청 작성 도우미 제안을 보여주고 폼에 적용/무시한다. */
-export function AiSuggestionCard({ suggestion, onApply, onDismiss }: Props) {
+/** 요청 작성 도우미 제안을 보여주고 폼에 적용/무시/cURL 복사/변수 저장한다. */
+export function AiSuggestionCard({ suggestion, onApply, onDismiss, onCopyCurl, onSaveVars }: Props) {
   const { pathParams, queryParams, headers, body, notes } = suggestion;
   const kv = (rec?: Record<string, string>) =>
     rec && Object.keys(rec).length > 0
@@ -46,6 +48,16 @@ export function AiSuggestionCard({ suggestion, onApply, onDismiss }: Props) {
         <button className="btn small primary" onClick={() => onApply(suggestion)}>
           폼에 적용
         </button>
+        {onCopyCurl && (
+          <button className="btn small" onClick={() => onCopyCurl(suggestion)} title="제안을 cURL 명령으로 복사">
+            cURL 복사
+          </button>
+        )}
+        {onSaveVars && (
+          <button className="btn small" onClick={() => onSaveVars(suggestion)} title="제안 값을 환경 변수로 저장">
+            변수로 저장
+          </button>
+        )}
         <button className="btn small" onClick={onDismiss}>
           무시
         </button>

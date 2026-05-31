@@ -12,6 +12,7 @@ import {
   type RequestInputs,
   type RequestParam,
 } from "./core/request-builder";
+import { buildCurl } from "./core/curl-builder";
 import { savedToRequest, type Collection, type SavedRequest } from "./core/collections";
 import { validateResponseBody, type ValidationIssue } from "./core/schema-validate";
 import { computeSecurityHeaders } from "./core/security";
@@ -282,6 +283,35 @@ export default function App() {
     if (highlightTimerRef.current) window.clearTimeout(highlightTimerRef.current);
     highlightTimerRef.current = window.setTimeout(() => setHighlightedKeys([]), 2000);
     log.info("ai", "요청 제안을 폼에 적용");
+  }
+
+  function copyCurlFromSuggestion(s: RequestSuggestion) {
+    if (!selected || !inputs) return;
+    const merged = applySuggestion(inputs, s);
+    const securityHeaders = computeSecurityHeaders(spec?.securitySchemes ?? [], authValues);
+    const request = buildRequest(baseURL, selected, merged, securityHeaders, globalHeaders, activeVars);
+    navigator.clipboard?.writeText(buildCurl(request)).then(
+      () => log.info("ai", "제안을 cURL로 복사"),
+      () => log.warn("ai", "클립보드 복사 실패"),
+    );
+  }
+
+  function saveVarsFromSuggestion(s: RequestSuggestion) {
+    const pairs = { ...(s.pathParams ?? {}), ...(s.queryParams ?? {}) };
+    const entries = Object.entries(pairs).filter(([k, v]) => k && v && !v.includes("{{"));
+    if (entries.length === 0) return;
+    setEnvs((prev) => {
+      const env = prev.find((e) => e.baseURL === baseURL);
+      if (!env) return prev;
+      const vars = [...(env.vars ?? [])];
+      for (const [k, v] of entries) {
+        const ex = vars.find((x) => x.key === k);
+        if (ex) ex.value = v;
+        else vars.push({ key: k, value: v });
+      }
+      return prev.map((e) => (e === env ? { ...e, vars } : e));
+    });
+    log.info("ai", "제안 값을 환경 변수로 저장");
   }
 
   // 전역 줌 (Cmd/Ctrl +/-/0)
@@ -943,6 +973,8 @@ export default function App() {
                     specUrl={activeSpecUrl}
                     pendingPrompt={aiPendingPrompt ?? undefined}
                     onPendingConsumed={() => setAiPendingPrompt(null)}
+                    onCopyCurl={copyCurlFromSuggestion}
+                    onSaveVars={saveVarsFromSuggestion}
                   />
                 </div>
               </div>

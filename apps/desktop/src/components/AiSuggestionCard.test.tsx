@@ -26,4 +26,19 @@ describe("AiSuggestionCard", () => {
     fireEvent.click(screen.getByText("무시"));
     expect(onDismiss).toHaveBeenCalled();
   });
+
+  it("[cURL 복사]/[변수로 저장] 클릭 시 콜백 호출", () => {
+    const onCopyCurl = vi.fn();
+    const onSaveVars = vi.fn();
+    render(<AiSuggestionCard suggestion={s} onApply={() => {}} onDismiss={() => {}} onCopyCurl={onCopyCurl} onSaveVars={onSaveVars} />);
+    fireEvent.click(screen.getByText("cURL 복사"));
+    expect(onCopyCurl).toHaveBeenCalledWith(s);
+    fireEvent.click(screen.getByText("변수로 저장"));
+    expect(onSaveVars).toHaveBeenCalledWith(s);
+  });
+
+  it("콜백 미제공 시 버튼을 렌더하지 않는다", () => {
+    render(<AiSuggestionCard suggestion={s} onApply={() => {}} onDismiss={() => {}} />);
+    expect(screen.queryByText("cURL 복사")).toBeNull();
+  });
 });
