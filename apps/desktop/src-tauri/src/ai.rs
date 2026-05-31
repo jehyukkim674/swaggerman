@@ -1,4 +1,8 @@
 use serde::{Deserialize, Serialize};
+use std::collections::HashSet;
+use std::sync::{Mutex, OnceLock};
+use tauri::ipc::Channel;
+use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
 
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -125,6 +129,174 @@ pub fn pick_executable(candidates: &[String]) -> Option<String> {
         .cloned()
 }
 
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CliInfo {
+    pub path: String,
+    pub version: String,
+}
+
+#[derive(Serialize, Default)]
+#[serde(rename_all = "camelCase")]
+pub struct AiDetect {
+    pub claude: Option<CliInfo>,
+    pub codex: Option<CliInfo>,
+}
+
+/// 취소 요청된 req_id 집합.
+fn cancelled() -> &'static Mutex<HashSet<u32>> {
+    static C: OnceLock<Mutex<HashSet<u32>>> = OnceLock::new();
+    C.get_or_init(|| Mutex::new(HashSet::new()))
+}
+
+fn version_of(path: &str) -> Option<String> {
+    let out = std::process::Command::new(path).arg("--version").output().ok()?;
+    if !out.status.success() {
+        return None;
+    }
+    Some(String::from_utf8_lossy(&out.stdout).trim().to_string())
+}
+
+fn home() -> String {
+    std::env::var("HOME").unwrap_or_default()
+}
+
+/// claude/codex 실행파일을 탐지한다(PATH 우선, 알려진 후보 보강).
+#[tauri::command]
+pub fn ai_detect() -> AiDetect {
+    let mut d = AiDetect::default();
+
+    let mut claude_candidates: Vec<String> = vec![];
+    if let Ok(p) = which("claude") {
+        claude_candidates.push(p);
+    }
+    claude_candidates.push(format!("{}/.claude/local/claude", home()));
+    if let Some(path) = pick_executable(&claude_candidates) {
+        if let Some(version) = version_of(&path) {
+            d.claude = Some(CliInfo { path, version });
+        }
+    }
+
+    let mut codex_candidates: Vec<String> = vec![];
+    if let Ok(p) = which("codex") {
+        codex_candidates.push(p);
+    }
+    codex_candidates.push("/opt/homebrew/bin/codex".into());
+    if let Some(path) = pick_executable(&codex_candidates) {
+        if let Some(version) = version_of(&path) {
+            d.codex = Some(CliInfo { path, version });
+        }
+    }
+    d
+}
+
+/// `which`의 최소 구현(PATH 탐색). 외부 의존성 없이.
+fn which(bin: &str) -> Result<String, ()> {
+    let path = std::env::var("PATH").map_err(|_| ())?;
+    for dir in path.split(':') {
+        let candidate = format!("{dir}/{bin}");
+        if std::path::Path::new(&candidate).is_file() {
+            return Ok(candidate);
+        }
+    }
+    Err(())
+}
+
+fn resolve_claude(explicit: &Option<String>) -> Result<String, String> {
+    if let Some(p) = explicit.as_ref().filter(|s| !s.is_empty()) {
+        return Ok(p.clone());
+    }
+    ai_detect()
+        .claude
+        .map(|c| c.path)
+        .ok_or_else(|| {
+            "claude CLI를 찾을 수 없습니다. PATH에 claude가 있는지 확인하세요(예: `which claude`)."
+                .to_string()
+        })
+}
+
+/// 단발 구조화 출력. claude stdout(JSON 문자열)을 그대로 반환.
+#[tauri::command]
+pub async fn ai_complete(args: AiCompleteArgs) -> Result<String, String> {
+    let bin = resolve_claude(&args.claude_path)?;
+    let cli_args = build_complete_args(&args);
+    let mut child = tokio::process::Command::new(&bin)
+        .args(&cli_args)
+        .current_dir(std::env::temp_dir())
+        .stdin(std::process::Stdio::piped())
+        .stdout(std::process::Stdio::piped())
+        .stderr(std::process::Stdio::piped())
+        .spawn()
+        .map_err(|e| format!("claude 실행 실패: {e}"))?;
+
+    if let Some(mut stdin) = child.stdin.take() {
+        stdin
+            .write_all(args.prompt.as_bytes())
+            .await
+            .map_err(|e| format!("stdin 쓰기 실패: {e}"))?;
+        drop(stdin); // EOF
+    }
+
+    let out = child.wait_with_output().await.map_err(|e| e.to_string())?;
+    if !out.status.success() {
+        return Err(format!("claude 비정상 종료: {}", String::from_utf8_lossy(&out.stderr)));
+    }
+    Ok(String::from_utf8_lossy(&out.stdout).to_string())
+}
+
+/// 스트리밍 대화. stdout 라인을 파싱해 Channel로 이벤트 전송.
+#[tauri::command]
+pub async fn ai_chat(args: AiChatArgs, on_event: Channel<AiEvent>) -> Result<(), String> {
+    let bin = resolve_claude(&args.claude_path)?;
+    let req_id = args.req_id;
+    let cli_args = build_chat_args(&args);
+
+    let mut child = tokio::process::Command::new(&bin)
+        .args(&cli_args)
+        .current_dir(std::env::temp_dir())
+        .stdin(std::process::Stdio::piped())
+        .stdout(std::process::Stdio::piped())
+        .stderr(std::process::Stdio::piped())
+        .spawn()
+        .map_err(|e| format!("claude 실행 실패: {e}"))?;
+
+    if let Some(mut stdin) = child.stdin.take() {
+        let _ = stdin.write_all(args.prompt.as_bytes()).await;
+        drop(stdin);
+    }
+
+    let stdout = child.stdout.take().ok_or("stdout 없음")?;
+    let mut lines = BufReader::new(stdout).lines();
+
+    loop {
+        // 취소 확인
+        if cancelled().lock().unwrap().remove(&req_id) {
+            let _ = child.kill().await;
+            break;
+        }
+        match lines.next_line().await {
+            Ok(Some(line)) => {
+                if let Some(ev) = parse_stream_line(&line) {
+                    let _ = on_event.send(ev);
+                }
+            }
+            Ok(None) => break, // EOF
+            Err(e) => {
+                let _ = on_event.send(AiEvent::Error { message: e.to_string() });
+                break;
+            }
+        }
+    }
+    let _ = child.wait().await;
+    Ok(())
+}
+
+/// 진행 중 대화를 취소한다(다음 라인 처리 시 프로세스 kill).
+#[tauri::command]
+pub fn ai_cancel(req_id: u32) {
+    cancelled().lock().unwrap().insert(req_id);
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -215,5 +387,32 @@ mod tests {
     #[test]
     fn pick_executable_none_when_missing() {
         assert_eq!(pick_executable(&["/nope/a".into(), "/nope/b".into()]), None);
+    }
+
+    #[cfg(unix)]
+    #[tokio::test]
+    async fn ai_complete_pipes_stdin_and_returns_stdout() {
+        // 고정 JSON을 stdout으로 내는 가짜 claude 스크립트
+        let dir = std::env::temp_dir();
+        let script = dir.join("fake_claude_complete.sh");
+        std::fs::write(
+            &script,
+            "#!/bin/sh\ncat > /dev/null\nprintf '{\"result\":\"{\\\\\"body\\\\\":\\\\\"{}\\\\\"}\"}'\n",
+        )
+        .unwrap();
+        {
+            use std::os::unix::fs::PermissionsExt;
+            std::fs::set_permissions(&script, std::fs::Permissions::from_mode(0o755)).unwrap();
+        }
+        let args = AiCompleteArgs {
+            prompt: "만들어줘".into(),
+            system: "sys".into(),
+            model: "haiku".into(),
+            schema: "{}".into(),
+            claude_path: Some(script.to_string_lossy().to_string()),
+        };
+        let out = ai_complete(args).await.unwrap();
+        assert!(out.contains("result"));
+        let _ = std::fs::remove_file(&script);
     }
 }
