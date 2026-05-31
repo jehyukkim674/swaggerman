@@ -1667,6 +1667,130 @@ mark.hl.active {
   word-break: break-all;
 }
 
+/* === AI 어시스턴트 패널 === */
+.ai-panel {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: var(--bg-2);
+}
+.ai-panel-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--border);
+}
+.ai-panel-title {
+  font-weight: 600;
+  color: var(--accent);
+}
+.ai-model {
+  margin-left: auto;
+  background: var(--bg-3);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 2px 6px;
+}
+.ai-messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.ai-empty {
+  color: var(--muted);
+  font-size: 13px;
+  text-align: center;
+  margin-top: 20px;
+}
+.ai-msg {
+  max-width: 92%;
+  padding: 8px 10px;
+  border-radius: 8px;
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-size: 13px;
+}
+.ai-msg-user {
+  align-self: flex-end;
+  background: var(--accent);
+  color: #fff;
+}
+.ai-msg-assistant {
+  align-self: flex-start;
+  background: var(--bg-3);
+  color: var(--text);
+}
+.ai-error {
+  color: #f85149;
+  font-size: 12px;
+  padding: 6px 8px;
+  border: 1px solid #f85149;
+  border-radius: 6px;
+}
+.ai-input {
+  display: flex;
+  gap: 6px;
+  padding: 8px;
+  border-top: 1px solid var(--border);
+}
+.ai-input textarea {
+  flex: 1;
+  resize: none;
+  background: var(--bg);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 6px 8px;
+  font-family: inherit;
+  font-size: 13px;
+}
+/* 제안 카드 */
+.ai-suggestion {
+  margin-top: 8px;
+  border: 1px solid var(--accent);
+  border-radius: 8px;
+  padding: 8px;
+  background: var(--bg);
+}
+.ai-suggestion-title {
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+.ai-suggestion-notes {
+  color: var(--muted);
+  font-size: 12px;
+  margin-bottom: 6px;
+}
+.ai-suggestion-section {
+  margin: 6px 0;
+}
+.ai-suggestion-label {
+  display: inline-block;
+  font-size: 11px;
+  color: var(--muted);
+  text-transform: uppercase;
+  margin-bottom: 2px;
+}
+.ai-suggestion-section pre {
+  margin: 0;
+  padding: 6px;
+  background: var(--bg-3);
+  border-radius: 6px;
+  font-size: 12px;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.ai-suggestion-actions {
+  display: flex;
+  gap: 6px;
+  margin-top: 8px;
+}
+
 /* 라이트 테마 */
 :root[data-theme="light"] {
   --bg: #ffffff;
