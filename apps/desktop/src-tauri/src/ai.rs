@@ -476,6 +476,30 @@ mod tests {
     }
 
     #[test]
+    fn parse_stream_sequence_yields_deltas_then_done_with_usage() {
+        let lines = [
+            r#"{"type":"system","subtype":"init"}"#,
+            r#"{"type":"stream_event","event":{"type":"content_block_delta","delta":{"type":"text_delta","text":"안"}}}"#,
+            r#"{"type":"stream_event","event":{"type":"content_block_delta","delta":{"type":"thinking_delta","thinking":"무시"}}}"#,
+            r#"{"type":"stream_event","event":{"type":"content_block_delta","delta":{"type":"text_delta","text":"녕"}}}"#,
+            r#"{"type":"result","is_error":false,"session_id":"s","usage":{"input_tokens":5,"output_tokens":7}}"#,
+        ];
+        let events: Vec<AiEvent> = lines.iter().filter_map(|l| parse_stream_line(l)).collect();
+        let deltas: Vec<&str> = events.iter().filter_map(|e| match e {
+            AiEvent::Delta { text } => Some(text.as_str()),
+            _ => None,
+        }).collect();
+        assert_eq!(deltas, vec!["안", "녕"]);
+        match events.last() {
+            Some(AiEvent::Done { input_tokens, output_tokens, .. }) => {
+                assert_eq!(*input_tokens, Some(5));
+                assert_eq!(*output_tokens, Some(7));
+            }
+            _ => panic!("expected Done last"),
+        }
+    }
+
+    #[test]
     fn extract_structured_prefers_structured_output() {
         let s = r#"{"result":"prose","structured_output":{"body":"{}","notes":"n"}}"#;
         let out = extract_structured(s);
