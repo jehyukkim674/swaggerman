@@ -135,6 +135,40 @@ export function AiPanel({ provider, buildContext, onApplySuggestion }: Props) {
     return () => { alive = false; };
   }, [provider]);
 
+  async function fillFormFor(index: number) {
+    const msg = messages[index];
+    if (!msg || busy) return;
+    const myGen = genRef.current;
+    setBusy(true);
+    setError(null);
+    try {
+      const userMsg = [...messages.slice(0, index)].reverse().find((m) => m.role === "user");
+      const intent = userMsg?.text ?? msg.text;
+      const prompt = `${buildContext()}\n\n## 요청\n${intent}`;
+      const raw = await provider.complete({
+        prompt,
+        system: REQUEST_SYSTEM,
+        model: COMPLETE_MODEL,
+        schema: JSON.stringify(requestSuggestionSchema),
+      });
+      if (genRef.current !== myGen) return;
+      const suggestion = parseSuggestion(raw);
+      if (!suggestion) {
+        setError("폼 제안을 해석하지 못했습니다. 다시 시도해 주세요.");
+      } else {
+        setMessages((arr) => {
+          const copy = [...arr];
+          if (copy[index]) copy[index] = { ...copy[index], suggestion };
+          return copy;
+        });
+      }
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setBusy(false);
+    }
+  }
+
   function send() {
     const q = input.trim();
     if (!q || busy) return;
@@ -182,6 +216,16 @@ export function AiPanel({ provider, buildContext, onApplySuggestion }: Props) {
         {messages.map((m, i) => (
           <div key={i} className={`ai-msg ai-msg-${m.role}`}>
             <div className="ai-msg-text">{m.text}</div>
+            {m.role === "assistant" && m.text !== "" && !m.suggestion && (
+              <button
+                className="ai-fillform-btn"
+                disabled={busy}
+                onClick={() => fillFormFor(i)}
+                title="이 답변을 바탕으로 요청 폼을 채울 제안 생성"
+              >
+                ✦ 폼 채우기
+              </button>
+            )}
             {m.usage && (
               <div className="ai-msg-usage">↑{m.usage.input.toLocaleString()} ↓{m.usage.output.toLocaleString()} 토큰</div>
             )}

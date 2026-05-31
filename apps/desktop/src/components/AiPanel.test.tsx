@@ -89,6 +89,17 @@ describe("AiPanel", () => {
     await waitFor(() => expect(screen.getByText(/claude CLI를 찾을 수 없습니다/)).toBeTruthy());
   });
 
+  it("일반 답변의 '폼 채우기' 버튼이 complete를 호출하고 제안 카드를 띄운다", async () => {
+    const provider = makeProvider();
+    render(<AiPanel provider={provider} buildContext={ctx} onApplySuggestion={() => {}} />);
+    fireEvent.change(screen.getByPlaceholderText(/질문/), { target: { value: "이 요청 알려줘" } });
+    fireEvent.click(screen.getByText("전송"));
+    await waitFor(() => expect(screen.getByText(/답변/)).toBeTruthy());
+    fireEvent.click(screen.getByText("✦ 폼 채우기"));
+    await waitFor(() => expect(screen.getByText("폼에 적용")).toBeTruthy());
+    expect(provider.complete).toHaveBeenCalled();
+  });
+
   it("'새 대화'는 진행 중 스트림을 취소하고 busy를 해제한다", async () => {
     const cancel = vi.fn();
     const provider = makeProvider({
