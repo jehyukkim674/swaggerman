@@ -214,6 +214,21 @@ fn resolve_claude(explicit: &Option<String>) -> Result<String, String> {
         })
 }
 
+/// claude --output-format json stdout에서 structured_output 객체가 있으면 그 객체의
+/// JSON 문자열을, 없으면 원본을 돌려준다.
+pub fn extract_structured(stdout: &str) -> String {
+    if let Ok(v) = serde_json::from_str::<serde_json::Value>(stdout) {
+        if let Some(so) = v.get("structured_output") {
+            if so.is_object() {
+                if let Ok(s) = serde_json::to_string(so) {
+                    return s;
+                }
+            }
+        }
+    }
+    stdout.to_string()
+}
+
 /// 단발 구조화 출력. claude stdout(JSON 문자열)을 그대로 반환.
 #[tauri::command]
 pub async fn ai_complete(args: AiCompleteArgs) -> Result<String, String> {
@@ -245,7 +260,10 @@ pub async fn ai_complete(args: AiCompleteArgs) -> Result<String, String> {
     if !out.status.success() {
         return Err(format!("claude 비정상 종료: {}", String::from_utf8_lossy(&out.stderr)));
     }
-    Ok(String::from_utf8_lossy(&out.stdout).to_string())
+    let stdout = String::from_utf8_lossy(&out.stdout).to_string();
+    // claude --json-schema 결과는 structured_output(객체)에 담긴다.
+    // 있으면 그 객체만 직렬화해 돌려주고, 없으면 원본 stdout을 그대로 반환한다.
+    Ok(extract_structured(&stdout))
 }
 
 /// 스트리밍 대화. stdout 라인을 파싱해 Channel로 이벤트 전송.
@@ -405,6 +423,26 @@ mod tests {
         assert!(parse_stream_line(r#"{"type":"assistant","message":{}}"#).is_none());
         assert!(parse_stream_line("").is_none());
         assert!(parse_stream_line("not json").is_none());
+    }
+
+    #[test]
+    fn extract_structured_prefers_structured_output() {
+        let s = r#"{"result":"prose","structured_output":{"body":"{}","notes":"n"}}"#;
+        let out = extract_structured(s);
+        let v: serde_json::Value = serde_json::from_str(&out).unwrap();
+        assert_eq!(v.get("body").and_then(|x| x.as_str()), Some("{}"));
+        assert!(v.get("result").is_none());
+    }
+
+    #[test]
+    fn extract_structured_falls_back_to_raw() {
+        let s = r#"{"result":"{\"body\":\"x\"}"}"#;
+        assert_eq!(extract_structured(s), s);
+    }
+
+    #[test]
+    fn extract_structured_passthrough_non_json() {
+        assert_eq!(extract_structured("not json"), "not json");
     }
 
     #[test]

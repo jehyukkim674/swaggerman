@@ -59,6 +59,19 @@ describe("parseSuggestion", () => {
   it("result가 JSON 원시값 문자열이면 null", () => {
     expect(parseSuggestion(JSON.stringify({ result: "42" }))).toBeNull();
   });
+
+  it("structured_output(객체)를 우선 사용한다", () => {
+    const raw = JSON.stringify({
+      result: "완료되었습니다.",
+      structured_output: { body: '{"name":"hi"}', notes: "메모" },
+    });
+    expect(parseSuggestion(raw)).toEqual({ body: '{"name":"hi"}', notes: "메모" });
+  });
+
+  it("structured_output에서도 알 수 없는 필드는 버린다", () => {
+    const raw = JSON.stringify({ structured_output: { body: "{}", evil: "x" } });
+    expect(parseSuggestion(raw)).toEqual({ body: "{}" });
+  });
 });
 
 describe("applySuggestion", () => {

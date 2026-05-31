@@ -46,6 +46,11 @@ export function parseSuggestion(raw: string): RequestSuggestion | null {
   }
   if (typeof parsed !== "object" || parsed === null) return null;
   const obj = parsed as Record<string, unknown>;
+  // claude --json-schema 결과는 structured_output(이미 파싱된 객체)에 담긴다.
+  const structured = obj["structured_output"];
+  if (structured && typeof structured === "object") {
+    return pickKnown(structured as Record<string, unknown>);
+  }
   // claude json 래퍼 벗기기
   if ("result" in obj) {
     const r = obj.result;
