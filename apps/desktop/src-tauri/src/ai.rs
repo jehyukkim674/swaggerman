@@ -1,8 +1,9 @@
 use serde::{Deserialize, Serialize};
+use serde_json::Value;
 use std::collections::HashSet;
 use std::sync::{Mutex, OnceLock};
 use tauri::ipc::Channel;
-use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
+use tokio::io::{AsyncBufReadExt, AsyncReadExt, AsyncWriteExt, BufReader};
 
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -76,8 +77,6 @@ pub fn build_complete_args(a: &AiCompleteArgs) -> Vec<String> {
         a.system.clone(),
     ]
 }
-
-use serde_json::Value;
 
 /// claude stream-json 한 줄을 AiEvent로 변환. 무관한 라인은 None.
 /// 규칙: partial 텍스트 델타(stream_event/content_block_delta)만 Delta로,
@@ -192,11 +191,11 @@ pub fn ai_detect() -> AiDetect {
 
 /// `which`의 최소 구현(PATH 탐색). 외부 의존성 없이.
 fn which(bin: &str) -> Result<String, ()> {
-    let path = std::env::var("PATH").map_err(|_| ())?;
-    for dir in path.split(':') {
-        let candidate = format!("{dir}/{bin}");
-        if std::path::Path::new(&candidate).is_file() {
-            return Ok(candidate);
+    let path = std::env::var_os("PATH").ok_or(())?;
+    for dir in std::env::split_paths(&path) {
+        let candidate = dir.join(bin);
+        if candidate.is_file() {
+            return Ok(candidate.to_string_lossy().into_owned());
         }
     }
     Err(())
@@ -218,7 +217,12 @@ fn resolve_claude(explicit: &Option<String>) -> Result<String, String> {
 /// 단발 구조화 출력. claude stdout(JSON 문자열)을 그대로 반환.
 #[tauri::command]
 pub async fn ai_complete(args: AiCompleteArgs) -> Result<String, String> {
-    let bin = resolve_claude(&args.claude_path)?;
+    // resolve_claude는 블로킹 I/O(std::process::Command)를 사용하므로 spawn_blocking으로 실행한다.
+    let claude_path = args.claude_path.clone();
+    let bin = tokio::task::spawn_blocking(move || resolve_claude(&claude_path))
+        .await
+        .map_err(|e| e.to_string())??;
+
     let cli_args = build_complete_args(&args);
     let mut child = tokio::process::Command::new(&bin)
         .args(&cli_args)
@@ -247,7 +251,12 @@ pub async fn ai_complete(args: AiCompleteArgs) -> Result<String, String> {
 /// 스트리밍 대화. stdout 라인을 파싱해 Channel로 이벤트 전송.
 #[tauri::command]
 pub async fn ai_chat(args: AiChatArgs, on_event: Channel<AiEvent>) -> Result<(), String> {
-    let bin = resolve_claude(&args.claude_path)?;
+    // resolve_claude는 블로킹 I/O(std::process::Command)를 사용하므로 spawn_blocking으로 실행한다.
+    let claude_path = args.claude_path.clone();
+    let bin = tokio::task::spawn_blocking(move || resolve_claude(&claude_path))
+        .await
+        .map_err(|e| e.to_string())??;
+
     let req_id = args.req_id;
     let cli_args = build_chat_args(&args);
 
@@ -261,11 +270,24 @@ pub async fn ai_chat(args: AiChatArgs, on_event: Channel<AiEvent>) -> Result<(),
         .map_err(|e| format!("claude 실행 실패: {e}"))?;
 
     if let Some(mut stdin) = child.stdin.take() {
-        let _ = stdin.write_all(args.prompt.as_bytes()).await;
+        if let Err(e) = stdin.write_all(args.prompt.as_bytes()).await {
+            let _ = on_event.send(AiEvent::Error { message: format!("stdin 쓰기 실패: {e}") });
+            let _ = child.kill().await;
+            return Ok(());
+        }
         drop(stdin);
     }
 
     let stdout = child.stdout.take().ok_or("stdout 없음")?;
+    // stderr를 동시에 비워 파이프가 가득 차 자식이 막히는 것을 방지한다.
+    let stderr_drain = child.stderr.take().map(|err| {
+        tokio::spawn(async move {
+            let mut reader = BufReader::new(err);
+            let mut buf = Vec::new();
+            let _ = reader.read_to_end(&mut buf).await;
+        })
+    });
+
     let mut lines = BufReader::new(stdout).lines();
 
     loop {
@@ -288,6 +310,15 @@ pub async fn ai_chat(args: AiChatArgs, on_event: Channel<AiEvent>) -> Result<(),
         }
     }
     let _ = child.wait().await;
+
+    // stderr 드레인 태스크가 완료될 때까지 기다린다.
+    if let Some(task) = stderr_drain {
+        let _ = task.await;
+    }
+
+    // 늦게 도착한 취소 요청이 집합에 남지 않도록 정리한다.
+    cancelled().lock().unwrap().remove(&req_id);
+
     Ok(())
 }
 
@@ -378,10 +409,13 @@ mod tests {
 
     #[test]
     fn pick_executable_returns_existing() {
-        // 현재 소스 파일은 반드시 존재 → 첫 존재 경로를 고른다.
-        let me = file!().to_string();
-        let picked = pick_executable(&["/definitely/not/here".into(), me.clone()]);
-        assert_eq!(picked, Some(me));
+        let dir = std::env::temp_dir();
+        let f = dir.join("swaggerman_pick_exec_test.tmp");
+        std::fs::write(&f, b"x").unwrap();
+        let fp = f.to_string_lossy().to_string();
+        let picked = pick_executable(&["/definitely/not/here".into(), fp.clone()]);
+        assert_eq!(picked, Some(fp));
+        let _ = std::fs::remove_file(&f);
     }
 
     #[test]
@@ -412,7 +446,7 @@ mod tests {
             claude_path: Some(script.to_string_lossy().to_string()),
         };
         let out = ai_complete(args).await.unwrap();
-        assert!(out.contains("result"));
+        assert_eq!(out.trim(), r#"{"result":"{\"body\":\"{}\"}"}"#);
         let _ = std::fs::remove_file(&script);
     }
 }
