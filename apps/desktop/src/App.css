@@ -581,6 +581,19 @@ select:hover {
   min-width: 0;
   font-family: ui-monospace, monospace;
 }
+
+/* AI 제안 적용 시 일시 하이라이팅 */
+.kv-row.kv-highlight .kv-input,
+.kv-row.kv-highlight .global-val {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px rgba(56, 139, 253, 0.25);
+  animation: kv-flash 2s ease-out;
+}
+@keyframes kv-flash {
+  0% { background: rgba(56, 139, 253, 0.18); }
+  100% { background: transparent; }
+}
+
 .section-note {
   font-weight: 400;
   text-transform: none;

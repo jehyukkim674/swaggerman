@@ -37,6 +37,7 @@ interface Props {
   assertResults: AssertionResult[];
   onExtractChange: (rules: ExtractRule[]) => void;
   onAssertChange: (asserts: Assertion[]) => void;
+  highlightKeys?: string[];
 }
 
 export function HistoryBanner({ item }: { item: HistoryItem }) {
@@ -72,6 +73,7 @@ export function RequestEditor({
   assertResults,
   onExtractChange,
   onAssertChange,
+  highlightKeys = [],
 }: Props) {
   const [sampleName, setSampleName] = useState<string | null>(null);
   const [activeSample, setActiveSample] = useState("");
@@ -195,7 +197,7 @@ export function RequestEditor({
           <section className="section">
             <h4>Path Params</h4>
             {pathKeys.map((key) => (
-              <div className="kv-row" key={key}>
+              <div className={`kv-row${highlightKeys.includes(key) ? " kv-highlight" : ""}`} key={key}>
                 <span className="kv-key fixed">{key}</span>
                 <VarInput
                   className="kv-input"
@@ -219,6 +221,7 @@ export function RequestEditor({
           onValue={(i, v) => setParamList("queryParams", i, { value: v })}
           onRemove={(i) => removeRow("queryParams", i)}
           onAdd={() => addRow("queryParams")}
+          highlightKeys={highlightKeys}
         />
 
         {globalHeaders.filter((h) => h.enabled && h.key).length > 0 && (
@@ -249,6 +252,7 @@ export function RequestEditor({
           onValue={(i, v) => setParamList("headers", i, { value: v })}
           onRemove={(i) => removeRow("headers", i)}
           onAdd={() => addRow("headers")}
+          highlightKeys={highlightKeys}
         />
 
         {showBody && (
@@ -423,6 +427,7 @@ interface ParamSectionProps {
   onValue: (index: number, value: string) => void;
   onRemove: (index: number) => void;
   onAdd: () => void;
+  highlightKeys?: string[];
 }
 
 function ParamSection({
@@ -435,6 +440,7 @@ function ParamSection({
   onValue,
   onRemove,
   onAdd,
+  highlightKeys = [],
 }: ParamSectionProps) {
   return (
     <details className="section param-section" open>
@@ -444,7 +450,7 @@ function ParamSection({
       {list.map((param, index) => {
         const required = meta?.get(param.key);
         return (
-          <div className="kv-row" key={index}>
+          <div className={`kv-row${highlightKeys.includes(param.key) ? " kv-highlight" : ""}`} key={index}>
             <input
               type="checkbox"
               checked={param.enabled}

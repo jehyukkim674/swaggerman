@@ -248,10 +248,22 @@ export default function App() {
     });
   }
 
+  // AI 제안 적용 후 하이라이팅할 키 목록 (2초 뒤 자동 해제)
+  const [highlightedKeys, setHighlightedKeys] = useState<string[]>([]);
+  const highlightTimerRef = useRef<number | null>(null);
+
   // AI 제안을 현재 폼에 적용(실행하지 않음 — 사용자가 ⌘Enter로 실행)
   function applyAiSuggestion(s: RequestSuggestion) {
     if (!inputs) return;
     setInputs(applySuggestion(inputs, s));
+    const keys = [
+      ...Object.keys(s.pathParams ?? {}),
+      ...Object.keys(s.queryParams ?? {}),
+      ...Object.keys(s.headers ?? {}),
+    ];
+    setHighlightedKeys(keys);
+    if (highlightTimerRef.current) window.clearTimeout(highlightTimerRef.current);
+    highlightTimerRef.current = window.setTimeout(() => setHighlightedKeys([]), 2000);
     log.info("ai", "요청 제안을 폼에 적용");
   }
 
@@ -413,6 +425,7 @@ export default function App() {
   function selectOperation(op: ParsedOperation) {
     stashCurrent();
     setSelectedHistory(null);
+    setHighlightedKeys([]);
     setSelected(op);
     const cached = opCacheRef.current.get(op.id);
     if (cached) {
@@ -558,6 +571,7 @@ export default function App() {
     stashCurrent();
     setAssertResults([]);
     setSchemaIssues([]);
+    setHighlightedKeys([]);
     setSelectedHistory(item);
     const op = spec?.operations.find((o) => o.id === item.opId);
     if (op) {
@@ -844,6 +858,7 @@ export default function App() {
             onAssertChange={(asserts) => {
               if (selected) setAssertions((prev) => ({ ...prev, [selected.id]: asserts }));
             }}
+            highlightKeys={highlightedKeys}
           />
         </Panel>
         <PanelResizeHandle className="resize-handle" />
