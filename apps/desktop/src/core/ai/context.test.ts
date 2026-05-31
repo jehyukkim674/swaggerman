@@ -96,6 +96,20 @@ describe("buildAiContext", () => {
     expect(ctx).not.toContain("super-secret-token");
   });
 
+  it("query 파라미터는 이름만 넣고 값은 넣지 않는다(시크릿 보호)", () => {
+    const inputs: RequestInputs = {
+      pathParams: {},
+      queryParams: [{ key: "api_key", value: "SECRET123", enabled: true }],
+      headers: [],
+      body: "",
+      bodyMode: "raw" as const,
+      form: [],
+    };
+    const ctx = buildAiContext({ op, inputs, response: null, envVarNames: [], baseURL: "" });
+    expect(ctx).toContain("api_key");
+    expect(ctx).not.toContain("SECRET123");
+  });
+
   it("직전 응답이 있으면 상태코드와 본문 일부를 포함한다", () => {
     const response: HTTPResponse = {
       statusCode: 401,

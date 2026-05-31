@@ -13,11 +13,17 @@ export interface AiProvider {
 }
 
 import { claudeProvider } from "./claude";
+import { log } from "../log";
 
 const PROVIDERS: Record<string, AiProvider> = {
   claude: claudeProvider,
 };
 
 export function getProvider(id: "claude" | "codex" = "claude"): AiProvider {
-  return PROVIDERS[id] ?? claudeProvider;
+  const p = PROVIDERS[id];
+  if (!p) {
+    log.warn("ai", `알 수 없는 provider '${id}', claude로 폴백`);
+    return claudeProvider;
+  }
+  return p;
 }

@@ -23,6 +23,7 @@ const CHAT_SYSTEM =
 const REQUEST_SYSTEM =
   "사용자 의도에 맞는 HTTP 요청 필드를 채우세요. 주어진 JSON 스키마에 맞는 객체만 출력합니다. 환경 변수는 {{이름}} 형태로 참조할 수 있습니다.";
 
+// 요청 식별용 단조 증가 카운터(취소 매칭용). 모듈 스코프 — 단일 패널 인스턴스 가정.
 let reqCounter = 1;
 
 export function AiPanel({ provider, buildContext, onApplySuggestion }: Props) {
@@ -31,10 +32,13 @@ export function AiPanel({ provider, buildContext, onApplySuggestion }: Props) {
   const [busy, setBusy] = useState(false);
   const [model, setModel] = useState(DEFAULT_CHAT_MODEL);
   const [error, setError] = useState<string | null>(null);
+  const [unavailable, setUnavailable] = useState(false);
   const sessionRef = useRef<string | undefined>(undefined);
   const handleRef = useRef<AiHandle | null>(null);
+  const genRef = useRef(0);
 
   function reset() {
+    genRef.current++;
     handleRef.current?.cancel();
     handleRef.current = null;
     setMessages([]);
@@ -44,6 +48,7 @@ export function AiPanel({ provider, buildContext, onApplySuggestion }: Props) {
   }
 
   async function handleRequestBuild(question: string) {
+    const myGen = genRef.current;
     setBusy(true);
     setError(null);
     try {
@@ -54,6 +59,7 @@ export function AiPanel({ provider, buildContext, onApplySuggestion }: Props) {
         model: COMPLETE_MODEL,
         schema: JSON.stringify(requestSuggestionSchema),
       });
+      if (genRef.current !== myGen) return;
       const suggestion = parseSuggestion(raw);
       if (!suggestion) {
         setError("제안을 해석하지 못했습니다. 다시 시도해 주세요.");
@@ -104,6 +110,15 @@ export function AiPanel({ provider, buildContext, onApplySuggestion }: Props) {
     };
   }, []);
 
+  // 마운트 시 claude CLI 가용성 확인(없으면 경고 표시).
+  useEffect(() => {
+    let alive = true;
+    provider.detect().then((d) => {
+      if (alive) setUnavailable(!d.claude);
+    }).catch(() => { if (alive) setUnavailable(true); });
+    return () => { alive = false; };
+  }, [provider]);
+
   function send() {
     const q = input.trim();
     if (!q || busy) return;
@@ -133,6 +148,11 @@ export function AiPanel({ provider, buildContext, onApplySuggestion }: Props) {
       </div>
 
       <div className="ai-messages">
+        {unavailable && (
+          <div className="ai-error">
+            claude CLI를 찾을 수 없습니다. 설치 후 PATH에 추가하거나, 터미널에서 `which claude`로 경로를 확인하세요.
+          </div>
+        )}
         {messages.length === 0 && (
           <div className="ai-empty">
             질문하거나 <code>/요청 …</code> 으로 요청 폼을 자동 작성하세요.

@@ -1725,6 +1725,10 @@ mark.hl.active {
   background: var(--bg-3);
   color: var(--text);
 }
+.ai-msg-text {
+  white-space: pre-wrap;
+  word-break: break-word;
+}
 .ai-error {
   color: #f85149;
   font-size: 12px;

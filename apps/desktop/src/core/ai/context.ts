@@ -60,8 +60,9 @@ export function buildAiContext(args: ContextArgs): string {
   if (inputs) {
     parts.push("\n## 현재 폼 상태");
     parts.push(`pathParams: ${JSON.stringify(inputs.pathParams)}`);
-    const q = inputs.queryParams.filter((x) => x.enabled && x.key).map((x) => `${x.key}=${x.value}`);
-    if (q.length) parts.push(`query: ${q.join("&")}`);
+    // query/header 값은 비밀(api_key, token 등)일 수 있어 이름만 전달한다.
+    const q = inputs.queryParams.filter((x) => x.enabled && x.key).map((x) => x.key);
+    if (q.length) parts.push(`query 키: ${q.join(", ")}`);
     // inputs.headers는 의도적으로 제외: Authorization, API 키 등 인증 토큰이 포함될 수 있어 보안상 LLM에 전달하지 않는다.
     if (inputs.body) parts.push(`body:\n${inputs.body.slice(0, MAX_BODY)}`);
   }

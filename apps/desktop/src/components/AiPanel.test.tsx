@@ -51,6 +51,29 @@ describe("AiPanel", () => {
     expect(onApply).toHaveBeenCalledWith({ body: '{"ok":1}' });
   });
 
+  it("'/요청' 진행 중 새 대화를 누르면 늦게 온 제안을 버린다", async () => {
+    let resolveComplete: (v: string) => void = () => {};
+    const provider = makeProvider({
+      complete: vi.fn().mockImplementation(() => new Promise<string>((res) => { resolveComplete = res; })),
+    });
+    render(<AiPanel provider={provider} buildContext={ctx} onApplySuggestion={() => {}} />);
+    fireEvent.change(screen.getByPlaceholderText(/질문/), { target: { value: "/요청 상품" } });
+    fireEvent.click(screen.getByText("전송"));
+    // 진행 중에 새 대화
+    fireEvent.click(screen.getByText("새 대화"));
+    // 이제 complete가 늦게 resolve
+    resolveComplete(JSON.stringify({ body: "{}" }));
+    // 제안 카드가 나타나지 않아야 한다
+    await new Promise((r) => setTimeout(r, 20));
+    expect(screen.queryByText("폼에 적용")).toBeNull();
+  });
+
+  it("claude 미발견 시 경고를 표시한다", async () => {
+    const provider = makeProvider({ detect: vi.fn().mockResolvedValue({}) });
+    render(<AiPanel provider={provider} buildContext={ctx} onApplySuggestion={() => {}} />);
+    await waitFor(() => expect(screen.getByText(/claude CLI를 찾을 수 없습니다/)).toBeTruthy());
+  });
+
   it("'새 대화'는 진행 중 스트림을 취소하고 busy를 해제한다", async () => {
     const cancel = vi.fn();
     const provider = makeProvider({
