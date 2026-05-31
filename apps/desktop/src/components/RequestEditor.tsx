@@ -16,6 +16,7 @@ import { methodColor, statusColor } from "./method";
 import { TrashIcon } from "./icons";
 import { TestPanel } from "./TestPanel";
 import { VarInput } from "./VarInput";
+import { JsonEditor } from "./JsonEditor";
 
 interface Props {
   operation: ParsedOperation | null;
@@ -353,12 +354,10 @@ export function RequestEditor({
               </div>
             )}
             {mode === "raw" && (
-              <textarea
-                className="body-input"
+              <JsonEditor
                 value={inputs.body}
-                onChange={(e) => onChange({ ...inputs, body: e.target.value })}
-                spellCheck={false}
-                rows={10}
+                onChange={(v) => onChange({ ...inputs, body: v })}
+                rows={12}
               />
             )}
             {(mode === "urlencoded" || mode === "multipart") && (

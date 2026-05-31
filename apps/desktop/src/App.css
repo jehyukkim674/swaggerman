@@ -1857,3 +1857,68 @@ details[open] > summary::before {
   background: var(--accent);
   color: #fff;
 }
+
+/* 편집 가능한 JSON 에디터(하이라이트 레이어 + 투명 textarea + 라인번호) */
+.json-editor {
+  display: flex;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  overflow: hidden;
+  background: var(--bg);
+  font-family: ui-monospace, monospace;
+  font-size: 12px;
+  line-height: 1.5;
+}
+.je-gutter {
+  flex: 0 0 auto;
+  overflow: hidden;
+  padding: 8px 6px;
+  text-align: right;
+  color: var(--muted);
+  background: var(--bg-2);
+  user-select: none;
+  border-right: 1px solid var(--border);
+  min-width: 34px;
+}
+.je-lnum {
+  height: 1.5em;
+  font-family: ui-monospace, monospace;
+  font-size: 12px;
+  line-height: 1.5;
+}
+.je-scroll {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+}
+.je-pre,
+.je-ta {
+  margin: 0;
+  padding: 8px 10px;
+  font-family: ui-monospace, monospace;
+  font-size: 12px;
+  line-height: 1.5;
+  white-space: pre;
+  tab-size: 2;
+  border: 0;
+  position: absolute;
+  inset: 0;
+}
+.je-pre {
+  pointer-events: none;
+  overflow: hidden;
+  color: var(--text);
+}
+.je-ta {
+  overflow: auto;
+  background: transparent;
+  color: transparent;
+  caret-color: var(--text);
+  resize: none;
+  border-radius: 0;
+}
+.je-ta:focus {
+  outline: none;
+  box-shadow: none;
+  border: 0;
+}
