@@ -16,6 +16,25 @@ interface Props {
   provider: AiProvider;
   buildContext: () => string;
   onApplySuggestion: (s: RequestSuggestion) => void;
+  paramNames?: string[];
+  onMentions?: (keys: string[]) => void;
+}
+
+/** 답변 텍스트에서 주어진 파라미터명 중 실제로 등장한 것만 골라낸다(대소문자 무시, 부분 단어 오탐 최소화). */
+export function detectMentions(text: string, names: string[]): string[] {
+  if (!text || names.length === 0) return [];
+  const lower = text.toLowerCase();
+  return names.filter((n) => {
+    const ln = n.toLowerCase();
+    if (!ln) return false;
+    // 단어 경계 비슷하게: 앞뒤가 영숫자가 아닌 경우만 매칭(예: "keyword"가 "keywords" 안에서 매칭되지 않도록)
+    const idx = lower.indexOf(ln);
+    if (idx === -1) return false;
+    const before = idx === 0 ? "" : lower[idx - 1];
+    const after = idx + ln.length >= lower.length ? "" : lower[idx + ln.length];
+    const isWordChar = (c: string) => /[a-z0-9_]/.test(c);
+    return !isWordChar(before) && !isWordChar(after);
+  });
 }
 
 const REQUEST_PREFIX = "/요청";
@@ -27,7 +46,7 @@ const REQUEST_SYSTEM =
 // 요청 식별용 단조 증가 카운터(취소 매칭용). 모듈 스코프 — 단일 패널 인스턴스 가정.
 let reqCounter = 1;
 
-export function AiPanel({ provider, buildContext, onApplySuggestion }: Props) {
+export function AiPanel({ provider, buildContext, onApplySuggestion, paramNames = [], onMentions }: Props) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [totals, setTotals] = useState({ input: 0, output: 0 });
   const [input, setInput] = useState("");
@@ -50,6 +69,7 @@ export function AiPanel({ provider, buildContext, onApplySuggestion }: Props) {
     setError(null);
     setBusy(false);
     setBuilding(false);
+    onMentions?.([]);
   }
 
   async function handleRequestBuild(question: string) {
@@ -94,6 +114,7 @@ export function AiPanel({ provider, buildContext, onApplySuggestion }: Props) {
           copy[copy.length - 1] = { role: "assistant", text: acc };
           return copy;
         });
+        onMentions?.(detectMentions(acc, paramNames));
       } else if (e.kind === "done") {
         if (e.sessionId) sessionRef.current = e.sessionId;
         const inTok = e.inputTokens ?? 0;
@@ -109,6 +130,7 @@ export function AiPanel({ provider, buildContext, onApplySuggestion }: Props) {
           });
           setTotals((t) => ({ input: t.input + inTok, output: t.output + outTok }));
         }
+        onMentions?.(detectMentions(acc, paramNames));
         setBusy(false);
         handleRef.current = null;
       } else if (e.kind === "error") {
