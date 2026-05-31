@@ -50,4 +50,23 @@ describe("AiPanel", () => {
     fireEvent.click(screen.getByText("폼에 적용"));
     expect(onApply).toHaveBeenCalledWith({ body: '{"ok":1}' });
   });
+
+  it("'새 대화'는 진행 중 스트림을 취소하고 busy를 해제한다", async () => {
+    const cancel = vi.fn();
+    const provider = makeProvider({
+      chat: vi.fn((_req, onEvent): AiHandle => {
+        onEvent({ kind: "delta", text: "부분" }); // done 없음 → busy 유지
+        return { cancel };
+      }),
+    });
+    render(<AiPanel provider={provider} buildContext={ctx} onApplySuggestion={() => {}} />);
+    fireEvent.change(screen.getByPlaceholderText(/질문/), { target: { value: "느린 질문" } });
+    fireEvent.click(screen.getByText("전송"));
+    // busy 상태: 전송 버튼이 "…"
+    await waitFor(() => expect(screen.getByText("…")).toBeTruthy());
+    // 새 대화 클릭 → 취소 호출 + busy 해제(전송 버튼 복귀)
+    fireEvent.click(screen.getByText("새 대화"));
+    expect(cancel).toHaveBeenCalled();
+    await waitFor(() => expect(screen.getByText("전송")).toBeTruthy());
+  });
 });

@@ -1,5 +1,5 @@
-import { useRef, useState } from "react";
-import type { AiProvider } from "../core/ai/provider";
+import { useEffect, useRef, useState } from "react";
+import type { AiProvider, AiHandle } from "../core/ai/provider";
 import type { AiEvent, RequestSuggestion } from "../core/ai/types";
 import { parseSuggestion, requestSuggestionSchema } from "../core/ai/schema";
 import { CHAT_MODELS, DEFAULT_CHAT_MODEL, COMPLETE_MODEL } from "../core/ai/models";
@@ -32,11 +32,15 @@ export function AiPanel({ provider, buildContext, onApplySuggestion }: Props) {
   const [model, setModel] = useState(DEFAULT_CHAT_MODEL);
   const [error, setError] = useState<string | null>(null);
   const sessionRef = useRef<string | undefined>(undefined);
+  const handleRef = useRef<AiHandle | null>(null);
 
   function reset() {
+    handleRef.current?.cancel();
+    handleRef.current = null;
     setMessages([]);
     sessionRef.current = undefined;
     setError(null);
+    setBusy(false);
   }
 
   async function handleRequestBuild(question: string) {
@@ -80,16 +84,25 @@ export function AiPanel({ provider, buildContext, onApplySuggestion }: Props) {
       } else if (e.kind === "done") {
         if (e.sessionId) sessionRef.current = e.sessionId;
         setBusy(false);
+        handleRef.current = null;
       } else if (e.kind === "error") {
         setError(e.message);
         setBusy(false);
+        handleRef.current = null;
       }
     };
-    provider.chat(
+    handleRef.current = provider.chat(
       { reqId: reqCounter++, prompt, system: CHAT_SYSTEM, model, sessionId: sessionRef.current },
       onEvent,
     );
   }
+
+  // 언마운트 시 진행 중인 스트림을 취소한다(스테일 콜백/좀비 프로세스 방지).
+  useEffect(() => {
+    return () => {
+      handleRef.current?.cancel();
+    };
+  }, []);
 
   function send() {
     const q = input.trim();
