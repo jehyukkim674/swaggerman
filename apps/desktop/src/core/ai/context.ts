@@ -47,13 +47,26 @@ export function buildAiContext(args: ContextArgs): string {
     parts.push("\n## 파라미터");
     for (const p of op.parameters) {
       const mark = p.required ? "*" : "";
-      parts.push(`- (${p.location}) ${p.name}${mark}: ${p.schema?.type ?? "string"}`);
+      const extras: string[] = [];
+      if (p.schema?.enumValues?.length) extras.push(`enum: ${p.schema.enumValues.join("|")}`);
+      if (p.schema?.example != null && p.schema.example !== "") extras.push(`예: ${p.schema.example}`);
+      else if (p.schema?.defaultValue != null && p.schema.defaultValue !== "")
+        extras.push(`기본: ${p.schema.defaultValue}`);
+      const suffix = extras.length ? ` (${extras.join(", ")})` : "";
+      parts.push(`- (${p.location}) ${p.name}${mark}: ${p.schema?.type ?? "string"}${suffix}`);
     }
   }
 
   if (op.requestBody?.schema) {
     parts.push(`\n## 요청 본문(${op.requestBody.contentType})`);
     const outline = schemaOutline(op.requestBody.schema);
+    if (outline) parts.push(outline);
+  }
+
+  const okResp = op.responses.find((r) => /^2\d\d$/.test(r.statusCode));
+  if (okResp?.schema) {
+    parts.push(`\n## 성공 응답(${okResp.statusCode}) 스키마`);
+    const outline = schemaOutline(okResp.schema);
     if (outline) parts.push(outline);
   }
 

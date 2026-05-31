@@ -135,4 +135,40 @@ describe("buildAiContext", () => {
     const ctx = buildAiContext({ op, inputs: null, response, envVarNames: [], baseURL: "" });
     expect(ctx.length).toBeLessThan(2500);
   });
+
+  it("파라미터의 enum/example을 컨텍스트에 포함한다", () => {
+    const opE: ParsedOperation = {
+      ...op,
+      parameters: [
+        {
+          id: "q1",
+          name: "status",
+          location: "query",
+          required: false,
+          schema: { type: "string", enumValues: ["active", "closed"], example: "active" },
+        },
+      ],
+    };
+    const ctx = buildAiContext({ op: opE, inputs: null, response: null, envVarNames: [], baseURL: "" });
+    expect(ctx).toContain("status");
+    expect(ctx).toContain("active");
+    expect(ctx).toContain("closed");
+  });
+
+  it("성공 응답(2xx) 스키마 개요를 포함한다", () => {
+    const opR: ParsedOperation = {
+      ...op,
+      responses: [
+        {
+          statusCode: "200",
+          description: "ok",
+          schema: { type: "object", properties: { id: { type: "integer" }, name: { type: "string" } } },
+        },
+      ],
+    };
+    const ctx = buildAiContext({ op: opR, inputs: null, response: null, envVarNames: [], baseURL: "" });
+    expect(ctx).toContain("응답");
+    expect(ctx).toContain("id");
+    expect(ctx).toContain("name");
+  });
 });
