@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels";
+import { Panel, PanelGroup, PanelResizeHandle, type ImperativePanelHandle } from "react-resizable-panels";
 import { getCurrentWebview } from "@tauri-apps/api/webview";
 import "./App.css";
 import { loadSpec as loadSpecFromUrl } from "./core/spec-loader";
@@ -12,6 +12,7 @@ import {
   type RequestInputs,
   type RequestParam,
 } from "./core/request-builder";
+import { buildCurl } from "./core/curl-builder";
 import { savedToRequest, type Collection, type SavedRequest } from "./core/collections";
 import { validateResponseBody, type ValidationIssue } from "./core/schema-validate";
 import { computeSecurityHeaders } from "./core/security";
@@ -46,6 +47,12 @@ import { CommandPalette } from "./components/CommandPalette";
 import { SettingsModal } from "./components/SettingsModal";
 import { EnvironmentsModal } from "./components/EnvironmentsModal";
 import { GlobalHeadersModal } from "./components/GlobalHeadersModal";
+import { AiPanel } from "./components/AiPanel";
+import { getProvider } from "./core/ai/provider";
+import { buildAiContext } from "./core/ai/context";
+import { applySuggestion } from "./core/ai/schema";
+import { diagnosePrompt, explainPrompt } from "./core/ai/prompts";
+import type { RequestSuggestion } from "./core/ai/types";
 
 const DEFAULT_SPEC_URL = "http://localhost:8000/v3/api-docs";
 
@@ -212,6 +219,101 @@ export default function App() {
   // 커맨드 팔레트(⌘K)
   const [paletteOpen, setPaletteOpen] = useState(false);
 
+  // AI 어시스턴트 패널(우측) 토글 — 전역 저장
+  const [aiOpen, setAiOpen] = useState<boolean>(() => loadJSON("swaggerman.aiOpen", false));
+  useEffect(() => {
+    saveJSON("swaggerman.aiOpen", aiOpen);
+  }, [aiOpen]);
+
+  // 응답 기반 AI 액션: 패널을 열고 보류 프롬프트를 내려 자동 전송시킨다.
+  const [aiPendingPrompt, setAiPendingPrompt] = useState<string | null>(null);
+  function askAiAboutResponse(kind: "diagnose" | "explain") {
+    setAiOpen(true);
+    setAiPendingPrompt(kind === "diagnose" ? diagnosePrompt() : explainPrompt());
+  }
+
+  // AI 패널 접기(folding) — 열린 상태에서 좁게 접기/펼치기, 전역 저장
+  const [aiCollapsed, setAiCollapsed] = useState<boolean>(() =>
+    loadJSON("swaggerman.aiCollapsed", false),
+  );
+  useEffect(() => {
+    saveJSON("swaggerman.aiCollapsed", aiCollapsed);
+  }, [aiCollapsed]);
+  const aiPanelRef = useRef<ImperativePanelHandle>(null);
+
+  const aiProvider = useMemo(() => getProvider("claude"), []);
+
+  // AI에 줄 현재 컨텍스트 조립(엔드포인트/폼/응답/환경변수명)
+  function currentAiContext(): string {
+    if (!selected) return "현재 선택된 엔드포인트가 없습니다.";
+    const env = envs.find((e) => e.baseURL === baseURL);
+    const envVarNames = (env?.vars ?? []).map((v) => v.key).filter(Boolean);
+    return buildAiContext({
+      op: selected,
+      inputs,
+      response,
+      envVarNames,
+      baseURL,
+    });
+  }
+
+  // AI 제안 적용 후 하이라이팅할 키 목록 (2초 뒤 자동 해제)
+  const [highlightedKeys, setHighlightedKeys] = useState<string[]>([]);
+  const highlightTimerRef = useRef<number | null>(null);
+
+  // AI 답변이 언급한 파라미터명 하이라이팅(노랑 점선, 적용=파랑과 구분)
+  const [mentionedKeys, setMentionedKeys] = useState<string[]>([]);
+
+  // 현재 선택된 오퍼레이션의 파라미터명 목록(AiPanel에 전달해 언급 감지에 사용)
+  const opParamNames = useMemo(
+    () => (selected ? selected.parameters.map((p) => p.name) : []),
+    [selected],
+  );
+
+  // AI 제안을 현재 폼에 적용(실행하지 않음 — 사용자가 ⌘Enter로 실행)
+  function applyAiSuggestion(s: RequestSuggestion) {
+    if (!inputs) return;
+    setInputs(applySuggestion(inputs, s));
+    const keys = [
+      ...Object.keys(s.pathParams ?? {}),
+      ...Object.keys(s.queryParams ?? {}),
+      ...Object.keys(s.headers ?? {}),
+    ];
+    setHighlightedKeys(keys);
+    if (highlightTimerRef.current) window.clearTimeout(highlightTimerRef.current);
+    highlightTimerRef.current = window.setTimeout(() => setHighlightedKeys([]), 2000);
+    log.info("ai", "요청 제안을 폼에 적용");
+  }
+
+  function copyCurlFromSuggestion(s: RequestSuggestion) {
+    if (!selected || !inputs) return;
+    const merged = applySuggestion(inputs, s);
+    const securityHeaders = computeSecurityHeaders(spec?.securitySchemes ?? [], authValues);
+    const request = buildRequest(baseURL, selected, merged, securityHeaders, globalHeaders, activeVars);
+    navigator.clipboard?.writeText(buildCurl(request)).then(
+      () => log.info("ai", "제안을 cURL로 복사"),
+      () => log.warn("ai", "클립보드 복사 실패"),
+    );
+  }
+
+  function saveVarsFromSuggestion(s: RequestSuggestion) {
+    const pairs = { ...(s.pathParams ?? {}), ...(s.queryParams ?? {}) };
+    const entries = Object.entries(pairs).filter(([k, v]) => k && v && !v.includes("{{"));
+    if (entries.length === 0) return;
+    setEnvs((prev) => {
+      const env = prev.find((e) => e.baseURL === baseURL);
+      if (!env) return prev;
+      const vars = [...(env.vars ?? [])];
+      for (const [k, v] of entries) {
+        const ex = vars.find((x) => x.key === k);
+        if (ex) ex.value = v;
+        else vars.push({ key: k, value: v });
+      }
+      return prev.map((e) => (e === env ? { ...e, vars } : e));
+    });
+    log.info("ai", "제안 값을 환경 변수로 저장");
+  }
+
   // 전역 줌 (Cmd/Ctrl +/-/0)
   const [zoom, setZoom] = useState<number>(() => loadJSON("swaggerman.zoom", 1));
   useEffect(() => {
@@ -370,6 +472,8 @@ export default function App() {
   function selectOperation(op: ParsedOperation) {
     stashCurrent();
     setSelectedHistory(null);
+    setHighlightedKeys([]);
+    setMentionedKeys([]);
     setSelected(op);
     const cached = opCacheRef.current.get(op.id);
     if (cached) {
@@ -515,6 +619,8 @@ export default function App() {
     stashCurrent();
     setAssertResults([]);
     setSchemaIssues([]);
+    setHighlightedKeys([]);
+    setMentionedKeys([]);
     setSelectedHistory(item);
     const op = spec?.operations.find((o) => o.id === item.opId);
     if (op) {
@@ -723,6 +829,13 @@ export default function App() {
           </button>
           {updateMsg && <span className="update-msg">{updateMsg}</span>}
           <button
+            className={aiOpen ? "btn small primary" : "btn small"}
+            title="AI 어시스턴트 패널 열기/닫기"
+            onClick={() => setAiOpen((v) => !v)}
+          >
+            ✦ AI
+          </button>
+          <button
             className="btn small"
             title={theme === "dark" ? "라이트 테마로" : "다크 테마로"}
             onClick={() => setTheme((t) => (t === "dark" ? "light" : "dark"))}
@@ -748,7 +861,7 @@ export default function App() {
       )}
 
       <PanelGroup direction="horizontal" className="panes" autoSaveId="swaggerman-panes">
-        <Panel defaultSize={24} minSize={14} className="pane">
+        <Panel id="sidebar" order={1} defaultSize={24} minSize={14} className="pane">
           <Sidebar
             spec={spec}
             loading={loading}
@@ -766,7 +879,7 @@ export default function App() {
           />
         </Panel>
         <PanelResizeHandle className="resize-handle" />
-        <Panel defaultSize={38} minSize={20} className="pane">
+        <Panel id="request" order={2} defaultSize={38} minSize={20} className="pane">
           <RequestEditor
             operation={selected}
             inputs={inputs}
@@ -794,10 +907,12 @@ export default function App() {
             onAssertChange={(asserts) => {
               if (selected) setAssertions((prev) => ({ ...prev, [selected.id]: asserts }));
             }}
+            highlightKeys={highlightedKeys}
+            mentionKeys={mentionedKeys}
           />
         </Panel>
         <PanelResizeHandle className="resize-handle" />
-        <Panel defaultSize={38} minSize={20} className="pane">
+        <Panel id="response" order={3} defaultSize={38} minSize={20} className="pane">
           <ResponseView
             response={response}
             request={lastRequest}
@@ -808,8 +923,64 @@ export default function App() {
             onTab={setResponseTab}
             historyItem={selectedHistory}
             schemaIssues={schemaIssues}
+            onAskAi={askAiAboutResponse}
           />
         </Panel>
+        {aiOpen && (
+          <>
+            <PanelResizeHandle className="resize-handle" />
+            <Panel
+              id="ai"
+              order={4}
+              ref={aiPanelRef}
+              collapsible
+              collapsedSize={4}
+              defaultSize={aiCollapsed ? 4 : 26}
+              minSize={16}
+              onCollapse={() => setAiCollapsed(true)}
+              onExpand={() => setAiCollapsed(false)}
+              className="pane"
+            >
+              {/* 접힘 스트립과 본문을 둘 다 마운트해 두고 CSS로 전환한다.
+                  AiPanel을 언마운트하면 대화(messages) state가 사라지므로,
+                  접어도 unmount하지 않고 display로만 숨겨 대화를 보존한다. */}
+              {aiCollapsed && (
+                <button
+                  className="ai-collapsed-strip"
+                  title="AI 패널 펼치기"
+                  onClick={() => aiPanelRef.current?.expand()}
+                >
+                  ✦
+                </button>
+              )}
+              <div className="ai-panel-wrap" style={{ display: aiCollapsed ? "none" : "flex" }}>
+                <div className="ai-collapse-bar">
+                  <button
+                    className="ai-collapse-btn"
+                    title="AI 패널 접기"
+                    onClick={() => aiPanelRef.current?.collapse()}
+                  >
+                    ›
+                  </button>
+                </div>
+                <div className="ai-panel-body">
+                  <AiPanel
+                    provider={aiProvider}
+                    buildContext={currentAiContext}
+                    onApplySuggestion={applyAiSuggestion}
+                    paramNames={opParamNames}
+                    onMentions={setMentionedKeys}
+                    specUrl={activeSpecUrl}
+                    pendingPrompt={aiPendingPrompt ?? undefined}
+                    onPendingConsumed={() => setAiPendingPrompt(null)}
+                    onCopyCurl={copyCurlFromSuggestion}
+                    onSaveVars={saveVarsFromSuggestion}
+                  />
+                </div>
+              </div>
+            </Panel>
+          </>
+        )}
       </PanelGroup>
 
       {envModalOpen && (
@@ -848,6 +1019,9 @@ export default function App() {
             importCurl(operation, ins, b);
           }}
           onClose={() => setPaletteOpen(false)}
+          onAskAiResponse={askAiAboutResponse}
+          hasResponse={!!response}
+          responseIsError={!!response && response.statusCode >= 400}
         />
       )}
       {runnerOpen && (

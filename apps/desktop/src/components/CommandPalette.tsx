@@ -9,6 +9,9 @@ interface Props {
   onSelectOperation: (op: ParsedOperation) => void;
   onSelectSaved: (s: SavedRequest) => void;
   onClose: () => void;
+  onAskAiResponse?: (kind: "diagnose" | "explain") => void;
+  hasResponse?: boolean;
+  responseIsError?: boolean;
 }
 
 interface Item {
@@ -26,12 +29,33 @@ export function CommandPalette({
   onSelectOperation,
   onSelectSaved,
   onClose,
+  onAskAiResponse,
+  hasResponse,
+  responseIsError,
 }: Props) {
   const [q, setQ] = useState("");
   const [active, setActive] = useState(0);
 
   const items = useMemo<Item[]>(() => {
     const list: Item[] = [];
+    if (hasResponse && onAskAiResponse) {
+      list.push({
+        key: "ai-explain",
+        method: "AI",
+        label: "응답 설명",
+        sub: "직전 응답을 AI로 요약·설명",
+        run: () => onAskAiResponse("explain"),
+      });
+      if (responseIsError) {
+        list.push({
+          key: "ai-diagnose",
+          method: "AI",
+          label: "응답 진단",
+          sub: "실패 원인을 AI로 진단",
+          run: () => onAskAiResponse("diagnose"),
+        });
+      }
+    }
     for (const op of operations) {
       list.push({
         key: `op:${op.id}`,
@@ -53,7 +77,7 @@ export function CommandPalette({
       }
     }
     return list;
-  }, [operations, collections, onSelectOperation, onSelectSaved]);
+  }, [operations, collections, onSelectOperation, onSelectSaved, onAskAiResponse, hasResponse, responseIsError]);
 
   const filtered = useMemo(() => {
     const needle = q.trim().toLowerCase();

@@ -21,6 +21,7 @@ interface Props {
   onTab: (tab: "docs" | "response") => void;
   historyItem: HistoryItem | null;
   schemaIssues: ValidationIssue[];
+  onAskAi?: (kind: "diagnose" | "explain") => void;
 }
 
 function prettyBody(body: string): string {
@@ -52,6 +53,7 @@ export function ResponseView({
   onTab,
   historyItem,
   schemaIssues,
+  onAskAi,
 }: Props) {
   const [copied, setCopied] = useState<string | null>(null);
   const [search, setSearch] = useState("");
@@ -198,6 +200,18 @@ export function ResponseView({
                 </div>
               )}
             </div>
+          )}
+          {onAskAi && (
+            <span className="ai-resp-actions">
+              <button className="btn small" onClick={() => onAskAi("explain")} title="이 응답을 AI로 설명">
+                ✦ 설명
+              </button>
+              {response.statusCode >= 400 && (
+                <button className="btn small" onClick={() => onAskAi("diagnose")} title="실패 원인을 AI로 진단">
+                  ✦ 진단
+                </button>
+              )}
+            </span>
           )}
         </div>
       </div>

@@ -1,3 +1,5 @@
+mod ai;
+
 use std::collections::HashMap;
 use std::sync::{Arc, OnceLock};
 use std::time::{Duration, Instant};
@@ -221,7 +223,11 @@ pub fn run() {
             list_cookies,
             clear_cookies,
             read_text_file,
-            write_text_file
+            write_text_file,
+            ai::ai_detect,
+            ai::ai_complete,
+            ai::ai_chat,
+            ai::ai_cancel
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
