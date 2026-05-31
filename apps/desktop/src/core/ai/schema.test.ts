@@ -19,6 +19,10 @@ describe("requestSuggestionSchema", () => {
     expect(requestSuggestionSchema.properties).toHaveProperty("body");
     expect(requestSuggestionSchema.properties).toHaveProperty("queryParams");
   });
+
+  it("additionalProperties는 false(임의 키 차단)", () => {
+    expect(requestSuggestionSchema.additionalProperties).toBe(false);
+  });
 });
 
 describe("parseSuggestion", () => {
@@ -46,6 +50,14 @@ describe("parseSuggestion", () => {
   it("알 수 없는 필드는 버린다", () => {
     const raw = JSON.stringify({ body: "{}", hacker: "rm -rf", method: "DELETE" });
     expect(parseSuggestion(raw)).toEqual({ body: "{}" });
+  });
+
+  it("result가 null인 래퍼는 null", () => {
+    expect(parseSuggestion(JSON.stringify({ result: null }))).toBeNull();
+  });
+
+  it("result가 JSON 원시값 문자열이면 null", () => {
+    expect(parseSuggestion(JSON.stringify({ result: "42" }))).toBeNull();
   });
 });
 
@@ -77,5 +89,18 @@ describe("applySuggestion", () => {
     const input = emptyInputs();
     applySuggestion(input, { body: "changed" });
     expect(input.body).toBe("");
+  });
+
+  it("빈 제안은 사실상 무변경", () => {
+    const inp = emptyInputs();
+    const out = applySuggestion(inp, {});
+    expect(out.pathParams).toEqual(inp.pathParams);
+    expect(out.body).toBe(inp.body);
+    expect(out.queryParams.map((q) => q.key)).toEqual(inp.queryParams.map((q) => q.key));
+  });
+
+  it("body 빈 문자열로 명시적 초기화", () => {
+    const out = applySuggestion({ ...emptyInputs(), body: '{"x":1}' }, { body: "" });
+    expect(out.body).toBe("");
   });
 });

@@ -22,10 +22,12 @@ function pickKnown(obj: Record<string, unknown>): RequestSuggestion {
     const v = obj[k];
     if (v === undefined) continue;
     if (k === "body" || k === "notes") {
+      // 문자열이 아닌 body/notes는 무시(스키마 강제가 AI 레이어에서 처리)
       if (typeof v === "string") out[k] = v;
     } else if (typeof v === "object" && v !== null) {
       const rec: Record<string, string> = {};
       for (const [kk, vv] of Object.entries(v as Record<string, unknown>)) {
+        // 문자열이 아닌 딕셔너리 값은 문자열로 강제 변환
         rec[kk] = typeof vv === "string" ? vv : String(vv);
       }
       out[k] = rec;
@@ -51,6 +53,7 @@ export function parseSuggestion(raw: string): RequestSuggestion | null {
       try {
         const inner = JSON.parse(r);
         if (typeof inner === "object" && inner !== null) return pickKnown(inner as Record<string, unknown>);
+        return null; // valid JSON이지만 객체가 아님(예: "42", true)
       } catch {
         return null;
       }
@@ -76,7 +79,7 @@ function upsert(list: RequestParam[], rec: Record<string, string>): RequestParam
   return out;
 }
 
-/** 제안을 현재 입력에 불변 병합한다(pathParams/query/headers/body만; 나머지 유지). */
+/** 제안을 현재 입력에 병합한다. pathParams/queryParams/headers/body는 새 객체/배열로 생성하고, form/bodyMode 등 나머지는 동일 참조로 유지한다. */
 export function applySuggestion(inputs: RequestInputs, s: RequestSuggestion): RequestInputs {
   return {
     ...inputs,
