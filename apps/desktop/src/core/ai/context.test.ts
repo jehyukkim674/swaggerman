@@ -171,4 +171,22 @@ describe("buildAiContext", () => {
     expect(ctx).toContain("id");
     expect(ctx).toContain("name");
   });
+
+  it("includeResponseSchema=false면 응답 스키마를 제외한다(폼 채우기용 경량 컨텍스트)", () => {
+    const opR: ParsedOperation = {
+      ...op,
+      responses: [
+        {
+          statusCode: "200",
+          description: "ok",
+          schema: { type: "object", properties: { id: { type: "integer" } } },
+        },
+      ],
+    };
+    const ctx = buildAiContext({
+      op: opR, inputs: null, response: null, envVarNames: [], baseURL: "",
+      includeResponseSchema: false,
+    });
+    expect(ctx).not.toContain("성공 응답");
+  });
 });

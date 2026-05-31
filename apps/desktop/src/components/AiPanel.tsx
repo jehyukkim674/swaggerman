@@ -15,7 +15,7 @@ interface Message {
 
 interface Props {
   provider: AiProvider;
-  buildContext: () => string;
+  buildContext: (opts?: { forForm?: boolean }) => string;
   onApplySuggestion: (s: RequestSuggestion) => void;
   paramNames?: string[];
   onMentions?: (keys: string[]) => void;
@@ -48,6 +48,10 @@ const CHAT_SYSTEM =
   "당신은 OpenAPI 클라이언트의 어시스턴트입니다. 사용자가 보고 있는 엔드포인트 컨텍스트를 바탕으로 한국어로 간결히 답하세요. 어떤 도구(셸/MCP/네트워크)도 사용하지 말고, 직접 실행을 시도하지 마세요. 이미 정의된 API에 대한 설명/안내만 텍스트로 제공합니다.";
 const REQUEST_SYSTEM =
   "사용자 의도에 맞는 HTTP 요청 필드를 채우세요. 주어진 JSON 스키마에 맞는 객체만 출력합니다. 어떤 도구도 사용하지 말고 실제 요청을 실행하지 마세요. body에는 마크다운 코드펜스 없이 순수 문자열만 넣고, 스키마에 정의된 키만 사용하세요. 제공된 파라미터 목록에 없는 키는 만들지 말고, 모르면 비워 두세요. 환경 변수는 {{이름}} 형태로 참조할 수 있습니다.";
+
+// --json-schema 강제 모드는 다중 턴 에이전트 루프로 느리므로 쓰지 않는다.
+// 대신 프롬프트로 출력 JSON 형식을 지시하고 결과를 parseSuggestion으로 파싱한다(1턴).
+const REQUEST_FORMAT = `\n\n## 출력 형식(중요)\n아래 JSON 스키마에 맞는 객체 하나만, 마크다운 코드펜스 없이, 한 번의 답변으로 출력하세요. 모르는 키는 비워 두세요.\n${JSON.stringify(requestSuggestionSchema)}`;
 
 // 요청 식별용 단조 증가 카운터(취소 매칭용). 모듈 스코프 — 단일 패널 인스턴스 가정.
 let reqCounter = 1;
@@ -85,7 +89,7 @@ export function AiPanel({ provider, buildContext, onApplySuggestion, paramNames 
     setBuilding(true);
     setError(null);
     try {
-      const prompt = `${buildContext()}\n\n## 요청\n${question}`;
+      const prompt = `${buildContext({ forForm: true })}\n\n## 요청\n${question}${REQUEST_FORMAT}`;
       const raw = await provider.complete({
         prompt,
         system: REQUEST_SYSTEM,
@@ -204,7 +208,7 @@ export function AiPanel({ provider, buildContext, onApplySuggestion, paramNames 
     try {
       const userMsg = [...messages.slice(0, index)].reverse().find((m) => m.role === "user");
       const intent = userMsg?.text ?? msg.text;
-      const prompt = `${buildContext()}\n\n## 요청\n${intent}`;
+      const prompt = `${buildContext({ forForm: true })}\n\n## 요청\n${intent}${REQUEST_FORMAT}`;
       const raw = await provider.complete({
         prompt,
         system: REQUEST_SYSTEM,

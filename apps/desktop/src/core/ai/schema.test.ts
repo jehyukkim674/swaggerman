@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { requestSuggestionSchema, parseSuggestion, applySuggestion, filterKnownParams } from "./schema";
+import { requestSuggestionSchema, parseSuggestion, applySuggestion, filterKnownParams, applySuggestionForOp } from "./schema";
 import type { RequestInputs } from "../request-builder";
 
 function emptyInputs(): RequestInputs {
@@ -41,6 +41,12 @@ describe("parseSuggestion", () => {
     const inner = { headers: { "X-A": "1" } };
     const raw = JSON.stringify({ result: inner });
     expect(parseSuggestion(raw)).toEqual(inner);
+  });
+
+  it("result 문자열이 코드펜스로 감싼 JSON이어도 파싱한다", () => {
+    // --json-schema 미사용 시 claude는 result에 ```json … ``` 형태로 답한다.
+    const raw = JSON.stringify({ result: "```json\n{\"queryParams\":{\"keyword\":\"dell\"}}\n```" });
+    expect(parseSuggestion(raw)).toEqual({ queryParams: { keyword: "dell" } });
   });
 
   it("파싱 불가하면 null", () => {
@@ -153,5 +159,37 @@ describe("filterKnownParams", () => {
     const s = { queryParams: { bad: "1" } };
     filterKnownParams(s, []);
     expect(s.queryParams).toEqual({ bad: "1" });
+  });
+});
+
+describe("applySuggestionForOp", () => {
+  // 회귀: /device/{deviceId}에서 만든 제안(pathParams:{deviceId})이 히스토리 복원/op 전환 후
+  // POST /device(파라미터 없음)에 적용되면서 deviceId가 폼에 새던 버그.
+  it("현재 op에 없는 path/query 키는 폼에 들어가지 않는다", () => {
+    const inputs: RequestInputs = {
+      pathParams: {}, queryParams: [], headers: [], body: "", bodyMode: "none", form: [],
+    };
+    const s = { pathParams: { deviceId: "" }, queryParams: { bogus: "1" } };
+    const out = applySuggestionForOp(inputs, s, []); // POST /device: 파라미터 없음
+    expect(out.pathParams).toEqual({});
+    expect(out.queryParams).toEqual([]);
+  });
+
+  it("현재 op에 있는 키는 정상 적용한다", () => {
+    const inputs: RequestInputs = {
+      pathParams: { deviceId: "" }, queryParams: [], headers: [], body: "", bodyMode: "none", form: [],
+    };
+    const s = { pathParams: { deviceId: "D-1" } };
+    const out = applySuggestionForOp(inputs, s, ["deviceId"]);
+    expect(out.pathParams).toEqual({ deviceId: "D-1" });
+  });
+
+  it("headers/body는 op 파라미터와 무관하게 적용한다", () => {
+    const inputs: RequestInputs = {
+      pathParams: {}, queryParams: [], headers: [], body: "", bodyMode: "raw", form: [],
+    };
+    const out = applySuggestionForOp(inputs, { headers: { "X-Trace": "a" }, body: "{}" }, []);
+    expect(out.headers).toEqual([{ key: "X-Trace", value: "a", enabled: true }]);
+    expect(out.body).toBe("{}");
   });
 });

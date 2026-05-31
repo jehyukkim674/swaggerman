@@ -56,7 +56,9 @@ pub fn build_chat_args(a: &AiChatArgs) -> Vec<String> {
         "--verbose".into(),
         // 도구/에이전트 동작 차단: SwaggerMan은 순수 텍스트 생성만 원한다.
         // (도구를 켜두면 claude가 사용자 환경의 MCP/Bash로 실제 실행을 시도해 느려지고 엉뚱한 응답을 낸다.)
+        // 값 ""가 있어야 도구가 실제로 꺼진다(없으면 전체 도구 활성→에이전트 루프로 느려짐).
         "--tools".into(),
+        "".into(),
         "--strict-mcp-config".into(),
         "--model".into(),
         a.model.clone(),
@@ -73,18 +75,21 @@ pub fn build_chat_args(a: &AiChatArgs) -> Vec<String> {
     v
 }
 
-/// 단발 구조화 출력용 claude 인자. prompt는 stdin.
+/// 단발 JSON 출력용 claude 인자. prompt는 stdin.
+/// `--tools ""`로 도구를 완전히 끄고, `--json-schema`는 쓰지 않는다.
+/// (json-schema 강제 모드는 내부적으로 다중 턴 에이전트 루프를 돌려 매우 느리다.
+///  대신 프롬프트로 JSON 형식을 지시하고 결과를 parseSuggestion으로 파싱한다 — 1턴.)
 pub fn build_complete_args(a: &AiCompleteArgs) -> Vec<String> {
     vec![
         "-p".into(),
         "--output-format".into(),
         "json".into(),
+        // 값 ""가 있어야 도구가 실제로 비활성화된다(없으면 전체 도구 활성→에이전트 루프).
         "--tools".into(),
+        "".into(),
         "--strict-mcp-config".into(),
         "--model".into(),
         a.model.clone(),
-        "--json-schema".into(),
-        a.schema.clone(),
         "--append-system-prompt".into(),
         a.system.clone(),
     ]
@@ -393,7 +398,7 @@ mod tests {
     }
 
     #[test]
-    fn complete_args_include_json_schema() {
+    fn complete_args_no_json_schema_for_single_turn() {
         let a = AiCompleteArgs {
             prompt: "q".into(),
             system: "sys".into(),
@@ -402,7 +407,8 @@ mod tests {
             claude_path: None,
         };
         let v = build_complete_args(&a);
-        assert!(v.windows(2).any(|w| w[0] == "--json-schema" && w[1] == "{\"type\":\"object\"}"));
+        // json-schema 강제 모드는 다중 턴 루프로 느리므로 쓰지 않는다.
+        assert!(!v.contains(&"--json-schema".to_string()));
         assert!(v.windows(2).any(|w| w[0] == "--output-format" && w[1] == "json"));
     }
 
@@ -411,9 +417,10 @@ mod tests {
         let v = build_chat_args(&chat_args(None));
         assert!(v.contains(&"--tools".to_string()));
         assert!(v.contains(&"--strict-mcp-config".to_string()));
-        // --tools 바로 뒤가 --strict-mcp-config 여야 빈 도구 목록이 보장된다.
+        // --tools 뒤에 빈 문자열 ""이 와야 도구가 실제로 꺼진다.
         let i = v.iter().position(|s| s == "--tools").unwrap();
-        assert_eq!(v[i + 1], "--strict-mcp-config");
+        assert_eq!(v[i + 1], "");
+        assert_eq!(v[i + 2], "--strict-mcp-config");
     }
 
     #[test]
@@ -426,7 +433,8 @@ mod tests {
         assert!(v.contains(&"--tools".to_string()));
         assert!(v.contains(&"--strict-mcp-config".to_string()));
         let i = v.iter().position(|s| s == "--tools").unwrap();
-        assert_eq!(v[i + 1], "--strict-mcp-config");
+        assert_eq!(v[i + 1], "");
+        assert_eq!(v[i + 2], "--strict-mcp-config");
     }
 
     #[test]
