@@ -54,6 +54,12 @@ export function RunnerModal({ collections, onRun, onClose }: Props) {
         </div>
 
         <div className="modal-body">
+          {collections.length === 0 && (
+            <div className="hint">
+              저장된 컬렉션이 없습니다. 요청 화면에서 “컬렉션 → 현재 요청 저장”으로 컬렉션을 만든 뒤,
+              여기서 일괄 실행(각 요청의 status·통과/실패·소요시간 리포트)할 수 있습니다.
+            </div>
+          )}
           <div className="runner-bar">
             <select value={colId} onChange={(e) => setColId(e.target.value)} disabled={running}>
               {collections.length === 0 && <option value="">컬렉션 없음</option>}

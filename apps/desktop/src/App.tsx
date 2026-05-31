@@ -613,9 +613,8 @@ export default function App() {
         </button>
         <button
           className="btn"
-          title="컬렉션 일괄 실행(러너)"
+          title="컬렉션의 요청을 일괄 실행하고 통과/실패 리포트(러너)"
           onClick={() => setRunnerOpen(true)}
-          disabled={collections.length === 0}
         >
           러너
         </button>
