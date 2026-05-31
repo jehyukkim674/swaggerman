@@ -875,7 +875,10 @@ export default function App() {
               onExpand={() => setAiCollapsed(false)}
               className="pane"
             >
-              {aiCollapsed ? (
+              {/* 접힘 스트립과 본문을 둘 다 마운트해 두고 CSS로 전환한다.
+                  AiPanel을 언마운트하면 대화(messages) state가 사라지므로,
+                  접어도 unmount하지 않고 display로만 숨겨 대화를 보존한다. */}
+              {aiCollapsed && (
                 <button
                   className="ai-collapsed-strip"
                   title="AI 패널 펼치기"
@@ -883,26 +886,25 @@ export default function App() {
                 >
                   ✦
                 </button>
-              ) : (
-                <div className="ai-panel-wrap">
-                  <div className="ai-collapse-bar">
-                    <button
-                      className="ai-collapse-btn"
-                      title="AI 패널 접기"
-                      onClick={() => aiPanelRef.current?.collapse()}
-                    >
-                      ›
-                    </button>
-                  </div>
-                  <div className="ai-panel-body">
-                    <AiPanel
-                      provider={aiProvider}
-                      buildContext={currentAiContext}
-                      onApplySuggestion={applyAiSuggestion}
-                    />
-                  </div>
-                </div>
               )}
+              <div className="ai-panel-wrap" style={{ display: aiCollapsed ? "none" : "flex" }}>
+                <div className="ai-collapse-bar">
+                  <button
+                    className="ai-collapse-btn"
+                    title="AI 패널 접기"
+                    onClick={() => aiPanelRef.current?.collapse()}
+                  >
+                    ›
+                  </button>
+                </div>
+                <div className="ai-panel-body">
+                  <AiPanel
+                    provider={aiProvider}
+                    buildContext={currentAiContext}
+                    onApplySuggestion={applyAiSuggestion}
+                  />
+                </div>
+              </div>
             </Panel>
           </>
         )}
