@@ -266,6 +266,36 @@ export function RequestEditor({
                 <option value="urlencoded">form-urlencoded</option>
                 <option value="multipart">multipart / 파일</option>
               </select>
+              {mode === "raw" && (
+                <span className="body-format-btns">
+                  <button
+                    className="btn small"
+                    title="JSON 정렬(들여쓰기)"
+                    onClick={() => {
+                      try {
+                        onChange({ ...inputs, body: JSON.stringify(JSON.parse(inputs.body), null, 2) });
+                      } catch {
+                        /* JSON 아니면 무시 */
+                      }
+                    }}
+                  >
+                    정렬
+                  </button>
+                  <button
+                    className="btn small"
+                    title="JSON 압축(한 줄)"
+                    onClick={() => {
+                      try {
+                        onChange({ ...inputs, body: JSON.stringify(JSON.parse(inputs.body)) });
+                      } catch {
+                        /* JSON 아니면 무시 */
+                      }
+                    }}
+                  >
+                    압축
+                  </button>
+                </span>
+              )}
             </div>
 
             {mode === "raw" && (

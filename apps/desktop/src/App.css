@@ -1922,3 +1922,10 @@ details[open] > summary::before {
   box-shadow: none;
   border: 0;
 }
+
+/* Body 포맷 버튼 */
+.body-format-btns {
+  display: inline-flex;
+  gap: 4px;
+  margin-left: auto;
+}
