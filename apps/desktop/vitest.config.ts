@@ -8,5 +8,7 @@ export default defineConfig({
     // `// @vitest-environment jsdom` 도크블록으로 파일별 jsdom을 사용한다.
     // globals: true는 React Testing Library의 자동 cleanup(afterEach)을 위해 필요.
     globals: true,
+    // jsdom 29의 빈 localStorage를 인메모리 Storage 폴리필로 보강.
+    setupFiles: ["./src/test-setup.ts"],
   },
 });
