@@ -54,6 +54,10 @@ pub fn build_chat_args(a: &AiChatArgs) -> Vec<String> {
         "stream-json".into(),
         "--include-partial-messages".into(),
         "--verbose".into(),
+        // 도구/에이전트 동작 차단: SwaggerMan은 순수 텍스트 생성만 원한다.
+        // (도구를 켜두면 claude가 사용자 환경의 MCP/Bash로 실제 실행을 시도해 느려지고 엉뚱한 응답을 낸다.)
+        "--tools".into(),
+        "--strict-mcp-config".into(),
         "--model".into(),
         a.model.clone(),
         "--append-system-prompt".into(),
@@ -75,6 +79,8 @@ pub fn build_complete_args(a: &AiCompleteArgs) -> Vec<String> {
         "-p".into(),
         "--output-format".into(),
         "json".into(),
+        "--tools".into(),
+        "--strict-mcp-config".into(),
         "--model".into(),
         a.model.clone(),
         "--json-schema".into(),
@@ -398,6 +404,29 @@ mod tests {
         let v = build_complete_args(&a);
         assert!(v.windows(2).any(|w| w[0] == "--json-schema" && w[1] == "{\"type\":\"object\"}"));
         assert!(v.windows(2).any(|w| w[0] == "--output-format" && w[1] == "json"));
+    }
+
+    #[test]
+    fn chat_args_disable_tools_and_mcp() {
+        let v = build_chat_args(&chat_args(None));
+        assert!(v.contains(&"--tools".to_string()));
+        assert!(v.contains(&"--strict-mcp-config".to_string()));
+        // --tools 바로 뒤가 --strict-mcp-config 여야 빈 도구 목록이 보장된다.
+        let i = v.iter().position(|s| s == "--tools").unwrap();
+        assert_eq!(v[i + 1], "--strict-mcp-config");
+    }
+
+    #[test]
+    fn complete_args_disable_tools_and_mcp() {
+        let a = AiCompleteArgs {
+            prompt: "q".into(), system: "sys".into(), model: "haiku".into(),
+            schema: "{}".into(), claude_path: None,
+        };
+        let v = build_complete_args(&a);
+        assert!(v.contains(&"--tools".to_string()));
+        assert!(v.contains(&"--strict-mcp-config".to_string()));
+        let i = v.iter().position(|s| s == "--tools").unwrap();
+        assert_eq!(v[i + 1], "--strict-mcp-config");
     }
 
     #[test]
