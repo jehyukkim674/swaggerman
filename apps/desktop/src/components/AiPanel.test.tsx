@@ -179,6 +179,19 @@ describe("AiPanel", () => {
     fireEvent.click(screen.getByText("새 대화"));
     expect(localStorage.getItem("swaggerman.aichat.http://x")).toBeNull();
   });
+
+  it("pendingPrompt가 들어오면 자동으로 chat 전송하고 consume한다", async () => {
+    const provider = makeProvider();
+    const onConsumed = vi.fn();
+    const { rerender } = render(
+      <AiPanel provider={provider} buildContext={ctx} onApplySuggestion={() => {}} onPendingConsumed={onConsumed} />,
+    );
+    rerender(
+      <AiPanel provider={provider} buildContext={ctx} onApplySuggestion={() => {}} pendingPrompt="이 응답 진단해줘" onPendingConsumed={onConsumed} />,
+    );
+    await waitFor(() => expect(provider.chat).toHaveBeenCalled());
+    expect(onConsumed).toHaveBeenCalled();
+  });
 });
 
 describe("detectMentions", () => {

@@ -20,6 +20,8 @@ interface Props {
   paramNames?: string[];
   onMentions?: (keys: string[]) => void;
   specUrl?: string;
+  pendingPrompt?: string;
+  onPendingConsumed?: () => void;
 }
 
 /** 답변 텍스트에서 주어진 파라미터명 중 실제로 등장한 것만 골라낸다(대소문자 무시, 부분 단어 오탐 최소화). */
@@ -48,7 +50,7 @@ const REQUEST_SYSTEM =
 // 요청 식별용 단조 증가 카운터(취소 매칭용). 모듈 스코프 — 단일 패널 인스턴스 가정.
 let reqCounter = 1;
 
-export function AiPanel({ provider, buildContext, onApplySuggestion, paramNames = [], onMentions, specUrl }: Props) {
+export function AiPanel({ provider, buildContext, onApplySuggestion, paramNames = [], onMentions, specUrl, pendingPrompt, onPendingConsumed }: Props) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [totals, setTotals] = useState({ input: 0, output: 0 });
   const [input, setInput] = useState("");
@@ -172,6 +174,15 @@ export function AiPanel({ provider, buildContext, onApplySuggestion, paramNames 
     if (!specUrl || messages.length === 0) return;
     saveChat(specUrl, { messages, sessionId: sessionRef.current, totals });
   }, [messages, totals, specUrl]);
+
+  // App이 보류 프롬프트를 내려주면 자동으로 한 번 전송하고 consume.
+  useEffect(() => {
+    if (!pendingPrompt || busy) return;
+    setMessages((m) => [...m, { role: "user", text: pendingPrompt }]);
+    handleChat(pendingPrompt);
+    onPendingConsumed?.();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pendingPrompt]);
 
   // 마운트 시 claude CLI 가용성 확인(없으면 경고 표시).
   useEffect(() => {
