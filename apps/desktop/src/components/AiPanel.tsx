@@ -20,9 +20,9 @@ interface Props {
 
 const REQUEST_PREFIX = "/요청";
 const CHAT_SYSTEM =
-  "당신은 OpenAPI 클라이언트의 어시스턴트입니다. 사용자가 보고 있는 엔드포인트 컨텍스트를 바탕으로 한국어로 간결히 답하세요.";
+  "당신은 OpenAPI 클라이언트의 어시스턴트입니다. 사용자가 보고 있는 엔드포인트 컨텍스트를 바탕으로 한국어로 간결히 답하세요. 어떤 도구(셸/MCP/네트워크)도 사용하지 말고, 직접 실행을 시도하지 마세요. 이미 정의된 API에 대한 설명/안내만 텍스트로 제공합니다.";
 const REQUEST_SYSTEM =
-  "사용자 의도에 맞는 HTTP 요청 필드를 채우세요. 주어진 JSON 스키마에 맞는 객체만 출력합니다. 환경 변수는 {{이름}} 형태로 참조할 수 있습니다.";
+  "사용자 의도에 맞는 HTTP 요청 필드를 채우세요. 주어진 JSON 스키마에 맞는 객체만 출력합니다. 어떤 도구도 사용하지 말고 실제 요청을 실행하지 마세요. body에는 마크다운 코드펜스 없이 순수 문자열만 넣고, 스키마에 정의된 키만 사용하세요. 환경 변수는 {{이름}} 형태로 참조할 수 있습니다.";
 
 // 요청 식별용 단조 증가 카운터(취소 매칭용). 모듈 스코프 — 단일 패널 인스턴스 가정.
 let reqCounter = 1;
@@ -32,6 +32,7 @@ export function AiPanel({ provider, buildContext, onApplySuggestion }: Props) {
   const [totals, setTotals] = useState({ input: 0, output: 0 });
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
+  const [building, setBuilding] = useState(false);
   const [model, setModel] = useState(DEFAULT_CHAT_MODEL);
   const [error, setError] = useState<string | null>(null);
   const [unavailable, setUnavailable] = useState(false);
@@ -48,11 +49,13 @@ export function AiPanel({ provider, buildContext, onApplySuggestion }: Props) {
     sessionRef.current = undefined;
     setError(null);
     setBusy(false);
+    setBuilding(false);
   }
 
   async function handleRequestBuild(question: string) {
     const myGen = genRef.current;
     setBusy(true);
+    setBuilding(true);
     setError(null);
     try {
       const prompt = `${buildContext()}\n\n## 요청\n${question}`;
@@ -73,6 +76,7 @@ export function AiPanel({ provider, buildContext, onApplySuggestion }: Props) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
       setBusy(false);
+      setBuilding(false);
     }
   }
 
@@ -140,6 +144,7 @@ export function AiPanel({ provider, buildContext, onApplySuggestion }: Props) {
     if (!msg || busy) return;
     const myGen = genRef.current;
     setBusy(true);
+    setBuilding(true);
     setError(null);
     try {
       const userMsg = [...messages.slice(0, index)].reverse().find((m) => m.role === "user");
@@ -166,6 +171,7 @@ export function AiPanel({ provider, buildContext, onApplySuggestion }: Props) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
       setBusy(false);
+      setBuilding(false);
     }
   }
 
@@ -252,6 +258,14 @@ export function AiPanel({ provider, buildContext, onApplySuggestion }: Props) {
             )}
           </div>
         ))}
+        {building && (
+          <div className="ai-building" aria-label="요청 생성 중">
+            <span className="ai-thinking-dot" />
+            <span className="ai-thinking-dot" />
+            <span className="ai-thinking-dot" />
+            <span className="ai-building-label">요청 폼 생성 중…</span>
+          </div>
+        )}
         {error && <div className="ai-error">{error}</div>}
       </div>
 

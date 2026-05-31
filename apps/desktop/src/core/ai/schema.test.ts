@@ -72,6 +72,16 @@ describe("parseSuggestion", () => {
     const raw = JSON.stringify({ structured_output: { body: "{}", evil: "x" } });
     expect(parseSuggestion(raw)).toEqual({ body: "{}" });
   });
+
+  it("body의 마크다운 코드펜스를 제거한다", () => {
+    const raw = JSON.stringify({ body: "```json\n{\"a\":1}\n```" });
+    expect(parseSuggestion(raw)).toEqual({ body: '{"a":1}' });
+  });
+
+  it("코드펜스가 없으면 body를 그대로 둔다", () => {
+    const raw = JSON.stringify({ body: '{"a":1}' });
+    expect(parseSuggestion(raw)).toEqual({ body: '{"a":1}' });
+  });
 });
 
 describe("applySuggestion", () => {
