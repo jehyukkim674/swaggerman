@@ -43,6 +43,12 @@ describe("parseSuggestion", () => {
     expect(parseSuggestion(raw)).toEqual(inner);
   });
 
+  it("result 문자열이 코드펜스로 감싼 JSON이어도 파싱한다", () => {
+    // --json-schema 미사용 시 claude는 result에 ```json … ``` 형태로 답한다.
+    const raw = JSON.stringify({ result: "```json\n{\"queryParams\":{\"keyword\":\"dell\"}}\n```" });
+    expect(parseSuggestion(raw)).toEqual({ queryParams: { keyword: "dell" } });
+  });
+
   it("파싱 불가하면 null", () => {
     expect(parseSuggestion("not json")).toBeNull();
   });

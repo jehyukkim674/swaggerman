@@ -244,7 +244,7 @@ export default function App() {
   const aiProvider = useMemo(() => getProvider("claude"), []);
 
   // AI에 줄 현재 컨텍스트 조립(엔드포인트/폼/응답/환경변수명)
-  function currentAiContext(): string {
+  function currentAiContext(opts?: { forForm?: boolean }): string {
     if (!selected) return "현재 선택된 엔드포인트가 없습니다.";
     const env = envs.find((e) => e.baseURL === baseURL);
     const envVarNames = (env?.vars ?? []).map((v) => v.key).filter(Boolean);
@@ -254,6 +254,8 @@ export default function App() {
       response,
       envVarNames,
       baseURL,
+      // 폼 채우기는 요청만 필요 → 응답 스키마 제외로 입력 토큰/지연 감소.
+      includeResponseSchema: !opts?.forForm,
     });
   }
 

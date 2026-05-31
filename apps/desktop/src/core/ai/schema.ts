@@ -64,7 +64,8 @@ export function parseSuggestion(raw: string): RequestSuggestion | null {
     const r = obj.result;
     if (typeof r === "string") {
       try {
-        const inner = JSON.parse(r);
+        // --json-schema 미사용 시 result는 ```json … ``` 코드펜스로 감싸일 수 있다.
+        const inner = JSON.parse(stripCodeFence(r));
         if (typeof inner === "object" && inner !== null) return pickKnown(inner as Record<string, unknown>);
         return null; // valid JSON이지만 객체가 아님(예: "42", true)
       } catch {

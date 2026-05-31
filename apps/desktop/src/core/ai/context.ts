@@ -7,6 +7,8 @@ interface ContextArgs {
   response: HTTPResponse | null;
   envVarNames: string[];
   baseURL: string;
+  /** 성공 응답 스키마 개요 포함 여부. 폼 채우기는 요청만 필요하므로 false로 토큰을 줄인다. 기본 true. */
+  includeResponseSchema?: boolean;
 }
 
 const MAX_BODY = 2000;
@@ -34,7 +36,7 @@ function schemaOutline(schema: ParsedSchema | undefined, depth = 0): string {
 
 /** 현재 엔드포인트/폼/환경/직전 응답을 claude용 컨텍스트 블록으로 조립한다(순수). */
 export function buildAiContext(args: ContextArgs): string {
-  const { op, inputs, response, envVarNames, baseURL } = args;
+  const { op, inputs, response, envVarNames, baseURL, includeResponseSchema } = args;
   const parts: string[] = [];
 
   parts.push("## 현재 엔드포인트");
@@ -63,11 +65,13 @@ export function buildAiContext(args: ContextArgs): string {
     if (outline) parts.push(outline);
   }
 
-  const okResp = op.responses.find((r) => /^2\d\d$/.test(r.statusCode));
-  if (okResp?.schema) {
-    parts.push(`\n## 성공 응답(${okResp.statusCode}) 스키마`);
-    const outline = schemaOutline(okResp.schema);
-    if (outline) parts.push(outline);
+  if (includeResponseSchema !== false) {
+    const okResp = op.responses.find((r) => /^2\d\d$/.test(r.statusCode));
+    if (okResp?.schema) {
+      parts.push(`\n## 성공 응답(${okResp.statusCode}) 스키마`);
+      const outline = schemaOutline(okResp.schema);
+      if (outline) parts.push(outline);
+    }
   }
 
   if (inputs) {
