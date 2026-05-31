@@ -1839,6 +1839,17 @@ mark.hl.active {
   opacity: 0.5;
   cursor: default;
 }
+.ai-building {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 8px;
+  color: var(--muted);
+  font-size: 12px;
+}
+.ai-building-label {
+  margin-left: 2px;
+}
 
 /* 라이트 테마 */
 :root[data-theme="light"] {

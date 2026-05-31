@@ -16,14 +16,22 @@ export const requestSuggestionSchema = {
 
 const KNOWN_KEYS: (keyof RequestSuggestion)[] = ["pathParams", "queryParams", "headers", "body", "notes"];
 
+/** ```json ... ``` 또는 ``` ... ``` 코드펜스를 벗겨 순수 본문만 남긴다. */
+function stripCodeFence(s: string): string {
+  const m = s.match(/^\s*```(?:json|[a-zA-Z]*)?\s*\n([\s\S]*?)\n```\s*$/);
+  return m ? m[1] : s;
+}
+
 function pickKnown(obj: Record<string, unknown>): RequestSuggestion {
   const out: RequestSuggestion = {};
   for (const k of KNOWN_KEYS) {
     const v = obj[k];
     if (v === undefined) continue;
-    if (k === "body" || k === "notes") {
+    if (k === "body") {
+      if (typeof v === "string") out.body = stripCodeFence(v);
+    } else if (k === "notes") {
       // 문자열이 아닌 body/notes는 무시(스키마 강제가 AI 레이어에서 처리)
-      if (typeof v === "string") out[k] = v;
+      if (typeof v === "string") out.notes = v;
     } else if (typeof v === "object" && v !== null) {
       const rec: Record<string, string> = {};
       for (const [kk, vv] of Object.entries(v as Record<string, unknown>)) {

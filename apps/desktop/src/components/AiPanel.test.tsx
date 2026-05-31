@@ -131,4 +131,14 @@ describe("AiPanel", () => {
     fireEvent.click(screen.getByText("전송"));
     await waitFor(() => expect(screen.getByLabelText("응답 생성 중")).toBeTruthy());
   });
+
+  it("폼 생성 중에는 처리 인디케이터를 표시한다", async () => {
+    const provider = makeProvider({
+      complete: vi.fn().mockImplementation(() => new Promise<string>(() => {})), // 영원히 pending
+    });
+    render(<AiPanel provider={provider} buildContext={ctx} onApplySuggestion={() => {}} />);
+    fireEvent.change(screen.getByPlaceholderText(/질문/), { target: { value: "/요청 dell 검색" } });
+    fireEvent.click(screen.getByText("전송"));
+    await waitFor(() => expect(screen.getByLabelText("요청 생성 중")).toBeTruthy());
+  });
 });
