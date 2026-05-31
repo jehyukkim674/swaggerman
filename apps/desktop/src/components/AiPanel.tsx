@@ -181,7 +181,15 @@ export function AiPanel({ provider, buildContext, onApplySuggestion }: Props) {
         )}
         {messages.map((m, i) => (
           <div key={i} className={`ai-msg ai-msg-${m.role}`}>
-            <div className="ai-msg-text">{m.text}</div>
+            {m.role === "assistant" && m.text === "" && busy ? (
+              <div className="ai-thinking" aria-label="응답 생성 중" title="AI가 응답 중…">
+                <span className="ai-thinking-dot" />
+                <span className="ai-thinking-dot" />
+                <span className="ai-thinking-dot" />
+              </div>
+            ) : (
+              <div className="ai-msg-text">{m.text}</div>
+            )}
             {m.usage && (
               <div className="ai-msg-usage">↑{m.usage.input.toLocaleString()} ↓{m.usage.output.toLocaleString()} 토큰</div>
             )}

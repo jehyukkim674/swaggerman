@@ -107,4 +107,17 @@ describe("AiPanel", () => {
     expect(cancel).toHaveBeenCalled();
     await waitFor(() => expect(screen.getByText("전송")).toBeTruthy());
   });
+
+  it("응답 대기 중에는 생각 중 인디케이터를 표시한다", async () => {
+    const provider = makeProvider({
+      chat: vi.fn((_req, _onEvent): AiHandle => {
+        // 아무 이벤트도 emit하지 않음 → busy 유지, 빈 assistant 버블
+        return { cancel: vi.fn() };
+      }),
+    });
+    render(<AiPanel provider={provider} buildContext={ctx} onApplySuggestion={() => {}} />);
+    fireEvent.change(screen.getByPlaceholderText(/질문/), { target: { value: "안녕" } });
+    fireEvent.click(screen.getByText("전송"));
+    await waitFor(() => expect(screen.getByLabelText("응답 생성 중")).toBeTruthy());
+  });
 });
