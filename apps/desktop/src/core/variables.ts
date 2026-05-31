@@ -1,6 +1,15 @@
 // 변수 치환 · 응답 값 추출(체이닝) · 어서션 로직.
 // 순수 함수만 모아 단위 테스트로 검증한다.
 
+/** 지원하는 동적 변수 이름 목록(자동완성 제안용). */
+export const DYNAMIC_VARS = [
+  "$timestamp",
+  "$isoTimestamp",
+  "$guid",
+  "$randomUUID",
+  "$randomInt",
+] as const;
+
 /** 동적 변수(`$`로 시작) 값을 계산한다. 미지원이면 null. (Postman 유사) */
 export function dynamicValue(name: string): string | null {
   switch (name) {

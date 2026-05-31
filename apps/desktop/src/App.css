@@ -1821,3 +1821,39 @@ details[open] > summary::before {
   color: var(--muted);
   white-space: nowrap;
 }
+
+/* 변수 자동완성 입력 */
+.var-input-wrap {
+  position: relative;
+  flex: 1;
+  display: inline-flex;
+  min-width: 0;
+}
+.var-input-wrap > input {
+  width: 100%;
+}
+.var-suggest {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  z-index: 30;
+  margin-top: 2px;
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  max-height: 200px;
+  overflow: auto;
+  box-shadow: 0 8px 24px #0008;
+}
+.var-suggest-item {
+  padding: 5px 8px;
+  font-family: ui-monospace, monospace;
+  font-size: 12px;
+  cursor: pointer;
+  color: #79c0ff;
+}
+.var-suggest-item.active {
+  background: var(--accent);
+  color: #fff;
+}

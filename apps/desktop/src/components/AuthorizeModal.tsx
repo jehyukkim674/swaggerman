@@ -28,6 +28,7 @@ export function AuthorizeModal({
   const [draft, setDraft] = useState<Record<string, string>>({ ...values });
   const [fetching, setFetching] = useState(false);
   const [fetchMsg, setFetchMsg] = useState<{ ok: boolean; text: string } | null>(null);
+  const [revealed, setRevealed] = useState<Record<string, boolean>>({});
 
   const setCfg = (patch: Partial<OAuth2Config>) => onOauth2Change({ ...oauth2, ...patch });
 
@@ -94,8 +95,19 @@ export function AuthorizeModal({
                     onChange={(e) => setOne(scheme.name, e.target.value)}
                     placeholder="토큰 / 값 입력"
                     spellCheck={false}
-                    type={committed ? "password" : "text"}
+                    type={committed && !revealed[scheme.name] ? "password" : "text"}
                   />
+                  {committed && (
+                    <button
+                      className="btn small"
+                      title={revealed[scheme.name] ? "값 숨기기" : "값 보기"}
+                      onClick={() =>
+                        setRevealed((r) => ({ ...r, [scheme.name]: !r[scheme.name] }))
+                      }
+                    >
+                      {revealed[scheme.name] ? "숨김" : "보기"}
+                    </button>
+                  )}
                   {committed ? (
                     <button className="btn small" onClick={() => logoutOne(scheme.name)}>
                       Logout

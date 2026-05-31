@@ -11,10 +11,11 @@ import {
   type RequestParam,
 } from "../core/request-builder";
 import { relativeTime, type HistoryItem } from "../core/history";
-import type { Assertion, AssertionResult, ExtractRule } from "../core/variables";
+import { DYNAMIC_VARS, type Assertion, type AssertionResult, type ExtractRule } from "../core/variables";
 import { methodColor, statusColor } from "./method";
 import { TrashIcon } from "./icons";
 import { TestPanel } from "./TestPanel";
+import { VarInput } from "./VarInput";
 
 interface Props {
   operation: ParsedOperation | null;
@@ -112,6 +113,9 @@ export function RequestEditor({
     if (p.location === "query") queryMeta.set(p.name, p.required);
   }
 
+  // 자동완성 제안용 변수 이름(환경/체인 변수 + 동적 변수)
+  const varNames = [...Object.keys(vars), ...DYNAMIC_VARS];
+
   const mode: BodyMode = inputs.bodyMode ?? (operation.requestBody ? "raw" : "none");
   const form = inputs.form ?? [];
   const showBody =
@@ -192,12 +196,12 @@ export function RequestEditor({
             {pathKeys.map((key) => (
               <div className="kv-row" key={key}>
                 <span className="kv-key fixed">{key}</span>
-                <input
+                <VarInput
                   className="kv-input"
                   value={inputs.pathParams[key]}
-                  onChange={(e) => setPath(key, e.target.value)}
+                  onChange={(v) => setPath(key, v)}
+                  vars={varNames}
                   placeholder="값"
-                  spellCheck={false}
                 />
               </div>
             ))}
@@ -208,6 +212,7 @@ export function RequestEditor({
           title="Query Params"
           list={inputs.queryParams}
           meta={queryMeta}
+          varNames={varNames}
           onToggle={(i, v) => setParamList("queryParams", i, { enabled: v })}
           onKey={(i, v) => setParamList("queryParams", i, { key: v })}
           onValue={(i, v) => setParamList("queryParams", i, { value: v })}
@@ -237,6 +242,7 @@ export function RequestEditor({
         <ParamSection
           title="Headers"
           list={inputs.headers}
+          varNames={varNames}
           onToggle={(i, v) => setParamList("headers", i, { enabled: v })}
           onKey={(i, v) => setParamList("headers", i, { key: v })}
           onValue={(i, v) => setParamList("headers", i, { value: v })}
@@ -382,6 +388,7 @@ interface ParamSectionProps {
   title: string;
   list: RequestParam[];
   meta?: Map<string, boolean>; // key -> required (스펙 파라미터일 때만)
+  varNames?: string[]; // 값 입력 자동완성용 변수 이름
   onToggle: (index: number, value: boolean) => void;
   onKey: (index: number, value: string) => void;
   onValue: (index: number, value: string) => void;
@@ -393,6 +400,7 @@ function ParamSection({
   title,
   list,
   meta,
+  varNames,
   onToggle,
   onKey,
   onValue,
@@ -422,12 +430,12 @@ function ParamSection({
             />
             {required === true && <span className="req-badge">필수</span>}
             {required === false && <span className="opt-badge">옵션</span>}
-            <input
+            <VarInput
               className="kv-input"
               value={param.value}
-              onChange={(e) => onValue(index, e.target.value)}
+              onChange={(v) => onValue(index, v)}
+              vars={varNames ?? []}
               placeholder="value"
-              spellCheck={false}
             />
             <button className="icon-btn" onClick={() => onRemove(index)} title="삭제">
               ✕

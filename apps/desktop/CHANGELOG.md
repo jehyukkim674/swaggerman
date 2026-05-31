@@ -5,6 +5,12 @@
 릴리스 빌드(설치본)는 `SwaggerMan-v*` 태그 푸시 시 GitHub Actions가 생성하며,
 **Releases** 페이지에서 OS별 설치본을 내려받을 수 있습니다.
 
+## v0.2.5
+
+- Authorize: 적용된 토큰 값 **보기/숨김** 토글
+- 변수 자동완성: query·path·header 값에 `{{` 입력 시 환경/체인/동적 변수 제안 드롭다운
+- 러너 버튼 항상 활성화(컬렉션 없을 때 안내)
+
 ## v0.2.4
 
 - 요청 파라미터 미리 채우기: query·path 값을 스펙의 example/default/enum에서 자동 입력
