@@ -1,6 +1,7 @@
 import { useState } from "react";
 import type { ParsedSecurityScheme } from "../core/types";
 import { schemeHint } from "../core/security";
+import { EyeIcon, EyeOffIcon } from "./icons";
 import type { OAuth2Config, OAuth2Grant, OAuth2TokenResult } from "../core/oauth2";
 
 interface Props {
@@ -89,25 +90,27 @@ export function AuthorizeModal({
                   {committed && <span className="auth-applied">적용됨</span>}
                 </div>
                 <div className="auth-modal-input">
-                  <input
-                    className="auth-input"
-                    value={draft[scheme.name] ?? ""}
-                    onChange={(e) => setOne(scheme.name, e.target.value)}
-                    placeholder="토큰 / 값 입력"
-                    spellCheck={false}
-                    type={committed && !revealed[scheme.name] ? "password" : "text"}
-                  />
-                  {committed && (
-                    <button
-                      className="btn small"
-                      title={revealed[scheme.name] ? "값 숨기기" : "값 보기"}
-                      onClick={() =>
-                        setRevealed((r) => ({ ...r, [scheme.name]: !r[scheme.name] }))
-                      }
-                    >
-                      {revealed[scheme.name] ? "숨김" : "보기"}
-                    </button>
-                  )}
+                  <span className="auth-input-field">
+                    <input
+                      className="auth-input"
+                      value={draft[scheme.name] ?? ""}
+                      onChange={(e) => setOne(scheme.name, e.target.value)}
+                      placeholder="토큰 / 값 입력"
+                      spellCheck={false}
+                      type={committed && !revealed[scheme.name] ? "password" : "text"}
+                    />
+                    {committed && (
+                      <button
+                        className="eye-btn"
+                        title={revealed[scheme.name] ? "값 숨기기" : "값 보기"}
+                        onClick={() =>
+                          setRevealed((r) => ({ ...r, [scheme.name]: !r[scheme.name] }))
+                        }
+                      >
+                        {revealed[scheme.name] ? <EyeOffIcon /> : <EyeIcon />}
+                      </button>
+                    )}
+                  </span>
                   {committed ? (
                     <button className="btn small" onClick={() => logoutOne(scheme.name)}>
                       Logout

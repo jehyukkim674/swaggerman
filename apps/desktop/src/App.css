@@ -1929,3 +1929,32 @@ details[open] > summary::before {
   gap: 4px;
   margin-left: auto;
 }
+
+/* Authorize 토큰 보기 눈 아이콘 (입력칸 안쪽) */
+.auth-input-field {
+  position: relative;
+  flex: 1;
+  display: inline-flex;
+  min-width: 0;
+}
+.auth-input-field > .auth-input {
+  flex: 1;
+  width: 100%;
+  padding-right: 32px;
+}
+.eye-btn {
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: transparent;
+  border: 0;
+  color: var(--muted);
+  cursor: pointer;
+  padding: 2px;
+  display: inline-flex;
+  align-items: center;
+}
+.eye-btn:hover {
+  color: var(--text);
+}
