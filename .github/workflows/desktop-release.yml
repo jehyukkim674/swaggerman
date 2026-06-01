@@ -45,10 +45,22 @@ jobs:
         with:
           targets: ${{ matrix.platform == 'macos-latest' && 'aarch64-apple-darwin' || '' }}
 
+      # 의존성 빌드 캐시. shared-key로 릴리스마다 같은 캐시를 공유해
+      # (버전 범프로 Cargo.lock이 바뀌어도) Tauri 의존성 전체 재컴파일을 피한다.
       - name: Rust cache
         uses: swatinem/rust-cache@v2
         with:
           workspaces: apps/desktop/src-tauri
+          shared-key: "release-${{ matrix.platform }}"
+          cache-all-crates: "true"
+
+      # Tauri 번들러 툴(WiX/NSIS) 캐시 — 매 빌드마다 재다운로드 방지(Windows).
+      - name: Cache Tauri bundler tools (Windows)
+        if: matrix.platform == 'windows-latest'
+        uses: actions/cache@v4
+        with:
+          path: ~/AppData/Local/tauri
+          key: tauri-tools-${{ runner.os }}
 
       - name: Install frontend deps
         run: npm ci

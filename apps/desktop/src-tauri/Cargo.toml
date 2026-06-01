@@ -34,3 +34,11 @@ tauri-plugin-process = "2"
 [dev-dependencies]
 tokio = { version = "1", features = ["macros", "rt"] }
 
+
+# 빌드 속도 우선 프로파일(GUI 앱이라 런타임 영향 미미).
+# codegen-units 상향으로 컴파일 병렬화, lto off 유지.
+[profile.release]
+codegen-units = 256
+lto = false
+opt-level = 2
+incremental = false
