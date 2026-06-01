@@ -933,6 +933,11 @@ mark.hl.active {
   justify-content: flex-end;
   gap: 8px;
 }
+.field-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--muted);
+}
 .env-item {
   display: flex;
   gap: 8px;

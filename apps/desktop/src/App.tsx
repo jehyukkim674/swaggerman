@@ -47,6 +47,7 @@ import { CommandPalette } from "./components/CommandPalette";
 import { SettingsModal } from "./components/SettingsModal";
 import { EnvironmentsModal } from "./components/EnvironmentsModal";
 import { GlobalHeadersModal } from "./components/GlobalHeadersModal";
+import { ProjectEditModal } from "./components/ProjectEditModal";
 import { AiPanel } from "./components/AiPanel";
 import { getProvider } from "./core/ai/provider";
 import { buildAiContext } from "./core/ai/context";
@@ -419,11 +420,15 @@ export default function App() {
       setBaseURL(deriveBaseURL(targetUrl, parsed.servers));
       setActiveSpecUrl(targetUrl);
       saveJSON("swaggerman.lastSpecUrl", targetUrl);
-      // 프로젝트 목록에 upsert(최근 것을 맨 앞으로)
-      setProjects((prev) => [
-        { url: targetUrl, title: parsed.info.title || targetUrl },
-        ...prev.filter((p) => p.url !== targetUrl),
-      ]);
+      // 프로젝트 목록에 upsert(최근 것을 맨 앞으로). 기존 프로젝트의 사용자 지정
+      // 이름이 있으면 보존하고, 신규일 때만 스펙 title을 사용한다.
+      setProjects((prev) => {
+        const existing = prev.find((p) => p.url === targetUrl);
+        return [
+          { url: targetUrl, title: existing?.title || parsed.info.title || targetUrl },
+          ...prev.filter((p) => p.url !== targetUrl),
+        ];
+      });
       setFavorites(loadJSON(`swaggerman.fav.${targetUrl}`, [] as string[]));
       setHistory(loadJSON(`swaggerman.hist.${targetUrl}`, [] as HistoryItem[]));
       setAuthValues(loadJSON(`swaggerman.auth.${targetUrl}`, {} as Record<string, string>));
@@ -459,6 +464,25 @@ export default function App() {
     localStorage.removeItem(`swaggerman.fav.${url}`);
     localStorage.removeItem(`swaggerman.hist.${url}`);
     localStorage.removeItem(`swaggerman.auth.${url}`);
+  }
+
+  // 프로젝트 편집 팝업(이름 + URL, 저장 후 재로딩)
+  const [projectEditOpen, setProjectEditOpen] = useState(false);
+  function saveProjectEdit(newTitle: string, newUrl: string, reload: boolean) {
+    const originalUrl = activeSpecUrl;
+    const url = newUrl.trim();
+    const title = newTitle.trim() || url;
+    setProjects((prev) => {
+      const rest = prev.filter((p) => p.url !== originalUrl && p.url !== url);
+      return [{ url, title }, ...rest];
+    });
+    if (originalUrl === activeSpecUrl) {
+      setActiveSpecUrl(url);
+      setSpecUrl(url);
+    }
+    setProjectEditOpen(false);
+    // URL이 바뀌었거나 재로딩 요청이면 새 URL로 스펙을 다시 로드(title은 위에서 보존됨).
+    if (reload || url !== originalUrl) loadSpec(url);
   }
 
   // 현재 오퍼레이션의 라이브 상태를 캐시에 저장
@@ -696,6 +720,15 @@ export default function App() {
               </option>
             ))}
           </select>
+        )}
+        {activeSpecUrl && projects.some((p) => p.url === activeSpecUrl) && (
+          <button
+            className="btn"
+            title="프로젝트 이름·URL 편집(저장 후 재로딩 가능)"
+            onClick={() => setProjectEditOpen(true)}
+          >
+            ✏️
+          </button>
         )}
         <input
           className="spec-url"
@@ -1006,6 +1039,14 @@ export default function App() {
       )}
       {curlModalOpen && (
         <CurlImportModal onImport={importCurl} onClose={() => setCurlModalOpen(false)} />
+      )}
+      {projectEditOpen && (
+        <ProjectEditModal
+          initialTitle={projects.find((p) => p.url === activeSpecUrl)?.title ?? ""}
+          initialUrl={activeSpecUrl}
+          onSave={saveProjectEdit}
+          onClose={() => setProjectEditOpen(false)}
+        />
       )}
       {settingsOpen && (
         <SettingsModal
