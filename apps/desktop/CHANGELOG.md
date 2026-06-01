@@ -8,6 +8,11 @@
 > **macOS 설치 시 "손상되어 열 수 없습니다"가 뜨면** (서명 미인증 앱): 터미널에서
 > `xattr -dr com.apple.quarantine /Applications/SwaggerMan.app` 실행 후 다시 여세요.
 
+## v0.3.9
+
+- 버그수정: 창이 좁을 때 상단바의 **"업데이트 확인"·"✦ AI" 버튼이 잘려 안 보이던** 문제(상단바 줄바꿈 적용)
+- 개선: 업데이트 자동확인이 실패하면 **사유를 표시**(사내망/프록시 환경 진단). 기존엔 조용히 무시됨
+
 ## v0.3.8
 
 - 기능: **Windows에서 AI(claude) 지원** — `claude.exe`/`claude.cmd` 자동 탐지(`%USERPROFILE%\.local\bin`, `%APPDATA%\npm`), npm 설치(.cmd)도 실행 가능
