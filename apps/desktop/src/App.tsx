@@ -47,7 +47,7 @@ import { CommandPalette } from "./components/CommandPalette";
 import { SettingsModal } from "./components/SettingsModal";
 import { EnvironmentsModal } from "./components/EnvironmentsModal";
 import { GlobalHeadersModal } from "./components/GlobalHeadersModal";
-import { ProjectEditModal } from "./components/ProjectEditModal";
+import { ProjectsModal } from "./components/ProjectsModal";
 import { AiPanel } from "./components/AiPanel";
 import { getProvider } from "./core/ai/provider";
 import { buildAiContext } from "./core/ai/context";
@@ -480,23 +480,14 @@ export default function App() {
     localStorage.removeItem(`swaggerman.auth.${url}`);
   }
 
-  // 프로젝트 편집 팝업(이름 + URL, 저장 후 재로딩)
-  const [projectEditOpen, setProjectEditOpen] = useState(false);
-  function saveProjectEdit(newTitle: string, newUrl: string, reload: boolean) {
-    const originalUrl = activeSpecUrl;
-    const url = newUrl.trim();
-    const title = newTitle.trim() || url;
-    setProjects((prev) => {
-      const rest = prev.filter((p) => p.url !== originalUrl && p.url !== url);
-      return [{ url, title }, ...rest];
-    });
-    if (originalUrl === activeSpecUrl) {
-      setActiveSpecUrl(url);
-      setSpecUrl(url);
-    }
-    setProjectEditOpen(false);
-    // URL이 바뀌었거나 재로딩 요청이면 새 URL로 스펙을 다시 로드(title은 위에서 보존됨).
-    if (reload || url !== originalUrl) loadSpec(url);
+  // 프로젝트 관리 모달(목록 추가/수정/삭제)
+  const [projectsOpen, setProjectsOpen] = useState(false);
+  function addProject(title: string, url: string) {
+    const u = url.trim();
+    if (!u) return;
+    setProjects((prev) => [{ url: u, title: title.trim() || u }, ...prev.filter((p) => p.url !== u)]);
+    setProjectsOpen(false);
+    loadSpec(u); // title은 위에서 등록돼 loadSpec이 보존
   }
 
   // 현재 오퍼레이션의 라이브 상태를 캐시에 저장
@@ -735,15 +726,13 @@ export default function App() {
             ))}
           </select>
         )}
-        {activeSpecUrl && projects.some((p) => p.url === activeSpecUrl) && (
-          <button
-            className="btn"
-            title="프로젝트 이름·URL 편집(저장 후 재로딩 가능)"
-            onClick={() => setProjectEditOpen(true)}
-          >
-            ✏️
-          </button>
-        )}
+        <button
+          className="btn"
+          title="프로젝트 관리(목록 추가·수정·삭제)"
+          onClick={() => setProjectsOpen(true)}
+        >
+          ✏️
+        </button>
         <input
           className="spec-url"
           value={specUrl}
@@ -1055,12 +1044,18 @@ export default function App() {
       {curlModalOpen && (
         <CurlImportModal onImport={importCurl} onClose={() => setCurlModalOpen(false)} />
       )}
-      {projectEditOpen && (
-        <ProjectEditModal
-          initialTitle={projects.find((p) => p.url === activeSpecUrl)?.title ?? ""}
-          initialUrl={activeSpecUrl}
-          onSave={saveProjectEdit}
-          onClose={() => setProjectEditOpen(false)}
+      {projectsOpen && (
+        <ProjectsModal
+          projects={projects}
+          activeUrl={activeSpecUrl}
+          onUpdate={setProjects}
+          onLoad={(url) => {
+            setProjectsOpen(false);
+            loadSpec(url);
+          }}
+          onDelete={removeProject}
+          onAdd={addProject}
+          onClose={() => setProjectsOpen(false)}
         />
       )}
       {settingsOpen && (
