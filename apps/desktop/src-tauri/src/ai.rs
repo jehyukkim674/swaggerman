@@ -183,24 +183,40 @@ fn home() -> String {
         .unwrap_or_default()
 }
 
+/// Windows에서 자식 프로세스 실행 시 콘솔 창이 깜빡이지 않게 하는 플래그.
+#[cfg(windows)]
+const CREATE_NO_WINDOW: u32 = 0x0800_0000;
+
 /// .cmd/.bat(npm 셰임 등)는 직접 실행이 안 되므로 Windows에서 cmd /C로 감싼다.
+/// Windows에서는 CREATE_NO_WINDOW로 콘솔 창이 뜨지 않게 한다.
 fn std_command_for(bin: &str) -> std::process::Command {
-    if cfg!(windows) && (bin.ends_with(".cmd") || bin.ends_with(".bat")) {
+    let mut c = if cfg!(windows) && (bin.ends_with(".cmd") || bin.ends_with(".bat")) {
         let mut c = std::process::Command::new("cmd");
         c.arg("/C").arg(bin);
-        return c;
+        c
+    } else {
+        std::process::Command::new(bin)
+    };
+    #[cfg(windows)]
+    {
+        use std::os::windows::process::CommandExt;
+        c.creation_flags(CREATE_NO_WINDOW);
     }
-    std::process::Command::new(bin)
+    c
 }
 
-/// tokio 버전(스트리밍/비동기 실행용).
+/// tokio 버전(스트리밍/비동기 실행용). Windows 콘솔 창 숨김 포함.
 fn tokio_command_for(bin: &str) -> tokio::process::Command {
-    if cfg!(windows) && (bin.ends_with(".cmd") || bin.ends_with(".bat")) {
+    let mut c = if cfg!(windows) && (bin.ends_with(".cmd") || bin.ends_with(".bat")) {
         let mut c = tokio::process::Command::new("cmd");
         c.arg("/C").arg(bin);
-        return c;
-    }
-    tokio::process::Command::new(bin)
+        c
+    } else {
+        tokio::process::Command::new(bin)
+    };
+    #[cfg(windows)]
+    c.creation_flags(CREATE_NO_WINDOW);
+    c
 }
 
 /// claude/codex 실행파일을 탐지한다(PATH 우선, 알려진 후보 보강).
