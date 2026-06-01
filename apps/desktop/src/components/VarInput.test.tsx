@@ -45,7 +45,25 @@ describe("VarInput 호버 툴팁", () => {
       <VarInput value="http://example.com" onChange={() => {}} vars={VARS} varDetails={{}} />,
     );
     fireEvent.mouseEnter(container.querySelector(".var-input-wrap")!);
-    expect(container.querySelector(".var-tooltip")).toBeNull();
+    expect(document.querySelector(".var-tooltip")).toBeNull();
+  });
+
+  it("툴팁은 패널 overflow에 잘리지 않도록 body 최상위(포털)에 fixed로 렌더된다", () => {
+    const { container } = render(
+      <VarInput
+        value="{{targetIp}}"
+        onChange={() => {}}
+        vars={VARS}
+        varDetails={{ targetIp: { value: "10.0.0.1", source: "환경: 운영" } }}
+      />,
+    );
+    fireEvent.mouseEnter(container.querySelector(".var-input-wrap")!);
+    const tooltip = document.querySelector<HTMLElement>(".var-tooltip");
+    expect(tooltip).toBeTruthy();
+    // 포털: 컴포넌트 컨테이너 밖(body 직속 트리)에 렌더 → 부모 overflow에 안 잘림
+    expect(container.contains(tooltip)).toBe(false);
+    // fixed 포지셔닝(스크롤/패널과 무관하게 화면 기준 배치)
+    expect(tooltip!.style.position).toBe("fixed");
   });
 
   it("기존 자동완성 동작은 그대로 동작한다", () => {

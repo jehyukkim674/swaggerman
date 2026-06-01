@@ -26,6 +26,29 @@ body {
   font-size: 13px;
 }
 
+/* 테마(다크/라이트)를 따라가는 스크롤바 — 전역. 기본 흰색 스크롤바가 다크 화면에서 튀는 문제 해결 */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 6px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--muted);
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
 .app {
   display: flex;
   flex-direction: column;
@@ -2159,13 +2182,10 @@ details[open] > summary::before {
   color: #fff;
 }
 
-/* {{변수}} 입력 호버 시 값/출처를 보여주는 툴팁 */
+/* {{변수}} 입력 호버 시 값/출처를 보여주는 툴팁
+   (포털로 body에 fixed 렌더 — 좌표는 인라인 스타일, 패널 overflow에 잘리지 않음) */
 .var-tooltip {
-  position: absolute;
-  top: 100%;
-  left: 0;
-  z-index: 50;
-  margin-top: 4px;
+  z-index: 2000;
   padding: 8px 10px;
   background: var(--bg-2);
   border: 1px solid var(--border);

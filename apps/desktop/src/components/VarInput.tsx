@@ -1,4 +1,5 @@
 import { useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { dynamicValue } from "../core/variables";
 
 interface Props {
@@ -18,10 +19,12 @@ const USED_TOKEN = /\{\{\s*([\w.$-]+)\s*\}\}/g;
 /** `{{` 입력 시 변수 이름을 제안하는 자동완성 입력. */
 export function VarInput({ value, onChange, vars, varDetails, placeholder, className }: Props) {
   const ref = useRef<HTMLInputElement>(null);
+  const wrapRef = useRef<HTMLSpanElement>(null);
   const [open, setOpen] = useState(false);
   const [matches, setMatches] = useState<string[]>([]);
   const [active, setActive] = useState(0);
-  const [hover, setHover] = useState(false);
+  // 툴팁 화면 좌표(fixed). null이면 숨김. 포털로 body에 그려 부모 overflow에 잘리지 않게 한다.
+  const [tooltipPos, setTooltipPos] = useState<{ top: number; left: number } | null>(null);
 
   // 값에 등장하는 닫힌 변수 이름(중복 제거) — 툴팁 표시용.
   const usedVars = useMemo(() => {
@@ -63,11 +66,20 @@ export function VarInput({ value, onChange, vars, varDetails, placeholder, class
     });
   };
 
+  // 입력 위치 기준으로 툴팁 좌표 계산(화면 오른쪽 밖으로 나가지 않게 클램프).
+  const showTooltip = () => {
+    const rect = wrapRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    const left = Math.min(rect.left, Math.max(8, window.innerWidth - 396));
+    setTooltipPos({ top: rect.bottom + 4, left });
+  };
+
   return (
     <span
+      ref={wrapRef}
       className="var-input-wrap"
-      onMouseEnter={() => setHover(true)}
-      onMouseLeave={() => setHover(false)}
+      onMouseEnter={showTooltip}
+      onMouseLeave={() => setTooltipPos(null)}
     >
       <input
         ref={ref}
@@ -114,33 +126,41 @@ export function VarInput({ value, onChange, vars, varDetails, placeholder, class
           ))}
         </div>
       )}
-      {/* 자동완성이 열려 있으면 겹침 방지를 위해 툴팁은 숨긴다. */}
-      {hover && !open && usedVars.length > 0 && (
-        <div className="var-tooltip">
-          {usedVars.map((name) => {
-            const detail = varDetails?.[name];
-            const dynamic = name.startsWith("$") ? dynamicValue(name) : null;
-            return (
-              <div className="var-tooltip-row" key={name}>
-                <span className="var-tooltip-name">{`{{${name}}}`}</span>
-                {detail ? (
-                  <>
-                    <span className="var-tooltip-source">{detail.source}</span>
-                    <span className="var-tooltip-value">{detail.value}</span>
-                  </>
-                ) : dynamic !== null ? (
-                  <>
-                    <span className="var-tooltip-source">동적 변수</span>
-                    <span className="var-tooltip-value">{dynamic} (예시)</span>
-                  </>
-                ) : (
-                  <span className="var-tooltip-missing">⚠ 정의되지 않음</span>
-                )}
-              </div>
-            );
-          })}
-        </div>
-      )}
+      {/* 자동완성이 열려 있으면 겹침 방지를 위해 툴팁은 숨긴다.
+          포털 + fixed: 부모 패널의 overflow에 잘리지 않고 화면 최상위에 표시된다. */}
+      {tooltipPos &&
+        !open &&
+        usedVars.length > 0 &&
+        createPortal(
+          <div
+            className="var-tooltip"
+            style={{ position: "fixed", top: tooltipPos.top, left: tooltipPos.left }}
+          >
+            {usedVars.map((name) => {
+              const detail = varDetails?.[name];
+              const dynamic = name.startsWith("$") ? dynamicValue(name) : null;
+              return (
+                <div className="var-tooltip-row" key={name}>
+                  <span className="var-tooltip-name">{`{{${name}}}`}</span>
+                  {detail ? (
+                    <>
+                      <span className="var-tooltip-source">{detail.source}</span>
+                      <span className="var-tooltip-value">{detail.value}</span>
+                    </>
+                  ) : dynamic !== null ? (
+                    <>
+                      <span className="var-tooltip-source">동적 변수</span>
+                      <span className="var-tooltip-value">{dynamic} (예시)</span>
+                    </>
+                  ) : (
+                    <span className="var-tooltip-missing">⚠ 정의되지 않음</span>
+                  )}
+                </div>
+              );
+            })}
+          </div>,
+          document.body,
+        )}
     </span>
   );
 }
