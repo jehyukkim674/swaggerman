@@ -1119,7 +1119,7 @@ export default function App() {
           onClose={() => setAuthModalOpen(false)}
           oauth2={oauth2Config}
           onOauth2Change={setOauth2Config}
-          onFetchToken={(cfg) => fetchOAuth2Token(cfg, executeRequest)}
+          onFetchToken={(cfg) => fetchOAuth2Token(cfg, (req) => executeRequest(req, netSettings))}
         />
       )}
     </div>
