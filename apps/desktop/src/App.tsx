@@ -741,7 +741,12 @@ export default function App() {
           placeholder="OpenAPI spec URL (예: /v3/api-docs, /swagger-ui/index.html)"
           spellCheck={false}
         />
-        <button className="btn primary" onClick={() => loadSpec()} disabled={loading}>
+        <button
+          className="btn primary"
+          onClick={() => loadSpec()}
+          disabled={loading}
+          title="입력한 OpenAPI 스펙 URL을 불러와 좌측에 엔드포인트 목록을 채웁니다 (입력란에서 Enter로도 가능)"
+        >
           {loading ? "로딩…" : "Load"}
         </button>
         <button

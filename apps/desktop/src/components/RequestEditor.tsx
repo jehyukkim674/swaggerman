@@ -164,7 +164,11 @@ export function RequestEditor({
             ✕ 취소
           </button>
         ) : (
-          <button className="btn primary send" onClick={onSend}>
+          <button
+            className="btn primary send"
+            onClick={onSend}
+            title="현재 요청을 전송합니다 (⌘/Ctrl+Enter)"
+          >
             Send
           </button>
         )}

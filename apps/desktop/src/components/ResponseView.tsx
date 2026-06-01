@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { HTTPRequest, HTTPResponse, ParsedOperation } from "../core/types";
 import { statusColor } from "./method";
+import { CopyIcon } from "./icons";
 import { Minimap } from "./Minimap";
 import { DocsPane } from "./DocsPane";
 import { JsonView } from "./JsonView";
@@ -147,12 +148,14 @@ export function ResponseView({
             <button
               className={viewMode === "pretty" ? "active" : ""}
               onClick={() => setViewMode("pretty")}
+              title="보기 좋게 들여쓴 JSON(구문 색상·검색·미니맵)"
             >
               Pretty
             </button>
             <button
               className={viewMode === "raw" ? "active" : ""}
               onClick={() => setViewMode("raw")}
+              title="서버가 보낸 원본 그대로(포맷팅 없음)"
             >
               Raw
             </button>
@@ -160,28 +163,35 @@ export function ResponseView({
               <button
                 className={viewMode === "preview" ? "active" : ""}
                 onClick={() => setViewMode("preview")}
+                title="HTML 응답을 안전한 샌드박스에서 미리보기"
               >
                 Preview
               </button>
             )}
           </span>
-          <button className="btn small" onClick={() => copy(body, () => flash("body"))}>
-            {copied === "body" ? "✓" : "Body"}
-          </button>
-          <button className="btn small" onClick={saveBody} title="응답을 파일로 저장">
+          <button
+            className="btn small"
+            onClick={saveBody}
+            title="응답 본문을 파일(.json/.html/.txt)로 저장합니다"
+          >
             저장
           </button>
           {request && (
             <button
               className="btn small"
               onClick={() => copy(buildSnippet(request, "cURL"), () => flash("curl"))}
+              title="이 요청을 그대로 재현하는 cURL 명령을 클립보드에 복사"
             >
               {copied === "curl" ? "✓" : "cURL"}
             </button>
           )}
           {request && (
             <div className="snippet-menu">
-              <button className="btn small" onClick={() => setSnippetOpen((v) => !v)}>
+              <button
+                className="btn small"
+                onClick={() => setSnippetOpen((v) => !v)}
+                title="이 요청을 코드 스니펫(JavaScript·Python 등)으로 복사"
+              >
                 Code ▾
               </button>
               {snippetOpen && (
@@ -203,11 +213,19 @@ export function ResponseView({
           )}
           {onAskAi && (
             <span className="ai-resp-actions">
-              <button className="btn small" onClick={() => onAskAi("explain")} title="이 응답을 AI로 설명">
+              <button
+                className="btn small"
+                onClick={() => onAskAi("explain")}
+                title="AI가 응답 본문을 한국어로 요약하고 주요 필드의 의미를 설명합니다(✦ AI 패널에서)"
+              >
                 ✦ 설명
               </button>
               {response.statusCode >= 400 && (
-                <button className="btn small" onClick={() => onAskAi("diagnose")} title="실패 원인을 AI로 진단">
+                <button
+                  className="btn small"
+                  onClick={() => onAskAi("diagnose")}
+                  title="AI가 상태코드와 본문을 근거로 실패 원인과 해결 방법을 진단합니다(4xx·5xx)"
+                >
                   ✦ 진단
                 </button>
               )}
@@ -308,12 +326,24 @@ export function ResponseView({
 
       {viewMode === "preview" && isHtml ? (
         <iframe className="resp-preview" sandbox="" srcDoc={response.body} title="HTML 미리보기" />
-      ) : viewMode === "raw" ? (
-        <pre className="resp-raw">{response.body}</pre>
       ) : (
         <div className="resp-body-wrap">
-          <JsonView text={body} query={submitted} active={active} containerRef={bodyRef} />
-          <Minimap text={body} scrollRef={bodyRef} matchLines={matchLines} />
+          {viewMode === "raw" ? (
+            <pre className="resp-raw">{response.body}</pre>
+          ) : (
+            <>
+              <JsonView text={body} query={submitted} active={active} containerRef={bodyRef} />
+              <Minimap text={body} scrollRef={bodyRef} matchLines={matchLines} />
+            </>
+          )}
+          <button
+            className="body-copy-fab"
+            onClick={() => copy(viewMode === "raw" ? response.body : body, () => flash("body"))}
+            title="응답 본문 전체를 클립보드에 복사"
+            aria-label="응답 본문 복사"
+          >
+            {copied === "body" ? "✓" : <CopyIcon size={16} />}
+          </button>
         </div>
       )}
     </>
