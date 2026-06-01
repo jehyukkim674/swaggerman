@@ -5,6 +5,7 @@ import {
   defaultBody,
   defaultInputs,
   deriveBaseURL,
+  restoreInputs,
   schemaToExample,
 } from "./request-builder";
 import type { ParsedOperation, ParsedSchema } from "./types";
@@ -310,5 +311,53 @@ describe("deriveBaseURL", () => {
   });
   it("서버 없으면 spec origin", () => {
     expect(deriveBaseURL("http://localhost:8000/v3/api-docs", [])).toBe("http://localhost:8000");
+  });
+});
+
+describe("restoreInputs (마지막 요청 정보 복원)", () => {
+  const operation = op({
+    id: "GET /volumes",
+    path: "/volumes",
+    parameters: [
+      { id: "1", name: "targetIp", location: "query", required: true },
+      { id: "2", name: "type", location: "query", required: false },
+    ],
+  });
+
+  it("저장된 입력값이 있으면 그대로 복원한다", () => {
+    const saved = {
+      "GET /volumes": {
+        pathParams: {},
+        queryParams: [
+          { key: "targetIp", value: "{{targetIp}}", enabled: true },
+          { key: "sslVerify", value: "true", enabled: true },
+        ],
+        headers: [{ key: "Accept", value: "application/json", enabled: true }],
+        body: "",
+      },
+    };
+    const restored = restoreInputs(saved, operation);
+    expect(restored).toEqual(saved["GET /volumes"]);
+    // 사용자가 추가한 행(sslVerify)도 보존
+    expect(restored.queryParams.find((q) => q.key === "sslVerify")?.value).toBe("true");
+  });
+
+  it("저장된 값이 없으면 스펙 기본값을 반환한다", () => {
+    const restored = restoreInputs({}, operation);
+    expect(restored).toEqual(defaultInputs(operation));
+    expect(restored.queryParams.map((q) => q.key)).toEqual(["targetIp", "type"]);
+  });
+
+  it("다른 오퍼레이션의 저장값에는 영향받지 않는다", () => {
+    const saved = {
+      "GET /other": {
+        pathParams: {},
+        queryParams: [{ key: "x", value: "1", enabled: true }],
+        headers: [],
+        body: "",
+      },
+    };
+    const restored = restoreInputs(saved, operation);
+    expect(restored).toEqual(defaultInputs(operation));
   });
 });

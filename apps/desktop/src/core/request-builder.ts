@@ -102,6 +102,15 @@ export function defaultInputs(operation: ParsedOperation): RequestInputs {
   };
 }
 
+/** 마지막 요청 정보 복원: 저장된 입력값(localStorage)이 있으면 그대로, 없으면 스펙 기본값.
+ *  사용자가 추가/수정한 파라미터 행도 저장된 그대로 보존된다. */
+export function restoreInputs(
+  saved: Record<string, RequestInputs>,
+  operation: ParsedOperation,
+): RequestInputs {
+  return saved[operation.id] ?? defaultInputs(operation);
+}
+
 /** 요청 body 초기값: 스펙 example 우선 → 스키마 생성 → 빈 객체. */
 export function defaultBody(operation: ParsedOperation): string {
   const requestBody = operation.requestBody;

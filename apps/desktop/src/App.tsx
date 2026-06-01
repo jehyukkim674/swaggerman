@@ -7,8 +7,8 @@ import { executeRequest } from "./core/http-client";
 import {
   buildRequest,
   buildRequestUrl,
-  defaultInputs,
   deriveBaseURL,
+  restoreInputs,
   type RequestInputs,
   type RequestParam,
 } from "./core/request-builder";
@@ -393,6 +393,23 @@ export default function App() {
     >
   >(new Map());
 
+  // 마지막 요청 정보 영속화: 오퍼레이션별 입력값을 프로젝트별로 저장(앱 재시작 후에도 복원).
+  // 응답은 용량 문제로 저장하지 않음(히스토리가 보관).
+  const [savedInputs, setSavedInputs] = useState<Record<string, RequestInputs>>({});
+  useEffect(() => {
+    if (activeSpecUrl) saveJSON(`swaggerman.inputs.${activeSpecUrl}`, savedInputs);
+  }, [savedInputs, activeSpecUrl]);
+  // 입력값이 바뀔 때마다 해당 오퍼레이션의 저장본을 갱신
+  useEffect(() => {
+    if (selected && inputs) {
+      setSavedInputs((prev) => ({ ...prev, [selected.id]: inputs }));
+    }
+  }, [inputs, selected]);
+  // 마지막으로 보던 오퍼레이션 저장(앱 재시작 시 자동 선택)
+  useEffect(() => {
+    if (activeSpecUrl && selected) saveJSON(`swaggerman.lastOp.${activeSpecUrl}`, selected.id);
+  }, [selected, activeSpecUrl]);
+
   // 영속화: 스펙별 키로 저장
   useEffect(() => {
     if (activeSpecUrl) saveJSON(`swaggerman.fav.${activeSpecUrl}`, favorites);
@@ -490,8 +507,22 @@ export default function App() {
       );
       setGlobalHeaders(loadJSON(`swaggerman.headers.${targetUrl}`, [] as RequestParam[]));
       opCacheRef.current.clear();
-      setSelected(null);
-      setInputs(null);
+      // 마지막 위치·요청 정보 복원: 저장된 입력값 로드 + 마지막으로 보던 오퍼레이션 자동 선택
+      const savedIns = loadJSON(
+        `swaggerman.inputs.${targetUrl}`,
+        {} as Record<string, RequestInputs>,
+      );
+      setSavedInputs(savedIns);
+      const lastOpId = loadJSON(`swaggerman.lastOp.${targetUrl}`, "");
+      const lastOp = parsed.operations.find((o) => o.id === lastOpId);
+      if (lastOp) {
+        setSelected(lastOp);
+        setInputs(restoreInputs(savedIns, lastOp));
+        log.info("ui", `마지막 위치 복원: ${lastOp.method} ${lastOp.path}`);
+      } else {
+        setSelected(null);
+        setInputs(null);
+      }
       setResponse(null);
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
@@ -508,6 +539,8 @@ export default function App() {
     localStorage.removeItem(`swaggerman.fav.${url}`);
     localStorage.removeItem(`swaggerman.hist.${url}`);
     localStorage.removeItem(`swaggerman.auth.${url}`);
+    localStorage.removeItem(`swaggerman.inputs.${url}`);
+    localStorage.removeItem(`swaggerman.lastOp.${url}`);
   }
 
   // 프로젝트 관리 모달(목록 추가/수정/삭제)
@@ -551,7 +584,8 @@ export default function App() {
       setAssertResults(cached.assertResults ?? []);
       setResponseTab(cached.response ? "response" : "docs");
     } else {
-      setInputs(defaultInputs(op));
+      // 메모리 캐시 없음 → 저장된 입력값(앱 재시작 전 마지막 값) → 스펙 기본값
+      setInputs(restoreInputs(savedInputs, op));
       setResponse(null);
       setLastRequest(null);
       setSendError(null);
