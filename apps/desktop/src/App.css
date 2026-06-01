@@ -2362,7 +2362,38 @@ details[open] > summary::before {
 .proj-add { margin-top: 12px; border-top: 1px solid var(--border); padding-top: 10px; }
 
 /* 히스토리 비교 모달 */
-.compare-modal { width: min(960px, 94vw); max-height: 86vh; }
+.compare-modal {
+  width: min(1600px, 96vw); height: 90vh; max-height: 90vh;
+  display: flex; flex-direction: column;
+}
+.compare-modal .modal-body { flex: 1; min-height: 0; overflow: hidden; }
+/* 2단 레이아웃 */
+.cmp-columns { display: flex; gap: 16px; height: 100%; min-height: 0; }
+.cmp-left { width: 40%; overflow-y: auto; min-width: 0; }
+.cmp-right { flex: 1; display: flex; flex-direction: column; min-width: 0; min-height: 0; }
+.cmp-search-bar { display: flex; gap: 8px; align-items: center; padding: 6px 0; }
+.cmp-search-bar .search { flex: 1; }
+.cmp-search-bar .cmp-legend-bar { display: flex; gap: 6px; align-items: center; flex-shrink: 0; }
+.cmp-diff-wrap { flex: 1; display: flex; min-height: 0; position: relative; }
+.cmp-diff-virtual {
+  flex: 1; overflow: auto;
+  background: var(--bg); border: 1px solid var(--border); border-radius: 6px;
+  font-family: ui-monospace, monospace; font-size: 12px; line-height: 1.5;
+}
+.cmp-line-text { white-space: pre; }
+/* diff 색상(변경 전·후를 구분) */
+.cmp-line-added { background: rgba(63, 185, 80, 0.15); color: #3fb950; }
+.cmp-line-removed { background: rgba(248, 81, 73, 0.15); color: #f85149; }
+.cmp-line-changed-a { background: rgba(210, 153, 34, 0.12); color: #d29922; }
+.cmp-line-changed-b { background: rgba(210, 153, 34, 0.22); color: #e3b341; }
+.cmp-diff-virtual mark.hl { background: #388bfd; color: #fff; border-radius: 2px; }
+.cmp-diff-virtual mark.hl.active { background: #1f6feb; outline: 1px solid #fff; }
+/* 범례 칩 */
+.cmp-legend-chip { padding: 1px 6px; border-radius: 4px; font-size: 11px; white-space: nowrap; }
+.cmp-legend-added { background: rgba(63, 185, 80, 0.15); color: #3fb950; }
+.cmp-legend-removed { background: rgba(248, 81, 73, 0.15); color: #f85149; }
+.cmp-legend-changed { background: rgba(210, 153, 34, 0.18); color: #e3b341; }
+.cmp-legend-match { background: #1f6feb; color: #fff; }
 .hist-compare-check { margin-right: 2px; flex-shrink: 0; cursor: pointer; }
 .cmp-section { margin-top: 14px; }
 .cmp-section-title {
@@ -2399,4 +2430,3 @@ tr.cmp-changed td { background: #d2992214; }
 .cmp-line-add { background: #3fb95018; color: #7ee787; }
 .cmp-line-remove { background: #f8514918; color: #ffa198; }
 .cmp-line-sign { display: inline-block; width: 14px; color: var(--muted); user-select: none; }
-.cmp-legend { margin-right: 10px; padding: 1px 6px; border-radius: 4px; font-size: 11px; }

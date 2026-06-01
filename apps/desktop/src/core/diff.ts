@@ -95,3 +95,48 @@ export function diffLines(aText: string, bText: string): LineOp[] {
   while (j < m) ops.push({ type: "add", text: b[j++] });
   return [...prefix, ...ops, ...suffix];
 }
+
+export type MarkedLineType = "equal" | "added" | "removed" | "changed-a" | "changed-b";
+
+export interface MarkedLineOp {
+  type: MarkedLineType;
+  text: string;
+}
+
+/** diffLines 결과를 후처리해 "변경"을 구분한다.
+ *  연속된 비-equal 묶음(hunk) 안에 remove와 add가 함께 있으면:
+ *    그 hunk의 remove들 → changed-a(변경 전), add들 → changed-b(변경 후)
+ *  remove만 있으면 removed, add만 있으면 added, equal은 equal 그대로. */
+export function diffLinesMarked(aText: string, bText: string): MarkedLineOp[] {
+  const ops = diffLines(aText, bText);
+  const out: MarkedLineOp[] = [];
+
+  let i = 0;
+  while (i < ops.length) {
+    if (ops[i].type === "equal") {
+      out.push({ type: "equal", text: ops[i].text });
+      i++;
+      continue;
+    }
+    // 연속된 비-equal 묶음(hunk)을 한 번에 모은다
+    let j = i;
+    let hasRemove = false;
+    let hasAdd = false;
+    while (j < ops.length && ops[j].type !== "equal") {
+      if (ops[j].type === "remove") hasRemove = true;
+      else hasAdd = true;
+      j++;
+    }
+    const mixed = hasRemove && hasAdd;
+    for (let k = i; k < j; k++) {
+      const text = ops[k].text;
+      if (ops[k].type === "remove") {
+        out.push({ type: mixed ? "changed-a" : "removed", text });
+      } else {
+        out.push({ type: mixed ? "changed-b" : "added", text });
+      }
+    }
+    i = j;
+  }
+  return out;
+}

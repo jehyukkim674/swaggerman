@@ -47,3 +47,43 @@ describe("buildMinimapBuckets", () => {
     expect(buckets.some((b) => b.match)).toBe(true);
   });
 });
+
+describe("buildMinimapBuckets — marks 색상", () => {
+  it("marks가 있는 줄의 버킷은 color를 가진다", () => {
+    const lines = Array.from({ length: 10 }, (_, i) => `line${i}`);
+    const marks = new Map<number, string>([[0, "#3fb950"]]);
+    const buckets = buildMinimapBuckets(lines, 2, new Set(), marks);
+    expect(buckets).toHaveLength(2);
+    expect(buckets[0].color).toBe("#3fb950");
+    expect(buckets[1].color).toBeUndefined();
+  });
+
+  it("버킷 내 첫 marks 색을 쓴다", () => {
+    // 한 버킷에 여러 marks가 있어도 가장 앞 줄의 색을 채택
+    const lines = Array.from({ length: 4 }, (_, i) => `line${i}`);
+    const marks = new Map<number, string>([
+      [0, "#3fb950"],
+      [1, "#f85149"],
+    ]);
+    const buckets = buildMinimapBuckets(lines, 1, new Set(), marks);
+    expect(buckets).toHaveLength(1);
+    expect(buckets[0].color).toBe("#3fb950");
+  });
+
+  it("match가 있는 버킷은 match=true가 우선(color와 공존 가능)", () => {
+    const lines = Array.from({ length: 10 }, (_, i) => `line${i}`);
+    const marks = new Map<number, string>([[0, "#3fb950"]]);
+    const buckets = buildMinimapBuckets(lines, 2, new Set([0]), marks);
+    expect(buckets[0].match).toBe(true);
+    expect(buckets[0].color).toBe("#3fb950");
+  });
+
+  it("marks 없이 호출하면 기존과 동일(color 모두 undefined)", () => {
+    const lines = Array.from({ length: 10 }, (_, i) => `line${i}`);
+    const buckets = buildMinimapBuckets(lines, 3, new Set([0]));
+    expect(buckets).toHaveLength(3);
+    for (const b of buckets) {
+      expect(b.color).toBeUndefined();
+    }
+  });
+});

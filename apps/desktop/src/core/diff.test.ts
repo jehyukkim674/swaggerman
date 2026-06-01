@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { diffRecords, diffLines } from "./diff";
+import { diffRecords, diffLines, diffLinesMarked } from "./diff";
 
 describe("diffRecords", () => {
   it("추가/삭제/변경/동일을 구분한다", () => {
@@ -88,5 +88,54 @@ describe("diffLines — 대형 입력 보호", () => {
     const out = diffLines(a, b); // 3000*3000 > 4M → 폴백
     expect(out.filter((o) => o.type === "remove").length).toBe(3000);
     expect(out.filter((o) => o.type === "add").length).toBe(3000);
+  });
+});
+
+describe("diffLinesMarked", () => {
+  it("remove와 add가 섞인 hunk는 changed-a/changed-b로 재분류된다", () => {
+    const out = diffLinesMarked("x:1\ny:2", "x:9\ny:2");
+    expect(out).toEqual([
+      { type: "changed-a", text: "x:1" },
+      { type: "changed-b", text: "x:9" },
+      { type: "equal", text: "y:2" },
+    ]);
+  });
+
+  it("추가만 있는 hunk는 added", () => {
+    const out = diffLinesMarked("a", "a\nb");
+    expect(out).toEqual([
+      { type: "equal", text: "a" },
+      { type: "added", text: "b" },
+    ]);
+  });
+
+  it("삭제만 있는 hunk는 removed", () => {
+    const out = diffLinesMarked("a\nb", "a");
+    expect(out).toEqual([
+      { type: "equal", text: "a" },
+      { type: "removed", text: "b" },
+    ]);
+  });
+
+  it("equal 줄은 그대로 equal", () => {
+    const out = diffLinesMarked("a\nb", "a\nb");
+    expect(out).toEqual([
+      { type: "equal", text: "a" },
+      { type: "equal", text: "b" },
+    ]);
+  });
+
+  it("여러 hunk가 각각 독립적으로 분류된다(changed hunk + added hunk 혼합)", () => {
+    // A: head / old / tail
+    // B: head / new / tail / extra
+    //  → old/new 묶음은 changed, 끝의 extra 묶음은 added
+    const out = diffLinesMarked("head\nold\ntail", "head\nnew\ntail\nextra");
+    expect(out).toEqual([
+      { type: "equal", text: "head" },
+      { type: "changed-a", text: "old" },
+      { type: "changed-b", text: "new" },
+      { type: "equal", text: "tail" },
+      { type: "added", text: "extra" },
+    ]);
   });
 });
