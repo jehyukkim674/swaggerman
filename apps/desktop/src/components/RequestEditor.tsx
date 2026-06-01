@@ -13,7 +13,7 @@ import {
 import { relativeTime, type HistoryItem } from "../core/history";
 import { DYNAMIC_VARS, type Assertion, type AssertionResult, type ExtractRule } from "../core/variables";
 import { methodColor, statusColor } from "./method";
-import { CloseCircleIcon, TrashIcon } from "./icons";
+import { CloseCircleIcon, CopyIcon, TrashIcon } from "./icons";
 import { TestPanel } from "./TestPanel";
 import { VarInput } from "./VarInput";
 import { JsonEditor } from "./JsonEditor";
@@ -82,6 +82,7 @@ export function RequestEditor({
   const [sampleName, setSampleName] = useState<string | null>(null);
   const [activeSample, setActiveSample] = useState("");
   const [confirmReset, setConfirmReset] = useState(false);
+  const [urlCopied, setUrlCopied] = useState(false);
   const reqIssues = useMemo(
     () => (operation && inputs ? validateRequestInputs(operation, inputs) : []),
     [operation, inputs],
@@ -176,8 +177,23 @@ export function RequestEditor({
         )}
       </div>
 
-      <div className="url-preview" title={buildRequestUrl(baseURL, operation, inputs, false, vars)}>
-        {buildRequestUrl(baseURL, operation, inputs, false, vars)}
+      {/* 요청 URL 미리보기: 길어도 잘리지 않게 멀티라인 + 드래그 선택 + 전체 복사 버튼 */}
+      <div className="url-preview">
+        <span className="url-preview-text">
+          {buildRequestUrl(baseURL, operation, inputs, false, vars)}
+        </span>
+        <button
+          className="icon-btn url-copy-btn"
+          title="요청 URL 전체를 클립보드에 복사"
+          aria-label="요청 URL 복사"
+          onClick={() => {
+            navigator.clipboard.writeText(buildRequestUrl(baseURL, operation, inputs, false, vars));
+            setUrlCopied(true);
+            setTimeout(() => setUrlCopied(false), 1200);
+          }}
+        >
+          {urlCopied ? "✓" : <CopyIcon size={14} />}
+        </button>
       </div>
 
       {confirmReset && (

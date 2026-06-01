@@ -1371,14 +1371,25 @@ mark.hl.active {
 
 /* URL preview */
 .url-preview {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
   padding: 4px 12px 8px;
   font-family: ui-monospace, monospace;
   font-size: 11px;
   color: var(--muted);
   border-bottom: 1px solid var(--border);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+}
+/* 긴 URL도 잘리지 않게 멀티라인 + 드래그 선택 가능 */
+.url-preview-text {
+  flex: 1;
+  white-space: normal;
+  word-break: break-all;
+  user-select: text;
+  line-height: 1.6;
+}
+.url-copy-btn {
+  flex-shrink: 0;
 }
 
 /* 환경 변수 카드 */
