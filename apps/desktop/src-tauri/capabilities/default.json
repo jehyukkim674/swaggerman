@@ -2,11 +2,12 @@
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
   "description": "Capability for the main window",
-  "windows": ["main"],
+  "windows": ["main", "main-*"],
   "permissions": [
     "core:default",
     "opener:default",
     "core:webview:allow-set-webview-zoom",
+    "core:webview:allow-create-webview-window",
     "updater:default",
     "process:default",
     "dialog:default"

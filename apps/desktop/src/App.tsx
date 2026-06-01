@@ -28,7 +28,9 @@ import { checkUpdateStatus, type AvailableUpdate } from "./core/updater";
 import { loadJSON, saveJSON } from "./core/storage";
 import { log } from "./core/log";
 import { newId, clampHistoryBody, type HistoryItem } from "./core/history";
+import { openNewWindow } from "./core/window";
 import { CloseCircleIcon } from "./components/icons";
+import { LoadingOverlay } from "./components/LoadingOverlay";
 import {
   defaultNetworkSettings,
   type HTTPRequest,
@@ -651,6 +653,11 @@ export default function App() {
         e.preventDefault();
         setPaletteOpen(true);
       }
+      // ⌘/Ctrl + N: 새 창 (다른 프로젝트를 동시에 보기)
+      if ((e.metaKey || e.ctrlKey) && (e.key === "n" || e.key === "N")) {
+        e.preventDefault();
+        openNewWindow();
+      }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
@@ -697,6 +704,7 @@ export default function App() {
 
   return (
     <div className="app">
+      {loading && <LoadingOverlay url={specUrl} />}
       {update && (
         <div className="update-banner">
           <span>🚀 새 버전 v{update.version} 사용 가능</span>
@@ -782,6 +790,13 @@ export default function App() {
           onClick={() => setRunnerOpen(true)}
         >
           러너
+        </button>
+        <button
+          className="btn"
+          title="새 창 열기 — 다른 프로젝트를 동시에 볼 수 있습니다 (⌘N)"
+          onClick={openNewWindow}
+        >
+          새 창
         </button>
         <button
           className="btn"
