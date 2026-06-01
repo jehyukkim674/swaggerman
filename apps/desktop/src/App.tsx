@@ -27,7 +27,7 @@ import { emptyOAuth2Config, fetchOAuth2Token, type OAuth2Config } from "./core/o
 import { checkUpdateStatus, type AvailableUpdate } from "./core/updater";
 import { loadJSON, saveJSON } from "./core/storage";
 import { log } from "./core/log";
-import { newId, type HistoryItem } from "./core/history";
+import { newId, clampHistoryBody, type HistoryItem } from "./core/history";
 import {
   defaultNetworkSettings,
   type HTTPRequest,
@@ -564,7 +564,13 @@ export default function App() {
       }
       setAssertResults(results);
       // 스펙 인지: 응답을 OpenAPI 응답 스키마와 대조
-      const issues = validateResponseBody(op, res.statusCode, res.body);
+      // 대용량 본문은 자동 스키마 검증 생략(동기 JSON.parse 비용)
+      const SCHEMA_VALIDATE_LIMIT = 5 * 1024 * 1024; // 5MB
+      const skipSchemaValidate = res.body.length > SCHEMA_VALIDATE_LIMIT;
+      if (skipSchemaValidate) log.info("schema", "본문 5MB 초과: 스키마 검증 생략");
+      const issues = skipSchemaValidate
+        ? []
+        : validateResponseBody(op, res.statusCode, res.body);
       if (issues.length > 0) log.warn("schema", `응답 스키마 불일치 ${issues.length}건`);
       setSchemaIssues(issues);
       opCacheRef.current.set(op.id, {
@@ -574,6 +580,7 @@ export default function App() {
         sendError: null,
         assertResults: results,
       });
+      const clamped = clampHistoryBody(res.body);
       const item: HistoryItem = {
         id: newId(),
         opId: op.id,
@@ -586,7 +593,8 @@ export default function App() {
         executedAt: Date.now(),
         inputs: ins,
         responseHeaders: res.headers,
-        responseBody: res.body,
+        responseBody: clamped.body,
+        bodyTruncated: clamped.truncated || undefined,
       };
       setHistory((prev) => [item, ...prev].slice(0, 200));
     } catch (e) {

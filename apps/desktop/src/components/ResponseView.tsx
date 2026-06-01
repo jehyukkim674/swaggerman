@@ -4,7 +4,7 @@ import { statusColor } from "./method";
 import { CopyIcon } from "./icons";
 import { Minimap } from "./Minimap";
 import { DocsPane } from "./DocsPane";
-import { JsonView } from "./JsonView";
+import { JsonView, LINE_HEIGHT } from "./JsonView";
 import { save } from "@tauri-apps/plugin-dialog";
 import { buildSnippet, SNIPPET_LANGS, type SnippetLang } from "../core/snippet-builder";
 import { writeTextFile } from "../core/fs";
@@ -84,24 +84,27 @@ export function ResponseView({
   const body = useMemo(() => (response ? prettyBody(response.body) : ""), [response]);
   const lines = useMemo(() => body.split("\n"), [body]);
 
-  const { matchLines, matchCount } = useMemo(() => {
-    const set = new Set<number>();
+  const { matchLines, matchCount, matchLineOf, lineMatchStarts } = useMemo(() => {
+    const set = new Set<number>(); // Minimap용: 매치가 있는 줄 인덱스
+    const lineOf: number[] = []; // 글로벌 매치 인덱스 → 줄 인덱스
+    const starts = new Map<number, number>(); // 줄 인덱스 → 그 줄 첫 매치의 글로벌 인덱스
     let count = 0;
     if (submitted) {
       const q = submitted.toLowerCase();
       lines.forEach((line, i) => {
         const lower = line.toLowerCase();
-        if (lower.includes(q)) {
-          set.add(i);
-          let idx = lower.indexOf(q);
-          while (idx !== -1) {
-            count += 1;
-            idx = lower.indexOf(q, idx + q.length);
-          }
+        let idx = lower.indexOf(q);
+        if (idx === -1) return;
+        set.add(i);
+        starts.set(i, count);
+        while (idx !== -1) {
+          lineOf[count] = i;
+          count += 1;
+          idx = lower.indexOf(q, idx + q.length);
         }
       });
     }
-    return { matchLines: set, matchCount: count };
+    return { matchLines: set, matchCount: count, matchLineOf: lineOf, lineMatchStarts: starts };
   }, [lines, submitted]);
 
   useEffect(() => {
@@ -111,12 +114,11 @@ export function ResponseView({
   useEffect(() => {
     if (!submitted || matchCount === 0 || !bodyRef.current) return;
     const wrap = bodyRef.current;
-    const markEl = wrap.querySelector<HTMLElement>(`mark[data-match="${active}"]`);
-    if (!markEl) return;
-    const wrapRect = wrap.getBoundingClientRect();
-    const markRect = markEl.getBoundingClientRect();
-    wrap.scrollTop += markRect.top - wrapRect.top - wrap.clientHeight / 2;
-  }, [active, submitted, matchCount]);
+    const line = matchLineOf[active];
+    if (line === undefined) return;
+    // 줄 위치를 직접 계산해 가운데로 스크롤(가상화로 DOM에 없는 매치도 이동 가능).
+    wrap.scrollTop = line * LINE_HEIGHT - wrap.clientHeight / 2;
+  }, [active, submitted, matchCount, matchLineOf]);
 
   const goNext = () => {
     if (matchCount > 0) setActive((a) => (a + 1) % matchCount);
@@ -332,8 +334,14 @@ export function ResponseView({
             <pre className="resp-raw">{response.body}</pre>
           ) : (
             <>
-              <JsonView text={body} query={submitted} active={active} containerRef={bodyRef} />
-              <Minimap text={body} scrollRef={bodyRef} matchLines={matchLines} />
+              <JsonView
+                lines={lines}
+                query={submitted}
+                active={active}
+                lineMatchStarts={lineMatchStarts}
+                containerRef={bodyRef}
+              />
+              <Minimap lines={lines} scrollRef={bodyRef} matchLines={matchLines} />
             </>
           )}
           <button

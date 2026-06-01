@@ -136,6 +136,8 @@ export function runAssertions(
   responseBody: string,
   assertions: Assertion[],
 ): AssertionResult[] {
+  // 어서션이 없으면 본문 파싱 자체를 생략(대용량 응답에서 불필요한 JSON.parse 방지).
+  if (assertions.length === 0) return [];
   let json: unknown;
   let parsed = false;
   try {

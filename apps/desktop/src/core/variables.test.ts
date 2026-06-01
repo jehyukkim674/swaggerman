@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import {
   substituteVars,
   extractVarNames,
@@ -138,5 +138,13 @@ describe("runAssertions", () => {
   it("JSON이 아니면 jsonpath 어서션은 실패", () => {
     const a: Assertion[] = [{ kind: "jsonpath", path: "x", op: "exists" }];
     expect(runAssertions(200, "plain", a)[0].ok).toBe(false);
+  });
+
+  it("어서션이 없으면 본문을 파싱하지 않는다(대용량 응답 성능)", () => {
+    const spy = vi.spyOn(JSON, "parse");
+    const results = runAssertions(200, body, []);
+    expect(results).toEqual([]);
+    expect(spy).not.toHaveBeenCalled();
+    spy.mockRestore();
   });
 });

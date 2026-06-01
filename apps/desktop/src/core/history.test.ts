@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { newId, relativeTime } from "./history";
+import { newId, relativeTime, clampHistoryBody, MAX_HISTORY_BODY } from "./history";
 
 describe("relativeTime", () => {
   const now = Date.now();
@@ -14,5 +14,24 @@ describe("newId", () => {
   it("1000개 생성해도 모두 고유", () => {
     const ids = new Set(Array.from({ length: 1000 }, () => newId()));
     expect(ids.size).toBe(1000);
+  });
+});
+
+describe("clampHistoryBody", () => {
+  it("한도 이하 본문은 그대로 + truncated=false", () => {
+    const body = "a".repeat(1024);
+    expect(clampHistoryBody(body)).toEqual({ body, truncated: false });
+  });
+  it("정확히 한도(경계값)는 절단 안 함", () => {
+    const body = "a".repeat(MAX_HISTORY_BODY);
+    const result = clampHistoryBody(body);
+    expect(result.truncated).toBe(false);
+    expect(result.body.length).toBe(MAX_HISTORY_BODY);
+  });
+  it("한도 초과 본문은 MAX_HISTORY_BODY 길이로 절단 + truncated=true", () => {
+    const body = "a".repeat(MAX_HISTORY_BODY + 5000);
+    const result = clampHistoryBody(body);
+    expect(result.truncated).toBe(true);
+    expect(result.body.length).toBe(MAX_HISTORY_BODY);
   });
 });

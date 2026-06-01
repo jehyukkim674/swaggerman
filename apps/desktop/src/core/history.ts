@@ -13,6 +13,17 @@ export interface HistoryItem {
   inputs: RequestInputs;
   responseHeaders: Record<string, string>;
   responseBody: string;
+  /** 응답 본문이 저장 한도를 초과해 절단되었는지(기존 데이터 호환 위해 옵션). */
+  bodyTruncated?: boolean;
+}
+
+/** 히스토리에 저장할 응답 본문 최대 크기(문자 수). 초과분은 잘라서 저장한다. */
+export const MAX_HISTORY_BODY = 512 * 1024; // 512KB
+
+/** 대용량 본문을 히스토리 저장용으로 절단. */
+export function clampHistoryBody(body: string): { body: string; truncated: boolean } {
+  if (body.length <= MAX_HISTORY_BODY) return { body, truncated: false };
+  return { body: body.slice(0, MAX_HISTORY_BODY), truncated: true };
 }
 
 export function newId(): string {

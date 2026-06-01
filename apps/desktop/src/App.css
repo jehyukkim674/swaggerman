@@ -845,12 +845,9 @@ mark.hl.active {
   line-height: 1.5;
   padding: 0;
 }
-.code-view.plain {
-  white-space: pre;
-  padding: 8px 12px;
-}
 .code-line {
   display: flex;
+  align-items: center;
 }
 .code-line .ln {
   flex-shrink: 0;
