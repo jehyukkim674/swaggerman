@@ -8,6 +8,10 @@
 > **macOS 설치 시 "손상되어 열 수 없습니다"가 뜨면** (서명 미인증 앱): 터미널에서
 > `xattr -dr com.apple.quarantine /Applications/SwaggerMan.app` 실행 후 다시 여세요.
 
+## v0.3.15
+
+- 기능: **히스토리 비교** — 히스토리 탭에서 2건 선택 → 요청 파라미터(path/query/header) 키별 차이 + 요청·응답 본문 줄 단위 diff
+
 ## v0.3.14
 
 - 개선: 응답 **Body 복사**를 본문 우하단 **복사 아이콘 버튼**으로 이동(상단 정리)
