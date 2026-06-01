@@ -6,10 +6,13 @@ interface Props {
   settings: NetworkSettings;
   onChange: (s: NetworkSettings) => void;
   onClose: () => void;
+  /** claude 실행파일 경로 수동 지정(비우면 자동 탐지). */
+  claudePath?: string;
+  onClaudePathChange?: (path: string) => void;
 }
 
-/** 네트워크 설정(타임아웃/SSL/프록시) + 쿠키 조회·삭제 모달. */
-export function SettingsModal({ settings, onChange, onClose }: Props) {
+/** 네트워크 설정(타임아웃/SSL/프록시) + AI(claude 경로) + 쿠키 조회·삭제 모달. */
+export function SettingsModal({ settings, onChange, onClose, claudePath = "", onClaudePathChange }: Props) {
   const [cookies, setCookies] = useState<CookieInfo[]>([]);
   const [cookieErr, setCookieErr] = useState<string | null>(null);
 
@@ -61,6 +64,25 @@ export function SettingsModal({ settings, onChange, onClose }: Props) {
               spellCheck={false}
             />
           </label>
+
+          {onClaudePathChange && (
+            <>
+              <div className="settings-section">AI</div>
+              <label className="settings-field">
+                <span>claude 실행파일 경로</span>
+                <input
+                  value={claudePath}
+                  onChange={(e) => onClaudePathChange(e.target.value)}
+                  placeholder="비우면 자동 탐지 (예: C:\Users\me\.local\bin\claude.exe)"
+                  spellCheck={false}
+                />
+              </label>
+              <div className="hint">
+                AI가 claude를 못 찾을 때 직접 지정하세요. macOS/Linux: <code>~/.local/bin/claude</code>,
+                Windows: <code>%USERPROFILE%\.local\bin\claude.exe</code>
+              </div>
+            </>
+          )}
 
           <div className="settings-section">
             쿠키 ({cookies.length})

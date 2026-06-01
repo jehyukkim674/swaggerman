@@ -172,6 +172,12 @@ export default function App() {
     saveJSON("swaggerman.net", netSettings);
   }, [netSettings]);
 
+  // AI: claude 실행파일 경로 수동 지정(비우면 자동 탐지) — 전역 저장
+  const [claudePath, setClaudePath] = useState<string>(() => loadJSON("swaggerman.claudePath", ""));
+  useEffect(() => {
+    saveJSON("swaggerman.claudePath", claudePath);
+  }, [claudePath]);
+
   // OAuth2 토큰 발급 설정 — 프로젝트별 저장
   const [oauth2Config, setOauth2Config] = useState<OAuth2Config>(emptyOAuth2Config());
   useEffect(() => {
@@ -1013,6 +1019,7 @@ export default function App() {
                     onPendingConsumed={() => setAiPendingPrompt(null)}
                     onCopyCurl={copyCurlFromSuggestion}
                     onSaveVars={saveVarsFromSuggestion}
+                    claudePath={claudePath || undefined}
                   />
                 </div>
               </div>
@@ -1053,6 +1060,8 @@ export default function App() {
           settings={netSettings}
           onChange={setNetSettings}
           onClose={() => setSettingsOpen(false)}
+          claudePath={claudePath}
+          onClaudePathChange={setClaudePath}
         />
       )}
       {paletteOpen && (

@@ -169,7 +169,7 @@ fn cancelled() -> &'static Mutex<HashSet<u32>> {
 }
 
 fn version_of(path: &str) -> Option<String> {
-    let out = std::process::Command::new(path).arg("--version").output().ok()?;
+    let out = std_command_for(path).arg("--version").output().ok()?;
     if !out.status.success() {
         return None;
     }
@@ -177,7 +177,30 @@ fn version_of(path: &str) -> Option<String> {
 }
 
 fn home() -> String {
-    std::env::var("HOME").unwrap_or_default()
+    // macOS/Linux는 HOME, Windows는 USERPROFILE.
+    std::env::var("HOME")
+        .or_else(|_| std::env::var("USERPROFILE"))
+        .unwrap_or_default()
+}
+
+/// .cmd/.bat(npm 셰임 등)는 직접 실행이 안 되므로 Windows에서 cmd /C로 감싼다.
+fn std_command_for(bin: &str) -> std::process::Command {
+    if cfg!(windows) && (bin.ends_with(".cmd") || bin.ends_with(".bat")) {
+        let mut c = std::process::Command::new("cmd");
+        c.arg("/C").arg(bin);
+        return c;
+    }
+    std::process::Command::new(bin)
+}
+
+/// tokio 버전(스트리밍/비동기 실행용).
+fn tokio_command_for(bin: &str) -> tokio::process::Command {
+    if cfg!(windows) && (bin.ends_with(".cmd") || bin.ends_with(".bat")) {
+        let mut c = tokio::process::Command::new("cmd");
+        c.arg("/C").arg(bin);
+        return c;
+    }
+    tokio::process::Command::new(bin)
 }
 
 /// claude/codex 실행파일을 탐지한다(PATH 우선, 알려진 후보 보강).
@@ -196,6 +219,13 @@ pub fn ai_detect() -> AiDetect {
     claude_candidates.push(format!("{h}/.local/bin/claude"));
     claude_candidates.push("/opt/homebrew/bin/claude".into());
     claude_candidates.push("/usr/local/bin/claude".into());
+    // Windows: 네이티브 설치(claude.exe) + npm 전역 설치(claude.cmd)
+    claude_candidates.push(format!("{h}/.local/bin/claude.exe"));
+    claude_candidates.push(format!("{h}/.claude/local/claude.exe"));
+    if let Ok(appdata) = std::env::var("APPDATA") {
+        claude_candidates.push(format!("{appdata}/npm/claude.cmd"));
+        claude_candidates.push(format!("{appdata}/npm/claude.exe"));
+    }
     if let Some(path) = pick_executable(&claude_candidates) {
         if let Some(version) = version_of(&path) {
             d.claude = Some(CliInfo { path, version });
@@ -216,12 +246,21 @@ pub fn ai_detect() -> AiDetect {
 }
 
 /// `which`의 최소 구현(PATH 탐색). 외부 의존성 없이.
+/// Windows 실행파일(.exe/.cmd/.bat)도 함께 찾는다.
 fn which(bin: &str) -> Result<String, ()> {
     let path = std::env::var_os("PATH").ok_or(())?;
+    let names = [
+        bin.to_string(),
+        format!("{bin}.exe"),
+        format!("{bin}.cmd"),
+        format!("{bin}.bat"),
+    ];
     for dir in std::env::split_paths(&path) {
-        let candidate = dir.join(bin);
-        if candidate.is_file() {
-            return Ok(candidate.to_string_lossy().into_owned());
+        for name in &names {
+            let candidate = dir.join(name);
+            if candidate.is_file() {
+                return Ok(candidate.to_string_lossy().into_owned());
+            }
         }
     }
     Err(())
@@ -265,7 +304,7 @@ pub async fn ai_complete(args: AiCompleteArgs) -> Result<String, String> {
         .map_err(|e| e.to_string())??;
 
     let cli_args = build_complete_args(&args);
-    let mut child = tokio::process::Command::new(&bin)
+    let mut child = tokio_command_for(&bin)
         .args(&cli_args)
         .current_dir(std::env::temp_dir())
         .stdin(std::process::Stdio::piped())
@@ -304,7 +343,7 @@ pub async fn ai_chat(args: AiChatArgs, on_event: Channel<AiEvent>) -> Result<(),
     let req_id = args.req_id;
     let cli_args = build_chat_args(&args);
 
-    let mut child = tokio::process::Command::new(&bin)
+    let mut child = tokio_command_for(&bin)
         .args(&cli_args)
         .current_dir(std::env::temp_dir())
         .stdin(std::process::Stdio::piped())
