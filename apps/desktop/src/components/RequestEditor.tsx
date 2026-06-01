@@ -24,6 +24,7 @@ interface Props {
   baseURL: string;
   globalHeaders: RequestParam[];
   vars: Record<string, string>;
+  varDetails?: Record<string, { value: string; source: string }>; // 입력 호버 툴팁용
   sending: boolean;
   onChange: (inputs: RequestInputs) => void;
   onSend: () => void;
@@ -61,6 +62,7 @@ export function RequestEditor({
   baseURL,
   globalHeaders,
   vars,
+  varDetails,
   sending,
   onChange,
   onSend,
@@ -210,6 +212,7 @@ export function RequestEditor({
                   value={inputs.pathParams[key]}
                   onChange={(v) => setPath(key, v)}
                   vars={varNames}
+                  varDetails={varDetails}
                   placeholder="값"
                 />
               </div>
@@ -222,6 +225,7 @@ export function RequestEditor({
           list={inputs.queryParams}
           meta={queryMeta}
           varNames={varNames}
+          varDetails={varDetails}
           onToggle={(i, v) => setParamList("queryParams", i, { enabled: v })}
           onKey={(i, v) => setParamList("queryParams", i, { key: v })}
           onValue={(i, v) => setParamList("queryParams", i, { value: v })}
@@ -254,6 +258,7 @@ export function RequestEditor({
           title="Headers"
           list={inputs.headers}
           varNames={varNames}
+          varDetails={varDetails}
           onToggle={(i, v) => setParamList("headers", i, { enabled: v })}
           onKey={(i, v) => setParamList("headers", i, { key: v })}
           onValue={(i, v) => setParamList("headers", i, { value: v })}
@@ -434,6 +439,7 @@ interface ParamSectionProps {
   list: RequestParam[];
   meta?: Map<string, boolean>; // key -> required (스펙 파라미터일 때만)
   varNames?: string[]; // 값 입력 자동완성용 변수 이름
+  varDetails?: Record<string, { value: string; source: string }>; // 호버 툴팁용
   onToggle: (index: number, value: boolean) => void;
   onKey: (index: number, value: string) => void;
   onValue: (index: number, value: string) => void;
@@ -448,6 +454,7 @@ function ParamSection({
   list,
   meta,
   varNames,
+  varDetails,
   onToggle,
   onKey,
   onValue,
@@ -484,6 +491,7 @@ function ParamSection({
               value={param.value}
               onChange={(v) => onValue(index, v)}
               vars={varNames ?? []}
+              varDetails={varDetails}
               placeholder="value"
             />
             <button className="icon-btn" onClick={() => onRemove(index)} title="삭제">

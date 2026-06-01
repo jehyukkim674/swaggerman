@@ -2159,6 +2159,49 @@ details[open] > summary::before {
   color: #fff;
 }
 
+/* {{변수}} 입력 호버 시 값/출처를 보여주는 툴팁 */
+.var-tooltip {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  z-index: 50;
+  margin-top: 4px;
+  padding: 8px 10px;
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+  font-size: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 220px;
+  max-width: 380px;
+}
+.var-tooltip-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.var-tooltip-name {
+  color: var(--accent);
+  font-family: ui-monospace, monospace;
+}
+.var-tooltip-source {
+  color: var(--muted);
+  font-size: 11px;
+  flex-shrink: 0;
+}
+.var-tooltip-value {
+  font-family: ui-monospace, monospace;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.var-tooltip-missing {
+  color: #f85149;
+}
+
 /* 편집 가능한 JSON 에디터(하이라이트 레이어 + 투명 textarea + 라인번호) */
 .json-editor {
   display: flex;

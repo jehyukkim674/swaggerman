@@ -24,6 +24,7 @@ import {
   type ExtractRule,
 } from "./core/variables";
 import { emptyOAuth2Config, fetchOAuth2Token, type OAuth2Config } from "./core/oauth2";
+import { findActiveEnv } from "./core/env";
 import { checkUpdateStatus, type AvailableUpdate } from "./core/updater";
 import { loadJSON, saveJSON } from "./core/storage";
 import { log } from "./core/log";
@@ -109,6 +110,12 @@ export default function App() {
     if (activeSpecUrl) saveJSON(`swaggerman.envs.${activeSpecUrl}`, envs);
   }, [envs, activeSpecUrl]);
 
+  // 활성 환경 이름(같은 baseURL 환경이 여러 개여도 구분). 빈 문자열 = 사용자 지정.
+  const [activeEnvName, setActiveEnvName] = useState<string>("");
+  useEffect(() => {
+    if (activeSpecUrl) saveJSON(`swaggerman.activeEnv.${activeSpecUrl}`, activeEnvName);
+  }, [activeEnvName, activeSpecUrl]);
+
   // 요청 체이닝으로 추출된 런타임 변수(응답에서 뽑은 값). 환경 변수보다 우선.
   const [chainVars, setChainVars] = useState<Record<string, string>>({});
 
@@ -127,11 +134,24 @@ export default function App() {
   // 현재 적용 중인 변수 맵: 환경 변수 < 체인 변수
   const activeVars = useMemo(() => {
     const map: Record<string, string> = {};
-    const env = envs.find((e) => e.baseURL === baseURL);
+    const env = findActiveEnv(envs, activeEnvName, baseURL);
     for (const v of env?.vars ?? []) if (v.key) map[v.key] = v.value;
     for (const [k, val] of Object.entries(chainVars)) map[k] = val;
     return map;
-  }, [envs, baseURL, chainVars]);
+  }, [envs, activeEnvName, baseURL, chainVars]);
+
+  // 변수명 → {값, 출처} — 입력 호버 툴팁 표시용
+  const varDetails = useMemo(() => {
+    const map: Record<string, { value: string; source: string }> = {};
+    const env = findActiveEnv(envs, activeEnvName, baseURL);
+    for (const v of env?.vars ?? []) {
+      if (v.key) map[v.key] = { value: v.value, source: env?.name ? `환경: ${env.name}` : "환경 변수" };
+    }
+    for (const [k, val] of Object.entries(chainVars)) {
+      map[k] = { value: val, source: "체이닝 추출" };
+    }
+    return map;
+  }, [envs, activeEnvName, baseURL, chainVars]);
 
   // 전역 헤더(모든 요청에 적용) — 프로젝트별 저장
   const [globalHeaders, setGlobalHeaders] = useState<RequestParam[]>([]);
@@ -257,7 +277,7 @@ export default function App() {
   // AI에 줄 현재 컨텍스트 조립(엔드포인트/폼/응답/환경변수명)
   function currentAiContext(opts?: { forForm?: boolean }): string {
     if (!selected) return "현재 선택된 엔드포인트가 없습니다.";
-    const env = envs.find((e) => e.baseURL === baseURL);
+    const env = findActiveEnv(envs, activeEnvName, baseURL);
     const envVarNames = (env?.vars ?? []).map((v) => v.key).filter(Boolean);
     return buildAiContext({
       op: selected,
@@ -317,7 +337,7 @@ export default function App() {
     const entries = Object.entries(pairs).filter(([k, v]) => k && v && !v.includes("{{"));
     if (entries.length === 0) return;
     setEnvs((prev) => {
-      const env = prev.find((e) => e.baseURL === baseURL);
+      const env = findActiveEnv(prev, activeEnvName, baseURL);
       if (!env) return prev;
       const vars = [...(env.vars ?? [])];
       for (const [k, v] of entries) {
@@ -399,19 +419,24 @@ export default function App() {
   useEffect(() => {
     // 시작 시 1회 확인. 실패하면 사유를 표시해 두어(특히 사내망/프록시 환경)
     // 사용자가 원인을 알 수 있게 한다. "최신"이면 조용히 넘어감.
-    checkUpdateStatus().then((r) => {
+    // 앱의 네트워크 설정(프록시/타임아웃)을 업데이터에도 적용한다.
+    checkUpdateStatus({ proxy: netSettings.proxy, timeoutMs: netSettings.timeoutMs }).then((r) => {
       if (r.kind === "available") {
         setUpdate(r.update);
       } else if (r.kind === "error") {
         setUpdateMsg(`업데이트 확인 실패: ${r.message}`);
       }
     });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   async function manualCheckUpdate() {
     setCheckingUpdate(true);
     setUpdateMsg(null);
-    const result = await checkUpdateStatus();
+    const result = await checkUpdateStatus({
+      proxy: netSettings.proxy,
+      timeoutMs: netSettings.timeoutMs,
+    });
     if (result.kind === "available") {
       setUpdate(result.update);
       setUpdateMsg(`새 버전 v${result.update.version} 사용 가능`);
@@ -451,6 +476,7 @@ export default function App() {
       setHistory(loadJSON(`swaggerman.hist.${targetUrl}`, [] as HistoryItem[]));
       setAuthValues(loadJSON(`swaggerman.auth.${targetUrl}`, {} as Record<string, string>));
       setEnvs(loadJSON(`swaggerman.envs.${targetUrl}`, [] as Env[]));
+      setActiveEnvName(loadJSON(`swaggerman.activeEnv.${targetUrl}`, ""));
       setChainVars({});
       setExtractRules(
         loadJSON(`swaggerman.extract.${targetUrl}`, {} as Record<string, ExtractRule[]>),
@@ -831,7 +857,11 @@ export default function App() {
             <input
               className="base-url"
               value={baseURL}
-              onChange={(e) => setBaseURL(e.target.value)}
+              onChange={(e) => {
+                setBaseURL(e.target.value);
+                // 수동 입력 = 사용자 지정 → 활성 환경 해제
+                setActiveEnvName("");
+              }}
               placeholder="https://api.example.com"
               spellCheck={false}
             />
@@ -839,8 +869,9 @@ export default function App() {
           <div className="env-bar">
             <select
               className="env-select"
-              value={envs.find((e) => e.baseURL === baseURL)?.name ?? ""}
+              value={activeEnvName || (findActiveEnv(envs, "", baseURL)?.name ?? "")}
               onChange={(e) => {
+                setActiveEnvName(e.target.value);
                 const env = envs.find((x) => x.name === e.target.value);
                 if (env) setBaseURL(env.baseURL);
               }}
@@ -961,6 +992,7 @@ export default function App() {
             baseURL={baseURL}
             globalHeaders={globalHeaders}
             vars={activeVars}
+            varDetails={varDetails}
             sending={sending}
             onChange={setInputs}
             onSend={send}
