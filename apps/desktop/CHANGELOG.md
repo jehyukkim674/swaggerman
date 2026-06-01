@@ -8,6 +8,12 @@
 > **macOS 설치 시 "손상되어 열 수 없습니다"가 뜨면** (서명 미인증 앱): 터미널에서
 > `xattr -dr com.apple.quarantine /Applications/SwaggerMan.app` 실행 후 다시 여세요.
 
+## v0.3.8
+
+- 기능: **Windows에서 AI(claude) 지원** — `claude.exe`/`claude.cmd` 자동 탐지(`%USERPROFILE%\.local\bin`, `%APPDATA%\npm`), npm 설치(.cmd)도 실행 가능
+- 기능: 설정(⚙)에 **claude 실행파일 경로 직접 지정** 추가 — 자동 탐지가 실패해도 경로만 입력하면 AI 동작(모든 OS)
+- Windows claude 설치: PowerShell에서 `irm https://claude.ai/install.ps1 | iex` 실행 후 `claude`로 1회 로그인
+
 ## v0.3.7
 
 - 기능: 프로젝트 편집 팝업(✏️) — 프로젝트 이름·스펙 URL 수정, 저장 후 재로딩. 사용자 지정 이름은 재로딩 후에도 유지
