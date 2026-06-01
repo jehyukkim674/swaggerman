@@ -6,6 +6,8 @@ import {
   defaultInputs,
   deriveBaseURL,
   restoreInputs,
+  captureSample,
+  applySample,
   schemaToExample,
 } from "./request-builder";
 import type { ParsedOperation, ParsedSchema } from "./types";
@@ -359,5 +361,49 @@ describe("restoreInputs (마지막 요청 정보 복원)", () => {
     };
     const restored = restoreInputs(saved, operation);
     expect(restored).toEqual(defaultInputs(operation));
+  });
+});
+
+describe("요청 샘플 (captureSample / applySample)", () => {
+  const operation = op({
+    id: "GET /offerings",
+    parameters: [{ id: "1", name: "targetIp", location: "query", required: true }],
+  });
+
+  it("captureSample은 query/headers/body를 모두 캡처한다", () => {
+    const inputs = defaultInputs(operation);
+    inputs.queryParams = [{ key: "targetIp", value: "10.0.0.1", enabled: true }];
+    inputs.headers = [{ key: "X-Token", value: "abc", enabled: true }];
+    inputs.body = '{"a":1}';
+    const sample = captureSample("개발기 세트", inputs);
+    expect(sample.name).toBe("개발기 세트");
+    expect(sample.queryParams).toEqual(inputs.queryParams);
+    expect(sample.headers).toEqual(inputs.headers);
+    expect(sample.body).toBe('{"a":1}');
+  });
+
+  it("applySample은 저장된 query/headers/body를 폼에 적용한다", () => {
+    const inputs = defaultInputs(operation);
+    const sample = {
+      name: "s",
+      body: '{"b":2}',
+      queryParams: [{ key: "targetIp", value: "10.9.9.9", enabled: true }],
+      headers: [{ key: "X-Env", value: "dev", enabled: true }],
+    };
+    const applied = applySample(inputs, sample);
+    expect(applied.body).toBe('{"b":2}');
+    expect(applied.queryParams).toEqual(sample.queryParams);
+    expect(applied.headers).toEqual(sample.headers);
+    // 적용해도 pathParams 등 다른 필드는 유지
+    expect(applied.pathParams).toEqual(inputs.pathParams);
+  });
+
+  it("옛 샘플(body만 저장)은 query/headers를 건드리지 않는다(하위 호환)", () => {
+    const inputs = defaultInputs(operation);
+    const legacy = { name: "old", body: '{"old":true}' };
+    const applied = applySample(inputs, legacy);
+    expect(applied.body).toBe('{"old":true}');
+    expect(applied.queryParams).toEqual(inputs.queryParams);
+    expect(applied.headers).toEqual(inputs.headers);
   });
 });

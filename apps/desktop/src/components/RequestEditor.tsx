@@ -3,12 +3,14 @@ import { open } from "@tauri-apps/plugin-dialog";
 import type { ParsedOperation } from "../core/types";
 import { validateRequestInputs } from "../core/schema-validate";
 import {
+  applySample,
   buildRequestUrl,
   defaultInputs,
   type BodyMode,
   type FormField,
   type RequestInputs,
   type RequestParam,
+  type RequestSample,
 } from "../core/request-builder";
 import { relativeTime, type HistoryItem } from "../core/history";
 import { DYNAMIC_VARS, type Assertion, type AssertionResult, type ExtractRule } from "../core/variables";
@@ -29,7 +31,7 @@ interface Props {
   onChange: (inputs: RequestInputs) => void;
   onSend: () => void;
   onCancel: () => void;
-  samples: { name: string; body: string }[];
+  samples: RequestSample[];
   onSaveSample: (name: string) => void;
   onDeleteSample: (name: string) => void;
   historyItem: HistoryItem | null;
@@ -217,6 +219,95 @@ export function RequestEditor({
       <div className="request-body-scroll">
         {operation.summary && <p className="op-desc">{operation.summary}</p>}
 
+        {/* 요청 샘플: 현재 Query/Headers/Body를 이름 붙여 따로 보관·전환 (body 없는 GET에서도 사용 가능) */}
+        <div className="sample-bar">
+          {samples.length > 0 && (
+            <>
+              <select
+                className="sample-select"
+                value={activeSample}
+                onChange={(e) => {
+                  setActiveSample(e.target.value);
+                  const s = samples.find((x) => x.name === e.target.value);
+                  if (s) onChange(applySample(inputs, s));
+                }}
+                title="저장한 요청 샘플(Query·Headers·Body) 불러오기"
+              >
+                <option value="">요청 샘플 선택…</option>
+                {samples.map((s) => (
+                  <option key={s.name} value={s.name}>
+                    {s.name}
+                  </option>
+                ))}
+              </select>
+              {activeSample && (
+                <>
+                  <button
+                    className="btn small"
+                    title="현재 요청(Query·Headers·Body)으로 이 샘플 덮어쓰기(수정)"
+                    onClick={() => onSaveSample(activeSample)}
+                  >
+                    수정
+                  </button>
+                  <button
+                    className="btn small icon danger"
+                    title="이 샘플 삭제"
+                    onClick={() => {
+                      onDeleteSample(activeSample);
+                      setActiveSample("");
+                    }}
+                  >
+                    <TrashIcon />
+                  </button>
+                </>
+              )}
+            </>
+          )}
+          {sampleName === null ? (
+            <button
+              className="btn small"
+              title="현재 요청(Query·Headers·Body)을 샘플로 저장 — 여러 세트를 따로 보관하고 전환"
+              onClick={() => setSampleName(`샘플 ${samples.length + 1}`)}
+            >
+              ＋요청 샘플
+            </button>
+          ) : (
+            <span className="sample-add">
+              <input
+                className="sample-name-input"
+                autoFocus
+                value={sampleName}
+                onChange={(e) => setSampleName(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    if (sampleName.trim()) onSaveSample(sampleName.trim());
+                    setSampleName(null);
+                  }
+                  if (e.key === "Escape") setSampleName(null);
+                }}
+                placeholder="샘플 이름"
+                spellCheck={false}
+              />
+              <button
+                className="btn small"
+                onClick={() => {
+                  if (sampleName.trim()) onSaveSample(sampleName.trim());
+                  setSampleName(null);
+                }}
+              >
+                ✓
+              </button>
+              <button
+                className="btn small btn-icon"
+                onClick={() => setSampleName(null)}
+                title="취소"
+              >
+                <CloseCircleIcon size={14} />
+              </button>
+            </span>
+          )}
+        </div>
+
         {pathKeys.length > 0 && (
           <section className="section">
             <h4>Path Params</h4>
@@ -331,95 +422,6 @@ export function RequestEditor({
               )}
             </div>
 
-            {mode === "raw" && (
-              <div className="sample-bar">
-                {samples.length > 0 && (
-                  <>
-                    <select
-                      className="sample-select"
-                      value={activeSample}
-                      onChange={(e) => {
-                        setActiveSample(e.target.value);
-                        const s = samples.find((x) => x.name === e.target.value);
-                        if (s) onChange({ ...inputs, body: s.body });
-                      }}
-                      title="저장한 body 샘플 불러오기"
-                    >
-                      <option value="">샘플 선택…</option>
-                      {samples.map((s) => (
-                        <option key={s.name} value={s.name}>
-                          {s.name}
-                        </option>
-                      ))}
-                    </select>
-                    {activeSample && (
-                      <>
-                        <button
-                          className="btn small"
-                          title="현재 body로 이 샘플 덮어쓰기(수정)"
-                          onClick={() => onSaveSample(activeSample)}
-                        >
-                          수정
-                        </button>
-                        <button
-                          className="btn small icon danger"
-                          title="이 샘플 삭제"
-                          onClick={() => {
-                            onDeleteSample(activeSample);
-                            setActiveSample("");
-                          }}
-                        >
-                          <TrashIcon />
-                        </button>
-                      </>
-                    )}
-                  </>
-                )}
-                {sampleName === null ? (
-                  <button
-                    className="btn small"
-                    title="현재 body를 샘플로 저장"
-                    onClick={() => setSampleName(`샘플 ${samples.length + 1}`)}
-                  >
-                    ＋샘플
-                  </button>
-                ) : (
-                  <span className="sample-add">
-                    <input
-                      className="sample-name-input"
-                      autoFocus
-                      value={sampleName}
-                      onChange={(e) => setSampleName(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") {
-                          if (sampleName.trim()) onSaveSample(sampleName.trim());
-                          setSampleName(null);
-                        }
-                        if (e.key === "Escape") setSampleName(null);
-                      }}
-                      placeholder="샘플 이름"
-                      spellCheck={false}
-                    />
-                    <button
-                      className="btn small"
-                      onClick={() => {
-                        if (sampleName.trim()) onSaveSample(sampleName.trim());
-                        setSampleName(null);
-                      }}
-                    >
-                      ✓
-                    </button>
-                    <button
-                      className="btn small btn-icon"
-                      onClick={() => setSampleName(null)}
-                      title="취소"
-                    >
-                      <CloseCircleIcon size={14} />
-                    </button>
-                  </span>
-                )}
-              </div>
-            )}
             {mode === "raw" && (
               <JsonEditor
                 value={inputs.body}

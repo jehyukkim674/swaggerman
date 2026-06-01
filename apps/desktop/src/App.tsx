@@ -7,10 +7,12 @@ import { executeRequest } from "./core/http-client";
 import {
   buildRequest,
   buildRequestUrl,
+  captureSample,
   deriveBaseURL,
   restoreInputs,
   type RequestInputs,
   type RequestParam,
+  type RequestSample,
 } from "./core/request-builder";
 import { buildCurl } from "./core/curl-builder";
 import { savedToRequest, type Collection, type SavedRequest } from "./core/collections";
@@ -211,18 +213,17 @@ export default function App() {
     if (activeSpecUrl) saveJSON(`swaggerman.headers.${activeSpecUrl}`, globalHeaders);
   }, [globalHeaders, activeSpecUrl]);
 
-  // 오퍼레이션별 body 샘플(이름→body) — 프로젝트별 저장
-  const [bodySamples, setBodySamples] = useState<Record<string, { name: string; body: string }[]>>(
-    {},
-  );
+  // 오퍼레이션별 요청 샘플(Query/Headers/Body 묶음) — 프로젝트별 저장.
+  // 옛 데이터(body만 저장)도 RequestSample로 그대로 호환된다.
+  const [bodySamples, setBodySamples] = useState<Record<string, RequestSample[]>>({});
   useEffect(() => {
     if (activeSpecUrl) saveJSON(`swaggerman.samples.${activeSpecUrl}`, bodySamples);
   }, [bodySamples, activeSpecUrl]);
 
-  function saveSample(opId: string, name: string, body: string) {
+  function saveSample(opId: string, name: string, ins: RequestInputs) {
     setBodySamples((prev) => {
       const list = (prev[opId] ?? []).filter((s) => s.name !== name);
-      return { ...prev, [opId]: [...list, { name, body }] };
+      return { ...prev, [opId]: [...list, captureSample(name, ins)] };
     });
   }
   function deleteSample(opId: string, name: string) {
@@ -503,7 +504,7 @@ export default function App() {
       setSchemaIssues([]);
       setOauth2Config(loadJSON(`swaggerman.oauth2.${targetUrl}`, emptyOAuth2Config()));
       setBodySamples(
-        loadJSON(`swaggerman.samples.${targetUrl}`, {} as Record<string, { name: string; body: string }[]>),
+        loadJSON(`swaggerman.samples.${targetUrl}`, {} as Record<string, RequestSample[]>),
       );
       setGlobalHeaders(loadJSON(`swaggerman.headers.${targetUrl}`, [] as RequestParam[]));
       opCacheRef.current.clear();
@@ -1034,7 +1035,7 @@ export default function App() {
             onCancel={cancelSend}
             samples={selected ? (bodySamples[selected.id] ?? []) : []}
             onSaveSample={(name) => {
-              if (selected && inputs) saveSample(selected.id, name, inputs.body);
+              if (selected && inputs) saveSample(selected.id, name, inputs);
             }}
             onDeleteSample={(name) => {
               if (selected) deleteSample(selected.id, name);

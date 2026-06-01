@@ -54,6 +54,51 @@ function renderEditor() {
   );
 }
 
+describe("RequestEditor 요청 샘플", () => {
+  it("body 없는 GET 요청에서도 요청 샘플 바가 표시된다", () => {
+    const { container } = renderEditor();
+    expect(container.querySelector(".sample-bar")).toBeTruthy();
+    expect(container.textContent).toContain("요청 샘플");
+  });
+
+  it("샘플 선택 시 query/headers/body가 모두 폼에 적용된다", () => {
+    const onChange = vi.fn();
+    const sample = {
+      name: "개발기 세트",
+      body: "",
+      queryParams: [{ key: "targetIp", value: "10.9.9.9", enabled: true }],
+      headers: [{ key: "X-Env", value: "dev", enabled: true }],
+    };
+    const { container } = render(
+      <RequestEditor
+        operation={operation}
+        inputs={defaultInputs(operation)}
+        baseURL="https://api.test"
+        globalHeaders={[]}
+        vars={{}}
+        sending={false}
+        onChange={onChange}
+        onSend={() => {}}
+        onCancel={() => {}}
+        samples={[sample]}
+        onSaveSample={() => {}}
+        onDeleteSample={() => {}}
+        historyItem={null}
+        extractRules={[]}
+        assertions={[]}
+        assertResults={[]}
+        onExtractChange={() => {}}
+        onAssertChange={() => {}}
+      />,
+    );
+    const select = container.querySelector<HTMLSelectElement>(".sample-select")!;
+    fireEvent.change(select, { target: { value: "개발기 세트" } });
+    const applied = onChange.mock.calls[0][0];
+    expect(applied.queryParams).toEqual(sample.queryParams);
+    expect(applied.headers).toEqual(sample.headers);
+  });
+});
+
 describe("RequestEditor URL 미리보기", () => {
   it("URL이 잘리지 않는 멀티라인 텍스트로 표시된다", () => {
     const { container } = renderEditor();

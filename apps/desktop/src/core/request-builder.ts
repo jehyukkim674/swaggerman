@@ -111,6 +111,35 @@ export function restoreInputs(
   return saved[operation.id] ?? defaultInputs(operation);
 }
 
+/** 요청 샘플: 이름 붙여 따로 보관하는 요청 입력 스냅샷(Query/Headers/Body).
+ *  queryParams/headers가 없는 옛 샘플(body만 저장)과 하위 호환. */
+export interface RequestSample {
+  name: string;
+  body: string;
+  queryParams?: RequestParam[];
+  headers?: RequestParam[];
+}
+
+/** 현재 입력값을 요청 샘플로 캡처(Query/Headers/Body). */
+export function captureSample(name: string, inputs: RequestInputs): RequestSample {
+  return {
+    name,
+    body: inputs.body,
+    queryParams: inputs.queryParams,
+    headers: inputs.headers,
+  };
+}
+
+/** 요청 샘플을 현재 입력값에 적용. 샘플에 없는 필드(옛 샘플의 query/headers)는 유지. */
+export function applySample(inputs: RequestInputs, sample: RequestSample): RequestInputs {
+  return {
+    ...inputs,
+    body: sample.body,
+    queryParams: sample.queryParams ?? inputs.queryParams,
+    headers: sample.headers ?? inputs.headers,
+  };
+}
+
 /** 요청 body 초기값: 스펙 example 우선 → 스키마 생성 → 빈 객체. */
 export function defaultBody(operation: ParsedOperation): string {
   const requestBody = operation.requestBody;
