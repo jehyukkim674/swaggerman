@@ -2267,3 +2267,43 @@ details[open] > summary::before {
 .proj-name { width: 160px; flex-shrink: 0; }
 .proj-url { flex: 1; min-width: 0; }
 .proj-add { margin-top: 12px; border-top: 1px solid var(--border); padding-top: 10px; }
+
+/* 히스토리 비교 모달 */
+.compare-modal { width: min(960px, 94vw); max-height: 86vh; }
+.hist-compare-check { margin-right: 2px; flex-shrink: 0; cursor: pointer; }
+.cmp-section { margin-top: 14px; }
+.cmp-section-title {
+  font-size: 11px; font-weight: 700; color: #b6c0cb;
+  text-transform: uppercase; letter-spacing: 0.6px;
+  padding-left: 8px; border-left: 3px solid var(--accent); margin-bottom: 6px;
+  display: flex; align-items: center; gap: 8px;
+}
+.cmp-same-badge {
+  font-size: 10px; font-weight: 500; color: #3fb950;
+  background: #3fb95018; padding: 1px 6px; border-radius: 4px;
+  text-transform: none; letter-spacing: 0;
+}
+.cmp-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.cmp-table th, .cmp-table td {
+  text-align: left; padding: 4px 8px; border: 1px solid var(--border);
+  vertical-align: top; word-break: break-all;
+}
+.cmp-table th { background: var(--bg-3); color: var(--muted); font-weight: 600; width: auto; }
+.cmp-table td:first-child { color: var(--muted); width: 120px; font-family: ui-monospace, monospace; }
+.cmp-meta td { font-family: ui-monospace, monospace; }
+.cmp-url { font-size: 11px; color: var(--muted); }
+.cmp-none { color: #6e7681; font-style: normal; }
+tr.cmp-added td { background: #3fb95014; }
+tr.cmp-removed td { background: #f8514914; }
+tr.cmp-changed td { background: #d2992214; }
+/* 줄 diff */
+.cmp-diff {
+  margin: 0; padding: 6px 0; background: var(--bg); border: 1px solid var(--border);
+  border-radius: 6px; overflow: auto; max-height: 360px;
+  font-family: ui-monospace, monospace; font-size: 12px; line-height: 1.5;
+}
+.cmp-line { white-space: pre; padding: 0 8px; }
+.cmp-line-add { background: #3fb95018; color: #7ee787; }
+.cmp-line-remove { background: #f8514918; color: #ffa198; }
+.cmp-line-sign { display: inline-block; width: 14px; color: var(--muted); user-select: none; }
+.cmp-legend { margin-right: 10px; padding: 1px 6px; border-radius: 4px; font-size: 11px; }

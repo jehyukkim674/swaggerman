@@ -48,6 +48,7 @@ import { SettingsModal } from "./components/SettingsModal";
 import { EnvironmentsModal } from "./components/EnvironmentsModal";
 import { GlobalHeadersModal } from "./components/GlobalHeadersModal";
 import { ProjectsModal } from "./components/ProjectsModal";
+import { CompareModal } from "./components/CompareModal";
 import { AiPanel } from "./components/AiPanel";
 import { getProvider } from "./core/ai/provider";
 import { buildAiContext } from "./core/ai/context";
@@ -482,6 +483,9 @@ export default function App() {
 
   // 프로젝트 관리 모달(목록 추가/수정/삭제)
   const [projectsOpen, setProjectsOpen] = useState(false);
+
+  // 히스토리 비교 모달(2건)
+  const [compareItems, setCompareItems] = useState<[HistoryItem, HistoryItem] | null>(null);
   function addProject(title: string, url: string) {
     const u = url.trim();
     if (!u) return;
@@ -918,6 +922,7 @@ export default function App() {
             onToggleFavorite={toggleFavorite}
             history={history}
             onSelectHistory={selectHistory}
+            onCompareHistory={(a, b) => setCompareItems([a, b])}
             onReplayHistory={replayHistory}
             onDeleteHistory={(id) => setHistory((prev) => prev.filter((h) => h.id !== id))}
             onClearHistory={() => setHistory([])}
@@ -1048,6 +1053,9 @@ export default function App() {
       )}
       {curlModalOpen && (
         <CurlImportModal onImport={importCurl} onClose={() => setCurlModalOpen(false)} />
+      )}
+      {compareItems && (
+        <CompareModal a={compareItems[0]} b={compareItems[1]} onClose={() => setCompareItems(null)} />
       )}
       {projectsOpen && (
         <ProjectsModal

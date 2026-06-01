@@ -18,6 +18,8 @@ interface Props {
   onDeleteHistory: (id: string) => void;
   onClearHistory: () => void;
   selectedHistoryId: string | null;
+  /** 히스토리 2건 비교 요청(비교 모달 열기). */
+  onCompareHistory: (a: HistoryItem, b: HistoryItem) => void;
 }
 
 const FILTER_METHODS: HTTPMethod[] = ["GET", "POST", "PUT", "DELETE", "PATCH"];
@@ -186,6 +188,7 @@ export function Sidebar(props: Props) {
           onReplay={props.onReplayHistory}
           onDelete={props.onDeleteHistory}
           onClear={props.onClearHistory}
+          onCompare={props.onCompareHistory}
         />
       )}
     </aside>
@@ -199,6 +202,7 @@ function HistoryTab({
   onReplay,
   onDelete,
   onClear,
+  onCompare,
 }: {
   history: HistoryItem[];
   selectedId: string | null;
@@ -206,7 +210,21 @@ function HistoryTab({
   onReplay: (item: HistoryItem) => void;
   onDelete: (id: string) => void;
   onClear: () => void;
+  onCompare: (a: HistoryItem, b: HistoryItem) => void;
 }) {
+  // 비교 선택(최대 2개, 3번째 선택 시 가장 오래된 선택 해제)
+  const [compareIds, setCompareIds] = useState<string[]>([]);
+  const toggleCompare = (id: string) => {
+    setCompareIds((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev.slice(-1), id].slice(-2),
+    );
+  };
+  const compareReady = compareIds.length === 2;
+  const startCompare = () => {
+    const a = history.find((h) => h.id === compareIds[0]);
+    const b = history.find((h) => h.id === compareIds[1]);
+    if (a && b) onCompare(a, b);
+  };
   if (history.length === 0) {
     return <div className="hint center">요청을 보내면 여기에 기록됩니다.</div>;
   }
@@ -214,6 +232,14 @@ function HistoryTab({
     <div className="history-tab">
       <div className="history-head">
         <span className="muted">{history.length}개 요청</span>
+        <button
+          className={compareReady ? "btn small primary" : "btn small"}
+          disabled={!compareReady}
+          onClick={startCompare}
+          title="체크박스로 두 항목을 선택하면 요청·응답 차이를 비교합니다"
+        >
+          비교 ({compareIds.length}/2)
+        </button>
         <button className="link-danger" onClick={onClear}>
           전체 삭제
         </button>
@@ -225,6 +251,14 @@ function HistoryTab({
             className={`hist-row${item.id === selectedId ? " selected" : ""}`}
             onClick={() => onSelect(item)}
           >
+            <input
+              type="checkbox"
+              className="hist-compare-check"
+              checked={compareIds.includes(item.id)}
+              onClick={(e) => e.stopPropagation()}
+              onChange={() => toggleCompare(item.id)}
+              title="비교 대상으로 선택(2개 선택 시 비교 가능)"
+            />
             <span className="method" style={{ color: methodColor(item.method) }}>
               {item.method}
             </span>
