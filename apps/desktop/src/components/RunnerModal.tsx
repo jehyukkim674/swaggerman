@@ -1,6 +1,7 @@
 import { useState } from "react";
 import type { Collection, SavedRequest } from "../core/collections";
 import { methodColor, statusColor } from "./method";
+import { CloseCircleIcon } from "./icons";
 
 export interface RunResult {
   status: number;
@@ -49,7 +50,7 @@ export function RunnerModal({ collections, onRun, onClose }: Props) {
         <div className="modal-head">
           <h3>컬렉션 러너</h3>
           <button className="icon-btn" onClick={onClose} title="닫기">
-            ✕
+            <CloseCircleIcon size={18} />
           </button>
         </div>
 

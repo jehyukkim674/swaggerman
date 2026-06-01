@@ -23,6 +23,27 @@ export function CopyIcon({ size = 15 }: IconProps) {
   );
 }
 
+/** 동그라미 안 X — 닫기/지우기 버튼 공용 아이콘. */
+export function CloseCircleIcon({ size = 16 }: IconProps) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <circle cx="12" cy="12" r="10" />
+      <path d="m15 9-6 6" />
+      <path d="m9 9 6 6" />
+    </svg>
+  );
+}
+
 export function TrashIcon({ size = 15 }: IconProps) {
   return (
     <svg

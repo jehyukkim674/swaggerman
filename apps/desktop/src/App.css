@@ -637,13 +637,30 @@ select:hover {
   white-space: nowrap;
 }
 .icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   background: transparent;
   border: none;
   color: var(--muted);
   cursor: pointer;
+  padding: 2px;
 }
 .icon-btn:hover {
   color: var(--text);
+}
+/* 상단바 설정(⚙) 글리프: 버튼 크기는 그대로 두고 아이콘만 크게 */
+.gear-glyph {
+  font-size: 17px;
+  line-height: 14px;
+  display: inline-block;
+  vertical-align: middle;
+}
+/* 아이콘만 들어가는 .btn: svg 수직 중앙 정렬(버튼 높이 유지) */
+.btn.btn-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 .add-row {
   background: var(--bg-2);
@@ -790,30 +807,15 @@ select:hover {
   min-height: 0;
   position: relative;
 }
-/* 응답 본문 복사 플로팅 버튼(우하단, 미니맵 옆) */
-.body-copy-fab {
-  position: absolute;
-  right: 26px;
-  bottom: 14px;
+/* 응답 본문 복사 버튼(검색바 오른쪽 끝) */
+.body-copy-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 30px;
-  height: 30px;
-  border-radius: 8px;
-  background: var(--bg-3);
+  flex-shrink: 0;
   color: var(--muted);
-  border: 1px solid var(--border);
-  cursor: pointer;
-  opacity: 0.75;
-  transition:
-    opacity 0.12s,
-    color 0.12s,
-    border-color 0.12s;
-  z-index: 5;
 }
-.body-copy-fab:hover {
-  opacity: 1;
+.body-copy-btn:hover {
   color: var(--text);
   border-color: var(--accent);
 }
@@ -1073,12 +1075,14 @@ mark.hl.active {
   color: #f85149;
 }
 .search-clear {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   background: transparent;
   border: none;
   color: var(--muted);
   cursor: pointer;
-  font-size: 12px;
-  padding: 2px 6px;
+  padding: 2px;
   flex-shrink: 0;
 }
 .search-clear:hover {

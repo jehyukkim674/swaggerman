@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import type { NetworkSettings } from "../core/types";
 import { clearCookies, listCookies, type CookieInfo } from "../core/cookies";
+import { CloseCircleIcon } from "./icons";
 
 interface Props {
   settings: NetworkSettings;
@@ -29,7 +30,7 @@ export function SettingsModal({ settings, onChange, onClose, claudePath = "", on
         <div className="modal-head">
           <h3>설정</h3>
           <button className="icon-btn" onClick={onClose} title="닫기">
-            ✕
+            <CloseCircleIcon size={18} />
           </button>
         </div>
 

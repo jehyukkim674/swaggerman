@@ -5,6 +5,7 @@ import type {
   AssertionResult,
   ExtractRule,
 } from "../core/variables";
+import { CloseCircleIcon } from "./icons";
 
 interface Props {
   extractRules: ExtractRule[];
@@ -68,7 +69,7 @@ export function TestPanel({
               onClick={() => onExtractChange(extractRules.filter((_, j) => j !== i))}
               title="삭제"
             >
-              ✕
+              <CloseCircleIcon size={15} />
             </button>
           </div>
         ))}
@@ -135,7 +136,7 @@ export function TestPanel({
                 onClick={() => onAssertChange(assertions.filter((_, j) => j !== i))}
                 title="삭제"
               >
-                ✕
+                <CloseCircleIcon size={15} />
               </button>
             </div>
           );

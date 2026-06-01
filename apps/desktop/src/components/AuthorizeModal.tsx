@@ -1,7 +1,7 @@
 import { useState } from "react";
 import type { ParsedSecurityScheme } from "../core/types";
 import { schemeHint } from "../core/security";
-import { EyeIcon, EyeOffIcon } from "./icons";
+import { CloseCircleIcon, EyeIcon, EyeOffIcon } from "./icons";
 import type { OAuth2Config, OAuth2Grant, OAuth2TokenResult } from "../core/oauth2";
 
 interface Props {
@@ -74,7 +74,7 @@ export function AuthorizeModal({
         <div className="modal-head">
           <h3>🔒 Authorize</h3>
           <button className="icon-btn" onClick={onClose} title="닫기">
-            ✕
+            <CloseCircleIcon size={18} />
           </button>
         </div>
 

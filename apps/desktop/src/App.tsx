@@ -28,6 +28,7 @@ import { checkUpdateStatus, type AvailableUpdate } from "./core/updater";
 import { loadJSON, saveJSON } from "./core/storage";
 import { log } from "./core/log";
 import { newId, clampHistoryBody, type HistoryItem } from "./core/history";
+import { CloseCircleIcon } from "./components/icons";
 import {
   defaultNetworkSettings,
   type HTTPRequest,
@@ -787,15 +788,15 @@ export default function App() {
           title="네트워크 설정(타임아웃/SSL/프록시) · 쿠키 관리"
           onClick={() => setSettingsOpen(true)}
         >
-          ⚙︎
+          <span className="gear-glyph">⚙︎</span>
         </button>
         {activeSpecUrl && projects.some((p) => p.url === activeSpecUrl) && (
           <button
-            className="btn"
+            className="btn btn-icon"
             title="이 프로젝트를 목록에서 삭제(히스토리/즐겨찾기 포함)"
             onClick={() => removeProject(activeSpecUrl)}
           >
-            ✕
+            <CloseCircleIcon size={14} />
           </button>
         )}
       </header>

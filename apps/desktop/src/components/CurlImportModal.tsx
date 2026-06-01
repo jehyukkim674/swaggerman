@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { curlToRequest } from "../core/curl";
+import { CloseCircleIcon } from "./icons";
 import type { ParsedOperation } from "../core/types";
 import type { RequestInputs } from "../core/request-builder";
 
@@ -29,7 +30,7 @@ export function CurlImportModal({ onImport, onClose }: Props) {
         <div className="modal-head">
           <h3>cURL 가져오기</h3>
           <button className="icon-btn" onClick={onClose} title="닫기">
-            ✕
+            <CloseCircleIcon size={18} />
           </button>
         </div>
         <div className="modal-body">

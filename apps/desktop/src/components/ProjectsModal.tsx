@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { TrashIcon } from "./icons";
+import { CloseCircleIcon, TrashIcon } from "./icons";
 
 export interface ProjectEntry {
   url: string;
@@ -40,7 +40,7 @@ export function ProjectsModal({ projects, activeUrl, onUpdate, onLoad, onDelete,
         <div className="modal-head">
           <h3>프로젝트 관리</h3>
           <button className="icon-btn" onClick={onClose} title="닫기">
-            ✕
+            <CloseCircleIcon size={18} />
           </button>
         </div>
 

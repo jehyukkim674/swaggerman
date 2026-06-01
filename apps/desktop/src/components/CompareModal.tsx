@@ -3,6 +3,7 @@ import type { HistoryItem } from "../core/history";
 import type { RequestParam } from "../core/request-builder";
 import { diffLines, diffRecords, type FieldDiff } from "../core/diff";
 import { methodColor, statusColor } from "./method";
+import { CloseCircleIcon } from "./icons";
 import { relativeTime } from "../core/history";
 
 interface Props {
@@ -88,7 +89,7 @@ export function CompareModal({ a, b, onClose }: Props) {
         <div className="modal-head">
           <h3>히스토리 비교</h3>
           <button className="icon-btn" onClick={onClose} title="닫기">
-            ✕
+            <CloseCircleIcon size={18} />
           </button>
         </div>
 

@@ -10,7 +10,7 @@ import {
 } from "../core/collections";
 import { newId } from "../core/history";
 import { methodColor } from "./method";
-import { TrashIcon } from "./icons";
+import { CloseCircleIcon, TrashIcon } from "./icons";
 
 interface CurrentRequest {
   method: string;
@@ -108,7 +108,7 @@ export function CollectionsModal({ collections, onChange, current, onLoad, onClo
         <div className="modal-head">
           <h3>컬렉션</h3>
           <button className="icon-btn" onClick={onClose} title="닫기">
-            ✕
+            <CloseCircleIcon size={18} />
           </button>
         </div>
 
@@ -198,7 +198,7 @@ export function CollectionsModal({ collections, onChange, current, onLoad, onClo
                     onClick={() => removeRequest(col.id, r.id)}
                     title="삭제"
                   >
-                    ✕
+                    <CloseCircleIcon size={15} />
                   </button>
                 </div>
               ))}

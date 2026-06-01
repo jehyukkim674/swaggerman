@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { HTTPRequest, HTTPResponse, ParsedOperation } from "../core/types";
 import { statusColor } from "./method";
-import { CopyIcon } from "./icons";
+import { CloseCircleIcon, CopyIcon } from "./icons";
 import { Minimap } from "./Minimap";
 import { DocsPane } from "./DocsPane";
 import { JsonView, LINE_HEIGHT } from "./JsonView";
@@ -63,6 +63,20 @@ export function ResponseView({
   const [snippetOpen, setSnippetOpen] = useState(false);
   const [viewMode, setViewMode] = useState<"pretty" | "raw" | "preview">("pretty");
   const bodyRef = useRef<HTMLDivElement>(null);
+  const searchRef = useRef<HTMLInputElement>(null);
+
+  // ⌘F/Ctrl+F → 응답 검색 입력으로 포커스(검색바가 보일 때만, 웹뷰 기본 찾기 차단)
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "f" && searchRef.current) {
+        e.preventDefault();
+        searchRef.current.focus();
+        searchRef.current.select();
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
 
   const contentType = response?.headers["content-type"] ?? "";
   const isHtml = contentType.includes("text/html");
@@ -276,6 +290,7 @@ export function ResponseView({
 
       <div className="search-bar">
         <input
+          ref={searchRef}
           className="search"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
@@ -293,7 +308,7 @@ export function ResponseView({
               setSubmitted("");
             }
           }}
-          placeholder="검색 후 Enter"
+          placeholder="검색 후 Enter (⌘F)"
           spellCheck={false}
         />
         {(search || submitted) && (
@@ -304,8 +319,9 @@ export function ResponseView({
               setSubmitted("");
             }}
             title="검색 지우기 (Esc)"
+            aria-label="검색 지우기"
           >
-            ✕
+            <CloseCircleIcon size={16} />
           </button>
         )}
         {submitted &&
@@ -324,6 +340,14 @@ export function ResponseView({
               </button>
             </span>
           ))}
+        <button
+          className="btn small body-copy-btn"
+          onClick={() => copy(viewMode === "raw" ? response.body : body, () => flash("body"))}
+          title="응답 본문 전체를 클립보드에 복사"
+          aria-label="응답 본문 복사"
+        >
+          {copied === "body" ? "✓" : <CopyIcon size={14} />}
+        </button>
       </div>
 
       {viewMode === "preview" && isHtml ? (
@@ -344,14 +368,6 @@ export function ResponseView({
               <Minimap lines={lines} scrollRef={bodyRef} matchLines={matchLines} />
             </>
           )}
-          <button
-            className="body-copy-fab"
-            onClick={() => copy(viewMode === "raw" ? response.body : body, () => flash("body"))}
-            title="응답 본문 전체를 클립보드에 복사"
-            aria-label="응답 본문 복사"
-          >
-            {copied === "body" ? "✓" : <CopyIcon size={16} />}
-          </button>
         </div>
       )}
     </>

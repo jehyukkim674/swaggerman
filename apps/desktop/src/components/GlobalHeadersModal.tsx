@@ -1,4 +1,4 @@
-import { TrashIcon } from "./icons";
+import { CloseCircleIcon, TrashIcon } from "./icons";
 import type { RequestParam } from "../core/request-builder";
 
 interface Props {
@@ -19,7 +19,7 @@ export function GlobalHeadersModal({ headers, onChange, onClose }: Props) {
         <div className="modal-head">
           <h3>전역 헤더</h3>
           <button className="icon-btn" onClick={onClose} title="닫기">
-            ✕
+            <CloseCircleIcon size={18} />
           </button>
         </div>
 

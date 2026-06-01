@@ -13,7 +13,7 @@ import {
 import { relativeTime, type HistoryItem } from "../core/history";
 import { DYNAMIC_VARS, type Assertion, type AssertionResult, type ExtractRule } from "../core/variables";
 import { methodColor, statusColor } from "./method";
-import { TrashIcon } from "./icons";
+import { CloseCircleIcon, TrashIcon } from "./icons";
 import { TestPanel } from "./TestPanel";
 import { VarInput } from "./VarInput";
 import { JsonEditor } from "./JsonEditor";
@@ -388,8 +388,12 @@ export function RequestEditor({
                     >
                       ✓
                     </button>
-                    <button className="btn small" onClick={() => setSampleName(null)}>
-                      ✕
+                    <button
+                      className="btn small btn-icon"
+                      onClick={() => setSampleName(null)}
+                      title="취소"
+                    >
+                      <CloseCircleIcon size={14} />
                     </button>
                   </span>
                 )}
@@ -483,7 +487,7 @@ function ParamSection({
               placeholder="value"
             />
             <button className="icon-btn" onClick={() => onRemove(index)} title="삭제">
-              ✕
+              <CloseCircleIcon size={15} />
             </button>
           </div>
         );
@@ -557,7 +561,7 @@ function FormEditor({ form, multipart, onChange, onPickFile }: FormEditorProps) 
             onClick={() => onChange(form.filter((_, j) => j !== i))}
             title="삭제"
           >
-            ✕
+            <CloseCircleIcon size={15} />
           </button>
         </div>
       ))}

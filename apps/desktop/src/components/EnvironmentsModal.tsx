@@ -1,4 +1,4 @@
-import { TrashIcon } from "./icons";
+import { CloseCircleIcon, TrashIcon } from "./icons";
 
 interface EnvVar {
   key: string;
@@ -34,7 +34,7 @@ export function EnvironmentsModal({ envs, currentBaseURL, onChange, onApply, onC
         <div className="modal-head">
           <h3>환경 관리</h3>
           <button className="icon-btn" onClick={onClose} title="닫기">
-            ✕
+            <CloseCircleIcon size={18} />
           </button>
         </div>
 
@@ -113,7 +113,7 @@ export function EnvironmentsModal({ envs, currentBaseURL, onChange, onApply, onC
                       onClick={() => setVars(i, (env.vars ?? []).filter((_, j) => j !== vi))}
                       title="변수 삭제"
                     >
-                      ✕
+                      <CloseCircleIcon size={15} />
                     </button>
                   </div>
                 ))}
