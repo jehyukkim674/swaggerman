@@ -36,6 +36,7 @@ body {
 .topbar {
   display: flex;
   align-items: center;
+  flex-wrap: wrap; /* 창이 좁아도 버튼이 잘리지 않고 다음 줄로 내려감(업데이트/AI 버튼 가림 방지) */
   gap: 8px;
   padding: 8px 12px;
   background: var(--bg-2);
@@ -46,7 +47,8 @@ body {
   white-space: nowrap;
 }
 .spec-url {
-  flex: 1;
+  flex: 1 1 220px; /* 좁으면 줄여서 줄바꿈 유도, 너무 작아지지 않게 최소폭 확보 */
+  min-width: 180px;
 }
 .base-url {
   width: 240px;

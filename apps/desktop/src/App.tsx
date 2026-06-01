@@ -24,7 +24,7 @@ import {
   type ExtractRule,
 } from "./core/variables";
 import { emptyOAuth2Config, fetchOAuth2Token, type OAuth2Config } from "./core/oauth2";
-import { checkForUpdate, checkUpdateStatus, type AvailableUpdate } from "./core/updater";
+import { checkUpdateStatus, type AvailableUpdate } from "./core/updater";
 import { loadJSON, saveJSON } from "./core/storage";
 import { log } from "./core/log";
 import { newId, type HistoryItem } from "./core/history";
@@ -393,7 +393,15 @@ export default function App() {
   const [checkingUpdate, setCheckingUpdate] = useState(false);
   const [updateMsg, setUpdateMsg] = useState<string | null>(null);
   useEffect(() => {
-    checkForUpdate().then(setUpdate);
+    // 시작 시 1회 확인. 실패하면 사유를 표시해 두어(특히 사내망/프록시 환경)
+    // 사용자가 원인을 알 수 있게 한다. "최신"이면 조용히 넘어감.
+    checkUpdateStatus().then((r) => {
+      if (r.kind === "available") {
+        setUpdate(r.update);
+      } else if (r.kind === "error") {
+        setUpdateMsg(`업데이트 확인 실패: ${r.message}`);
+      }
+    });
   }, []);
 
   async function manualCheckUpdate() {
