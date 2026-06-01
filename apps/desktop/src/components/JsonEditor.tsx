@@ -15,7 +15,7 @@ export function JsonEditor({ value, onChange, rows = 12 }: Props) {
   const gutterRef = useRef<HTMLDivElement>(null);
 
   const lines = useMemo(() => value.split("\n"), [value]);
-  const plain = lines.length > 4000; // 너무 크면 색상 생략(성능)
+  const plain = lines.length > 20000; // 매우 크면 색상 생략(성능). 일반 대형 본문도 색상 유지(4000→20000)
 
   // textarea 스크롤에 하이라이트/거터 동기화
   const sync = () => {

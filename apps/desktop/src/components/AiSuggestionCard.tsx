@@ -1,4 +1,25 @@
+import { Fragment } from "react";
 import type { RequestSuggestion } from "../core/ai/types";
+import { tokenizeJson } from "../core/json-tokenize";
+
+/** JSON 문자열을 줄 단위로 토큰화해 구문 색상으로 렌더(읽기 전용). */
+function JsonBody({ text }: { text: string }) {
+  const lines = text.split("\n");
+  return (
+    <pre>
+      {lines.map((line, i) => (
+        <Fragment key={i}>
+          {tokenizeJson(line).map((t, k) => (
+            <span className={t.cls} key={k}>
+              {t.text}
+            </span>
+          ))}
+          {i < lines.length - 1 ? "\n" : ""}
+        </Fragment>
+      ))}
+    </pre>
+  );
+}
 
 interface Props {
   suggestion: RequestSuggestion;
@@ -41,7 +62,7 @@ export function AiSuggestionCard({ suggestion, onApply, onDismiss, onCopyCurl, o
       {body && (
         <div className="ai-suggestion-section">
           <span className="ai-suggestion-label">Body</span>
-          <pre>{body}</pre>
+          <JsonBody text={body} />
         </div>
       )}
       <div className="ai-suggestion-actions">

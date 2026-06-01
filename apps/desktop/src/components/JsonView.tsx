@@ -11,8 +11,8 @@ interface Props {
 export function JsonView({ text, query, active, containerRef }: Props) {
   const lines = useMemo(() => text.split("\n"), [text]);
   const lq = query.toLowerCase();
-  // 매우 큰 응답은 구문 강조 없이 평문(성능)
-  const plain = lines.length > 6000;
+  // 매우 큰 응답만 평문(성능). 일반적인 대형 응답도 색상이 보이도록 상향(6000→20000).
+  const plain = lines.length > 20000;
 
   // 검색 매치에 전역 인덱스를 부여하기 위한 카운터(렌더 1회당 0부터)
   let matchIdx = 0;
