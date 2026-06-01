@@ -3,6 +3,7 @@ import { curlToRequest } from "../core/curl";
 import { CloseCircleIcon } from "./icons";
 import type { ParsedOperation } from "../core/types";
 import type { RequestInputs } from "../core/request-builder";
+import { useEscToClose } from "./useEscToClose";
 
 interface Props {
   onImport: (op: ParsedOperation, inputs: RequestInputs, baseURL: string) => void;
@@ -11,6 +12,9 @@ interface Props {
 
 /** cURL 명령을 붙여넣어 ad-hoc 요청으로 가져오는 모달. */
 export function CurlImportModal({ onImport, onClose }: Props) {
+  // ESC 키로 닫기
+  useEscToClose(onClose);
+
   const [text, setText] = useState("");
   const [error, setError] = useState<string | null>(null);
 

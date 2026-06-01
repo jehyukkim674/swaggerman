@@ -1,5 +1,6 @@
 import { CloseCircleIcon, TrashIcon } from "./icons";
 import type { RequestParam } from "../core/request-builder";
+import { useEscToClose } from "./useEscToClose";
 
 interface Props {
   headers: RequestParam[];
@@ -8,6 +9,9 @@ interface Props {
 }
 
 export function GlobalHeadersModal({ headers, onChange, onClose }: Props) {
+  // ESC 키로 닫기
+  useEscToClose(onClose);
+
   const update = (index: number, patch: Partial<RequestParam>) =>
     onChange(headers.map((h, i) => (i === index ? { ...h, ...patch } : h)));
   const remove = (index: number) => onChange(headers.filter((_, i) => i !== index));

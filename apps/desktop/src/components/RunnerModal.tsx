@@ -2,6 +2,7 @@ import { useState } from "react";
 import type { Collection, SavedRequest } from "../core/collections";
 import { methodColor, statusColor } from "./method";
 import { CloseCircleIcon } from "./icons";
+import { useEscToClose } from "./useEscToClose";
 
 export interface RunResult {
   status: number;
@@ -23,6 +24,9 @@ interface Props {
 
 /** 컬렉션 일괄 실행 + 통과/실패 리포트. */
 export function RunnerModal({ collections, onRun, onClose }: Props) {
+  // ESC 키로 닫기
+  useEscToClose(onClose);
+
   const [colId, setColId] = useState(collections[0]?.id ?? "");
   const [running, setRunning] = useState(false);
   const [rows, setRows] = useState<Record<string, RowState>>({});

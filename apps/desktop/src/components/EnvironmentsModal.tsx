@@ -1,4 +1,5 @@
 import { CloseCircleIcon, TrashIcon } from "./icons";
+import { useEscToClose } from "./useEscToClose";
 
 interface EnvVar {
   key: string;
@@ -20,6 +21,9 @@ interface Props {
 }
 
 export function EnvironmentsModal({ envs, currentBaseURL, onChange, onApply, onClose }: Props) {
+  // ESC 키로 닫기
+  useEscToClose(onClose);
+
   const update = (index: number, patch: Partial<Env>) =>
     onChange(envs.map((e, i) => (i === index ? { ...e, ...patch } : e)));
   const remove = (index: number) => onChange(envs.filter((_, i) => i !== index));

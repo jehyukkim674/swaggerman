@@ -6,6 +6,7 @@ import { methodColor, statusColor } from "./method";
 import { CloseCircleIcon } from "./icons";
 import { Minimap } from "./Minimap";
 import { relativeTime } from "../core/history";
+import { useEscToClose } from "./useEscToClose";
 
 interface Props {
   a: HistoryItem;
@@ -251,8 +252,12 @@ function ResponseDiffView({ a, b }: { a: string; b: string }) {
               }
             }
             if (e.key === "Escape") {
-              setSearch("");
-              setSubmitted("");
+              // 검색어가 있으면 검색만 지우고(이벤트 소비) 모달은 닫지 않는다
+              if (search || submitted) {
+                e.stopPropagation();
+                setSearch("");
+                setSubmitted("");
+              }
             }
           }}
           placeholder="응답 diff 검색 후 Enter"
@@ -313,6 +318,9 @@ function ResponseDiffView({ a, b }: { a: string; b: string }) {
 
 /** 히스토리 2건의 요청·응답 차이 비교 모달. */
 export function CompareModal({ a, b, onClose }: Props) {
+  // ESC 키로 닫기
+  useEscToClose(onClose);
+
   return (
     <div className="modal-overlay" onMouseDown={onClose}>
       <div className="modal compare-modal" onMouseDown={(e) => e.stopPropagation()}>

@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import type { NetworkSettings } from "../core/types";
 import { clearCookies, listCookies, type CookieInfo } from "../core/cookies";
 import { CloseCircleIcon } from "./icons";
+import { useEscToClose } from "./useEscToClose";
 
 interface Props {
   settings: NetworkSettings;
@@ -14,6 +15,9 @@ interface Props {
 
 /** 네트워크 설정(타임아웃/SSL/프록시) + AI(claude 경로) + 쿠키 조회·삭제 모달. */
 export function SettingsModal({ settings, onChange, onClose, claudePath = "", onClaudePathChange }: Props) {
+  // ESC 키로 닫기
+  useEscToClose(onClose);
+
   const [cookies, setCookies] = useState<CookieInfo[]>([]);
   const [cookieErr, setCookieErr] = useState<string | null>(null);
 

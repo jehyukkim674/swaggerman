@@ -3,6 +3,7 @@ import type { ParsedSecurityScheme } from "../core/types";
 import { schemeHint } from "../core/security";
 import { CloseCircleIcon, EyeIcon, EyeOffIcon } from "./icons";
 import type { OAuth2Config, OAuth2Grant, OAuth2TokenResult } from "../core/oauth2";
+import { useEscToClose } from "./useEscToClose";
 
 interface Props {
   schemes: ParsedSecurityScheme[];
@@ -25,6 +26,9 @@ export function AuthorizeModal({
   onOauth2Change,
   onFetchToken,
 }: Props) {
+  // ESC 키로 닫기
+  useEscToClose(onClose);
+
   // 모달 내 임시 입력값(저장 전 draft). 저장 시 onChange로 커밋한다.
   const [draft, setDraft] = useState<Record<string, string>>({ ...values });
   const [fetching, setFetching] = useState(false);

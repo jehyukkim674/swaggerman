@@ -717,7 +717,7 @@ export default function App() {
       // ⌘/Ctrl + N: 새 창 (다른 프로젝트를 동시에 보기)
       if ((e.metaKey || e.ctrlKey) && (e.key === "n" || e.key === "N")) {
         e.preventDefault();
-        openNewWindow();
+        openNewWindow((msg) => setUpdateMsg(`새 창 생성 실패: ${msg}`));
       }
     };
     window.addEventListener("keydown", onKey);
@@ -855,7 +855,7 @@ export default function App() {
         <button
           className="btn"
           title="새 창 열기 — 다른 프로젝트를 동시에 볼 수 있습니다 (⌘N)"
-          onClick={openNewWindow}
+          onClick={() => openNewWindow((msg) => setUpdateMsg(`새 창 생성 실패: ${msg}`))}
         >
           새 창
         </button>

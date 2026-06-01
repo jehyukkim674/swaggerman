@@ -136,4 +136,25 @@ describe("CompareModal 2단 레이아웃·미니맵·검색·변경 구분", () 
     // Path 파라미터(id: 1 vs 2)가 표시
     expect(left.textContent).toContain("Path 파라미터");
   });
+
+  it("ESC 키로 모달이 닫힌다", () => {
+    const onClose = vi.fn();
+    render(<CompareModal a={makeItem({ id: "a" })} b={makeItem({ id: "b" })} onClose={onClose} />);
+    fireEvent.keyDown(window, { key: "Escape" });
+    expect(onClose).toHaveBeenCalled();
+  });
+
+  it("검색어가 있는 상태에서 검색창 ESC는 검색만 지우고 모달은 닫지 않는다", () => {
+    const onClose = vi.fn();
+    const { container } = render(
+      <CompareModal a={makeItem({ id: "a" })} b={makeItem({ id: "b" })} onClose={onClose} />,
+    );
+    const input = container.querySelector<HTMLInputElement>(".cmp-search-bar input.search")!;
+    fireEvent.change(input, { target: { value: "alpha" } });
+    fireEvent.keyDown(input, { key: "Enter" });
+    // 검색어가 있을 때 검색창에서 ESC → 검색만 초기화
+    fireEvent.keyDown(input, { key: "Escape" });
+    expect(onClose).not.toHaveBeenCalled();
+    expect(input.value).toBe("");
+  });
 });

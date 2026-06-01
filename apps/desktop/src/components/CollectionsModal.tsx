@@ -11,6 +11,7 @@ import {
 import { newId } from "../core/history";
 import { methodColor } from "./method";
 import { CloseCircleIcon, TrashIcon } from "./icons";
+import { useEscToClose } from "./useEscToClose";
 
 interface CurrentRequest {
   method: string;
@@ -28,6 +29,9 @@ interface Props {
 }
 
 export function CollectionsModal({ collections, onChange, current, onLoad, onClose }: Props) {
+  // ESC 키로 닫기
+  useEscToClose(onClose);
+
   const [saveName, setSaveName] = useState("");
   const [targetId, setTargetId] = useState(collections[0]?.id ?? "__new__");
   const [newColName, setNewColName] = useState("");

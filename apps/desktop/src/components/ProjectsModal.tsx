@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { CloseCircleIcon, TrashIcon } from "./icons";
+import { useEscToClose } from "./useEscToClose";
 
 export interface ProjectEntry {
   url: string;
@@ -22,6 +23,9 @@ interface Props {
 
 /** 프로젝트(이름 + 스펙 URL) 목록 관리: 추가 · 인라인 수정 · 삭제 · 열기. */
 export function ProjectsModal({ projects, activeUrl, onUpdate, onLoad, onDelete, onAdd, onClose }: Props) {
+  // ESC 키로 닫기
+  useEscToClose(onClose);
+
   const [newTitle, setNewTitle] = useState("");
   const [newUrl, setNewUrl] = useState("");
 
