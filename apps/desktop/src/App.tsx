@@ -859,11 +859,12 @@ export default function App() {
           새 창
         </button>
         <button
-          className="btn"
+          className="gear-icon-btn"
           title="네트워크 설정(타임아웃/SSL/프록시) · 쿠키 관리"
           onClick={() => setSettingsOpen(true)}
+          aria-label="설정"
         >
-          <span className="gear-glyph">⚙︎</span>
+          ⚙︎
         </button>
         {activeSpecUrl && projects.some((p) => p.url === activeSpecUrl) && (
           <button
@@ -1101,7 +1102,7 @@ export default function App() {
                     title="AI 패널 접기"
                     onClick={() => aiPanelRef.current?.collapse()}
                   >
-                    ›
+                    »
                   </button>
                 </div>
                 <div className="ai-panel-body">
