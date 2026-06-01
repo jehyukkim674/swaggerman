@@ -308,9 +308,9 @@
       <li>응용 프로그램에서 SwaggerMan을 실행합니다.</li>
     </ol>
     <div class="note warn">
-      <p><strong>첫 실행 시 Gatekeeper 경고</strong>가 뜨면 (“개발자를 확인할 수 없습니다”),
-        Finder에서 SwaggerMan 아이콘을 <strong>우클릭 → 열기</strong>를 선택한 뒤
-        다시 <strong>열기</strong>를 누르세요. 최초 한 번만 거치면 이후엔 바로 실행됩니다.</p>
+      <p><strong>첫 실행 시 “손상되어 열 수 없습니다” 또는 “개발자를 확인할 수 없습니다”</strong>가
+        뜰 수 있습니다(서명 미인증 앱). 우클릭 → 열기로 안 되면 터미널에서 아래를 실행한 뒤 다시 여세요.</p>
+      <pre><code>xattr -dr com.apple.quarantine /Applications/SwaggerMan.app</code></pre>
     </div>
 
     <h3>Windows</h3>
@@ -318,6 +318,10 @@
       <li><code>.exe</code> — 설치형 인스톨러. 실행 후 안내에 따라 설치합니다.</li>
       <li><code>.msi</code> — MSI 패키지. 그룹 정책/사내 배포 환경에 적합합니다.</li>
     </ul>
+    <div class="note warn">
+      <p>다운로드 시 <strong>SmartScreen 경고</strong>(“Windows의 PC를 보호했습니다”)가 뜨면
+        <strong>추가 정보 → 실행</strong>을 누르세요(터미널 작업 불필요).</p>
+    </div>
     <p>설치 후 시작 메뉴에서 SwaggerMan을 실행할 수 있습니다.</p>
   </section>
 
@@ -344,6 +348,16 @@
       <p>JSON과 YAML 형식의 OpenAPI 2.0 / 3.x 스펙을 지원합니다. 좌측 목록 상단의
         검색으로 경로나 태그를 빠르게 필터링할 수 있습니다.</p>
     </div>
+    <div class="note warn">
+      <p><strong>사내 CA·자체 서명 인증서</strong> 서버의 스펙이 <code>error sending request</code>로
+        안 열리면, 상단바 <strong>⚙ 설정 → “SSL 인증서 검증 무시”</strong>를 켠 뒤 다시 Load 하세요.
+        (요청 실행·OAuth2 토큰 발급에도 동일하게 적용됩니다.)</p>
+    </div>
+
+    <h3>프로젝트 편집 · 전환</h3>
+    <p>스펙을 불러오면 상단바 드롭다운에 <strong>프로젝트</strong>로 저장됩니다(이름은 스펙 제목).
+      드롭다운 옆 <strong>✏️</strong> 버튼으로 팝업을 열어 <strong>이름·스펙 URL을 수정</strong>하고
+      <strong>저장 후 다시 로드</strong>할 수 있습니다. 바꾼 이름은 재로딩 후에도 유지됩니다.</p>
   </section>
 
   <!-- 4. 요청 보내기 -->
@@ -478,8 +492,23 @@
       <p><strong>사전 조건 — 로컬 <code>claude</code> CLI 설치가 필요합니다.</strong></p>
       <p>AI 기능은 사용자의 컴퓨터에 설치된 <code>claude</code> CLI를 호출합니다. 앱은
         시스템 <code>PATH</code>와 함께 <code>~/.local/bin</code>, <code>/opt/homebrew/bin</code>
+        (Windows: <code>%USERPROFILE%\.local\bin</code>, <code>%APPDATA%\npm</code>)
         같은 일반적인 위치를 자동으로 탐지합니다. CLI를 찾지 못하면 AI 패널에 설치 안내가
         표시됩니다.</p>
+    </div>
+
+    <h3>claude CLI 설치</h3>
+    <p><strong>macOS / Linux</strong></p>
+    <pre><code>curl -fsSL https://claude.ai/install.sh | bash
+claude            # 최초 1회 로그인</code></pre>
+    <p><strong>Windows</strong> (PowerShell)</p>
+    <pre><code>irm https://claude.ai/install.ps1 | iex
+claude            # 최초 1회 로그인</code></pre>
+    <p>설치 후 SwaggerMan을 재시작하면 자동으로 <code>claude</code>를 찾습니다.</p>
+    <div class="note">
+      <p><strong>자동 탐지가 안 될 때</strong>: 상단바 <strong>⚙ 설정 → “claude 실행파일 경로”</strong>에
+        경로를 직접 입력하세요. (예: macOS <code>~/.local/bin/claude</code>,
+        Windows <code>C:\Users\&lt;이름&gt;\.local\bin\claude.exe</code>)</p>
     </div>
   </section>
 
