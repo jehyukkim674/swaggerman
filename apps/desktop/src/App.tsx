@@ -39,6 +39,8 @@ import { newId, clampHistoryBody, type HistoryItem } from "./core/history";
 import { openNewWindow } from "./core/window";
 import { CloseCircleIcon, CoffeeIcon } from "./components/icons";
 import { LoadingOverlay } from "./components/LoadingOverlay";
+import { Select } from "./components/Select";
+import { ConfirmDialog } from "./components/ConfirmDialog";
 import {
   defaultNetworkSettings,
   type HTTPRequest,
@@ -169,6 +171,8 @@ export default function App() {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [collectionsOpen, setCollectionsOpen] = useState(false);
   const [runnerOpen, setRunnerOpen] = useState(false);
+  // 새 창 열기 확인 다이얼로그 (실수 클릭으로 창이 늘어나는 것 방지)
+  const [newWindowConfirm, setNewWindowConfirm] = useState(false);
 
   // 컬렉션 러너: 저장 요청 1건 실행 → 결과 반환
   async function runSaved(s: SavedRequest): Promise<RunResult> {
@@ -741,10 +745,10 @@ export default function App() {
         e.preventDefault();
         setPaletteOpen(true);
       }
-      // ⌘/Ctrl + N: 새 창 (다른 프로젝트를 동시에 보기)
+      // ⌘/Ctrl + N: 새 창 (다른 프로젝트를 동시에 보기) — 확인 다이얼로그를 거친다
       if ((e.metaKey || e.ctrlKey) && (e.key === "n" || e.key === "N")) {
         e.preventDefault();
-        openNewWindow((msg) => setUpdateMsg(`새 창 생성 실패: ${msg}`));
+        setNewWindowConfirm(true);
       }
     };
     window.addEventListener("keydown", onKey);
@@ -837,19 +841,14 @@ export default function App() {
       <header className="topbar">
         <span className="brand">{title}</span>
         {projects.length > 0 && (
-          <select
+          <Select
             className="project-select"
             value={activeSpecUrl}
-            onChange={(e) => loadSpec(e.target.value)}
+            onChange={(url) => loadSpec(url)}
             title="저장된 프로젝트 전환"
-          >
-            {!activeSpecUrl && <option value="">프로젝트 선택…</option>}
-            {projects.map((p) => (
-              <option key={p.url} value={p.url}>
-                {p.title}
-              </option>
-            ))}
-          </select>
+            placeholder="프로젝트 선택…"
+            options={projects.map((p) => ({ value: p.url, label: p.title }))}
+          />
         )}
         <button
           className="btn"
@@ -898,7 +897,7 @@ export default function App() {
         <button
           className="btn"
           title="새 창 열기 — 다른 프로젝트를 동시에 볼 수 있습니다 (⌘N)"
-          onClick={() => openNewWindow((msg) => setUpdateMsg(`새 창 생성 실패: ${msg}`))}
+          onClick={() => setNewWindowConfirm(true)}
         >
           새 창
         </button>
@@ -946,23 +945,20 @@ export default function App() {
             />
           </label>
           <div className="env-bar">
-            <select
+            <Select
               className="env-select"
               value={activeEnvName || (findActiveEnv(envs, "", baseURL)?.name ?? "")}
-              onChange={(e) => {
-                setActiveEnvName(e.target.value);
-                const env = envs.find((x) => x.name === e.target.value);
+              onChange={(name) => {
+                setActiveEnvName(name);
+                const env = envs.find((x) => x.name === name);
                 if (env) setBaseURL(env.baseURL);
               }}
               title="환경(Base URL) 전환"
-            >
-              <option value="">사용자 지정</option>
-              {envs.map((env) => (
-                <option key={env.name} value={env.name}>
-                  {env.name}
-                </option>
-              ))}
-            </select>
+              options={[
+                { value: "", label: "사용자 지정" },
+                ...envs.map((env) => ({ value: env.name, label: env.name, hint: env.baseURL })),
+              ]}
+            />
             <button
               className="btn small"
               title="환경 추가/수정/삭제"
@@ -1264,6 +1260,18 @@ export default function App() {
           oauth2={oauth2Config}
           onOauth2Change={setOauth2Config}
           onFetchToken={(cfg) => fetchOAuth2Token(cfg, (req) => executeRequest(req, netSettings))}
+        />
+      )}
+      {newWindowConfirm && (
+        <ConfirmDialog
+          title="새 창 열기"
+          message={"추가로 SwaggerMan 창을 생성하시겠습니까?\n다른 프로젝트를 동시에 볼 수 있습니다."}
+          confirmLabel="새 창 열기"
+          onConfirm={() => {
+            setNewWindowConfirm(false);
+            openNewWindow((msg) => setUpdateMsg(`새 창 생성 실패: ${msg}`));
+          }}
+          onCancel={() => setNewWindowConfirm(false)}
         />
       )}
     </div>

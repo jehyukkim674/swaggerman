@@ -18,6 +18,7 @@ import { methodColor, statusColor } from "./method";
 import { CloseCircleIcon, CopyIcon, TrashIcon } from "./icons";
 import { TestPanel } from "./TestPanel";
 import { VarInput } from "./VarInput";
+import { Select } from "./Select";
 import { JsonEditor } from "./JsonEditor";
 
 interface Props {
@@ -223,23 +224,18 @@ export function RequestEditor({
         <div className="sample-bar">
           {samples.length > 0 && (
             <>
-              <select
+              <Select
                 className="sample-select"
                 value={activeSample}
-                onChange={(e) => {
-                  setActiveSample(e.target.value);
-                  const s = samples.find((x) => x.name === e.target.value);
+                onChange={(name) => {
+                  setActiveSample(name);
+                  const s = samples.find((x) => x.name === name);
                   if (s) onChange(applySample(inputs, s));
                 }}
                 title="저장한 요청 샘플(Query·Headers·Body) 불러오기"
-              >
-                <option value="">요청 샘플 선택…</option>
-                {samples.map((s) => (
-                  <option key={s.name} value={s.name}>
-                    {s.name}
-                  </option>
-                ))}
-              </select>
+                placeholder="요청 샘플 선택…"
+                options={samples.map((s) => ({ value: s.name, label: s.name }))}
+              />
               {activeSample && (
                 <>
                   <button
@@ -379,17 +375,18 @@ export function RequestEditor({
           <section className="section">
             <div className="body-head">
               <h4>Body</h4>
-              <select
+              <Select
                 className="body-mode"
                 value={mode}
-                onChange={(e) => onChange({ ...inputs, bodyMode: e.target.value as BodyMode })}
+                onChange={(v) => onChange({ ...inputs, bodyMode: v as BodyMode })}
                 title="Body 형식"
-              >
-                <option value="none">None</option>
-                <option value="raw">JSON / Raw</option>
-                <option value="urlencoded">form-urlencoded</option>
-                <option value="multipart">multipart / 파일</option>
-              </select>
+                options={[
+                  { value: "none", label: "None" },
+                  { value: "raw", label: "JSON / Raw" },
+                  { value: "urlencoded", label: "form-urlencoded" },
+                  { value: "multipart", label: "multipart / 파일" },
+                ]}
+              />
               {mode === "raw" && (
                 <span className="body-format-btns">
                   <button

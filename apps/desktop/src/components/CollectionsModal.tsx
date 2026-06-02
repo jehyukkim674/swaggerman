@@ -12,6 +12,7 @@ import { newId } from "../core/history";
 import { methodColor } from "./method";
 import { CloseCircleIcon, TrashIcon } from "./icons";
 import { useEscToClose } from "./useEscToClose";
+import { Select } from "./Select";
 
 interface CurrentRequest {
   method: string;
@@ -139,14 +140,14 @@ export function CollectionsModal({ collections, onChange, current, onLoad, onClo
                 placeholder="요청 이름"
                 spellCheck={false}
               />
-              <select value={targetId} onChange={(e) => setTargetId(e.target.value)}>
-                {collections.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.name}
-                  </option>
-                ))}
-                <option value="__new__">+ 새 컬렉션…</option>
-              </select>
+              <Select
+                value={targetId}
+                onChange={setTargetId}
+                options={[
+                  ...collections.map((c) => ({ value: c.id, label: c.name })),
+                  { value: "__new__", label: "+ 새 컬렉션…" },
+                ]}
+              />
               {targetId === "__new__" && (
                 <input
                   className="kv-input"

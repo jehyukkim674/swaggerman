@@ -5,6 +5,7 @@ import { parseSuggestion, requestSuggestionSchema, filterKnownParams } from "../
 import { loadChat, saveChat, clearChat } from "../core/ai/history";
 import { CHAT_MODELS, DEFAULT_CHAT_MODEL, COMPLETE_MODEL } from "../core/ai/models";
 import { AiSuggestionCard } from "./AiSuggestionCard";
+import { Select } from "./Select";
 
 interface Message {
   role: "user" | "assistant";
@@ -255,13 +256,12 @@ export function AiPanel({ provider, buildContext, onApplySuggestion, paramNames 
     <div className="ai-panel">
       <div className="ai-panel-head">
         <span className="ai-panel-title">✦ AI</span>
-        <select className="ai-model" value={model} onChange={(e) => setModel(e.target.value)}>
-          {CHAT_MODELS.map((m) => (
-            <option key={m.id} value={m.id}>
-              {m.label}
-            </option>
-          ))}
-        </select>
+        <Select
+          className="ai-model"
+          value={model}
+          onChange={setModel}
+          options={CHAT_MODELS.map((m) => ({ value: m.id, label: m.label }))}
+        />
         <button className="btn small" onClick={reset} title="새 대화">
           새 대화
         </button>

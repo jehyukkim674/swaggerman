@@ -91,8 +91,11 @@ describe("RequestEditor 요청 샘플", () => {
         onAssertChange={() => {}}
       />,
     );
-    const select = container.querySelector<HTMLSelectElement>(".sample-select")!;
-    fireEvent.change(select, { target: { value: "개발기 세트" } });
+    // 커스텀 Select: 트리거 클릭으로 패널을 열고 옵션을 mousedown으로 선택
+    const trigger = container.querySelector<HTMLButtonElement>(".sample-select .cselect-trigger")!;
+    fireEvent.click(trigger);
+    const option = document.querySelector(".cselect-option")!;
+    fireEvent.mouseDown(option);
     const applied = onChange.mock.calls[0][0];
     expect(applied.queryParams).toEqual(sample.queryParams);
     expect(applied.headers).toEqual(sample.headers);

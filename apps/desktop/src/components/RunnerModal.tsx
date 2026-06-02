@@ -3,6 +3,7 @@ import type { Collection, SavedRequest } from "../core/collections";
 import { methodColor, statusColor } from "./method";
 import { CloseCircleIcon } from "./icons";
 import { useEscToClose } from "./useEscToClose";
+import { Select } from "./Select";
 
 export interface RunResult {
   status: number;
@@ -66,14 +67,17 @@ export function RunnerModal({ collections, onRun, onClose }: Props) {
             </div>
           )}
           <div className="runner-bar">
-            <select value={colId} onChange={(e) => setColId(e.target.value)} disabled={running}>
-              {collections.length === 0 && <option value="">컬렉션 없음</option>}
-              {collections.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name} ({c.requests.length})
-                </option>
-              ))}
-            </select>
+            <Select
+              value={colId}
+              onChange={setColId}
+              disabled={running}
+              placeholder="컬렉션 없음"
+              options={collections.map((c) => ({
+                value: c.id,
+                label: c.name,
+                hint: `${c.requests.length}개`,
+              }))}
+            />
             <button
               className="btn small primary"
               onClick={run}

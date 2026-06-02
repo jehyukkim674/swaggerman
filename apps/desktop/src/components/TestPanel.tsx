@@ -6,6 +6,7 @@ import type {
   ExtractRule,
 } from "../core/variables";
 import { CloseCircleIcon } from "./icons";
+import { Select } from "./Select";
 
 interface Props {
   extractRules: ExtractRule[];
@@ -91,14 +92,15 @@ export function TestPanel({
             onAssertChange(assertions.map((x, j) => (j === i ? { ...x, ...p } : x)));
           return (
             <div className="assert-row" key={i}>
-              <select
+              <Select
                 className="assert-kind"
                 value={a.kind}
-                onChange={(e) => patch({ kind: e.target.value as AssertionKind })}
-              >
-                <option value="status">status</option>
-                <option value="jsonpath">jsonpath</option>
-              </select>
+                onChange={(v) => patch({ kind: v as AssertionKind })}
+                options={[
+                  { value: "status", label: "status" },
+                  { value: "jsonpath", label: "jsonpath" },
+                ]}
+              />
               {a.kind === "jsonpath" && (
                 <input
                   className="kv-input"
@@ -108,15 +110,16 @@ export function TestPanel({
                   spellCheck={false}
                 />
               )}
-              <select
+              <Select
                 className="assert-op"
                 value={a.op}
-                onChange={(e) => patch({ op: e.target.value as AssertionOp })}
-              >
-                <option value="equals">=</option>
-                <option value="contains">포함</option>
-                <option value="exists">존재</option>
-              </select>
+                onChange={(v) => patch({ op: v as AssertionOp })}
+                options={[
+                  { value: "equals", label: "=" },
+                  { value: "contains", label: "포함" },
+                  { value: "exists", label: "존재" },
+                ]}
+              />
               {a.op !== "exists" && (
                 <input
                   className="kv-input"

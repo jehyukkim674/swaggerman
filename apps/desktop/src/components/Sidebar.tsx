@@ -3,6 +3,7 @@ import type { HTTPMethod, ParsedOperation, ParsedSpec } from "../core/types";
 import { methodColor, statusColor } from "./method";
 import { relativeTime, type HistoryItem } from "../core/history";
 import { ReplayIcon, TrashIcon } from "./icons";
+import { Select } from "./Select";
 
 interface Props {
   spec: ParsedSpec | null;
@@ -38,6 +39,17 @@ export function Sidebar(props: Props) {
     const seen = new Set<string>();
     for (const op of spec.operations) seen.add(op.tags[0] ?? "default");
     return [...seen].sort();
+  }, [spec]);
+
+  // 태그별 오퍼레이션 개수 (태그 드롭다운의 오른쪽 힌트로 표시)
+  const tagCounts = useMemo(() => {
+    const counts = new Map<string, number>();
+    if (!spec) return counts;
+    for (const op of spec.operations) {
+      const tag = op.tags[0] ?? "default";
+      counts.set(tag, (counts.get(tag) ?? 0) + 1);
+    }
+    return counts;
   }, [spec]);
 
   const filtered = useMemo(() => {
@@ -146,18 +158,25 @@ export function Sidebar(props: Props) {
             ))}
           </div>
           {availableTags.length > 0 && (
-            <select
+            <Select
               className="tag-select"
               value={selectedTag}
-              onChange={(e) => setSelectedTag(e.target.value)}
-            >
-              <option value="">전체 태그 ({availableTags.length})</option>
-              {availableTags.map((t) => (
-                <option key={t} value={t}>
-                  {t}
-                </option>
-              ))}
-            </select>
+              onChange={setSelectedTag}
+              searchable
+              searchPlaceholder="태그 검색…"
+              options={[
+                {
+                  value: "",
+                  label: `전체 태그 (${availableTags.length})`,
+                  hint: `${spec?.operations.length ?? 0}개`,
+                },
+                ...availableTags.map((t) => ({
+                  value: t,
+                  label: t,
+                  hint: `${tagCounts.get(t) ?? 0}개`,
+                })),
+              ]}
+            />
           )}
 
           <div className="op-list">

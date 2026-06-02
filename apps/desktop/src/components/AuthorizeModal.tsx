@@ -2,6 +2,7 @@ import { useState } from "react";
 import type { ParsedSecurityScheme } from "../core/types";
 import { schemeHint } from "../core/security";
 import { CloseCircleIcon, EyeIcon, EyeOffIcon } from "./icons";
+import { Select } from "./Select";
 import type { OAuth2Config, OAuth2Grant, OAuth2TokenResult } from "../core/oauth2";
 import { useEscToClose } from "./useEscToClose";
 
@@ -138,13 +139,14 @@ export function AuthorizeModal({
             <div className="oauth2-grid">
               <label className="oauth2-field">
                 <span>Grant</span>
-                <select
+                <Select
                   value={oauth2.grant}
-                  onChange={(e) => setCfg({ grant: e.target.value as OAuth2Grant })}
-                >
-                  <option value="client_credentials">client_credentials</option>
-                  <option value="password">password</option>
-                </select>
+                  onChange={(v) => setCfg({ grant: v as OAuth2Grant })}
+                  options={[
+                    { value: "client_credentials", label: "client_credentials" },
+                    { value: "password", label: "password" },
+                  ]}
+                />
               </label>
               <label className="oauth2-field">
                 <span>Token URL</span>
@@ -204,17 +206,14 @@ export function AuthorizeModal({
               )}
               <label className="oauth2-field">
                 <span>적용 대상</span>
-                <select
+                <Select
                   value={oauth2.targetScheme}
-                  onChange={(e) => setCfg({ targetScheme: e.target.value })}
-                >
-                  <option value="">{schemes[0]?.name ?? "(스킴 없음)"}</option>
-                  {schemes.map((s) => (
-                    <option key={s.name} value={s.name}>
-                      {s.name}
-                    </option>
-                  ))}
-                </select>
+                  onChange={(v) => setCfg({ targetScheme: v })}
+                  options={[
+                    { value: "", label: schemes[0]?.name ?? "(스킴 없음)" },
+                    ...schemes.map((s) => ({ value: s.name, label: s.name })),
+                  ]}
+                />
               </label>
             </div>
             <div className="oauth2-actions">
