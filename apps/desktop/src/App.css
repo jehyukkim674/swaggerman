@@ -1537,33 +1537,37 @@ mark.hl.active {
   font-size: 11px;
 }
 
-/* 후원(커피 사주기) 배너 */
+/* 후원(커피 사주기) 배너 — 카카오 노랑 배경으로 눈에 띄게 */
 .donation-banner {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 6px 12px;
-  background: #3a2e1a;
-  border-bottom: 1px solid #ffcd00;
+  padding: 7px 12px;
+  background: #ffcd00;
+  border-bottom: 1px solid #e0b400;
   font-size: 12px;
-  color: #ffd866;
+  color: #3c1e1e;
 }
 .donation-banner span {
-  font-weight: 600;
+  font-weight: 700;
 }
+/* 닫기 버튼: 커피 사주기 버튼 바로 옆에 배치 (배경과 대비되는 진갈색) */
 .donation-banner .donation-close {
-  margin-left: auto;
+  color: #3c1e1e;
+}
+.donation-banner .donation-close:hover {
+  color: #000;
 }
 .btn.donate {
-  background: #ffcd00;
-  border-color: #ffcd00;
-  color: #3c1e1e;
+  background: #3c1e1e;
+  border-color: #3c1e1e;
+  color: #ffcd00;
   font-weight: 700;
 }
 .btn.donate:hover {
-  background: #ffdb4d;
-  border-color: #ffdb4d;
-  color: #3c1e1e;
+  background: #5c3a2e;
+  border-color: #5c3a2e;
+  color: #ffe14d;
 }
 
 /* 후원 QR 모달 — 링크가 모바일 전용이라 QR을 보여주고 휴대폰으로 스캔하게 한다 */
