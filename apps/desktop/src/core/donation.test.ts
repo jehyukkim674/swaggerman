@@ -1,0 +1,43 @@
+import { describe, it, expect, beforeEach } from "vitest";
+import {
+  shouldShowDonationBanner,
+  loadDonationDismissedAt,
+  saveDonationDismissedAt,
+  REDISPLAY_INTERVAL_MS,
+  DONATION_URL,
+} from "./donation";
+
+describe("shouldShowDonationBanner", () => {
+  it("닫은 기록이 없으면 표시한다", () => {
+    expect(shouldShowDonationBanner(null, Date.now())).toBe(true);
+  });
+
+  it("닫은 지 30분 미만이면 표시하지 않는다", () => {
+    const now = 1_000_000_000;
+    expect(shouldShowDonationBanner(now - REDISPLAY_INTERVAL_MS + 1, now)).toBe(false);
+  });
+
+  it("닫은 지 30분 이상이면 다시 표시한다", () => {
+    const now = 1_000_000_000;
+    expect(shouldShowDonationBanner(now - REDISPLAY_INTERVAL_MS, now)).toBe(true);
+  });
+});
+
+describe("dismissedAt 영속화", () => {
+  beforeEach(() => localStorage.clear());
+
+  it("저장 전에는 null", () => {
+    expect(loadDonationDismissedAt()).toBe(null);
+  });
+
+  it("저장한 시각을 다시 읽는다", () => {
+    saveDonationDismissedAt(12345);
+    expect(loadDonationDismissedAt()).toBe(12345);
+  });
+});
+
+describe("DONATION_URL", () => {
+  it("카카오페이 QR 링크다", () => {
+    expect(DONATION_URL).toBe("https://qr.kakaopay.com/FcUzxPAhE");
+  });
+});
