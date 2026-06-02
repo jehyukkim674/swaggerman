@@ -28,11 +28,18 @@ import {
 import { emptyOAuth2Config, fetchOAuth2Token, type OAuth2Config } from "./core/oauth2";
 import { findActiveEnv } from "./core/env";
 import { checkUpdateStatus, type AvailableUpdate } from "./core/updater";
+import { openUrl } from "@tauri-apps/plugin-opener";
+import {
+  DONATION_URL,
+  loadDonationDismissedAt,
+  saveDonationDismissedAt,
+  shouldShowDonationBanner,
+} from "./core/donation";
 import { loadJSON, saveJSON } from "./core/storage";
 import { log } from "./core/log";
 import { newId, clampHistoryBody, type HistoryItem } from "./core/history";
 import { openNewWindow } from "./core/window";
-import { CloseCircleIcon } from "./components/icons";
+import { CloseCircleIcon, CoffeeIcon } from "./components/icons";
 import { LoadingOverlay } from "./components/LoadingOverlay";
 import {
   defaultNetworkSettings,
@@ -448,6 +455,34 @@ export default function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // 후원 배너: 닫은 지 30분 지나면 다시 표시 (1분 간격 체크)
+  const [showDonation, setShowDonation] = useState(() =>
+    shouldShowDonationBanner(loadDonationDismissedAt(), Date.now()),
+  );
+  const [donationErr, setDonationErr] = useState<string | null>(null);
+  useEffect(() => {
+    const t = setInterval(() => {
+      setShowDonation(shouldShowDonationBanner(loadDonationDismissedAt(), Date.now()));
+    }, 60_000);
+    return () => clearInterval(t);
+  }, []);
+  function dismissDonation() {
+    saveDonationDismissedAt(Date.now());
+    setShowDonation(false);
+    setDonationErr(null);
+  }
+  async function openDonation() {
+    try {
+      await openUrl(DONATION_URL);
+      dismissDonation();
+    } catch (e) {
+      // 열기 실패 시 URL을 보여줘 수동으로 열 수 있게 한다.
+      setDonationErr(
+        `브라우저 열기 실패(${e instanceof Error ? e.message : e}) — 직접 열기: ${DONATION_URL}`,
+      );
+    }
+  }
+
   async function manualCheckUpdate() {
     setCheckingUpdate(true);
     setUpdateMsg(null);
@@ -789,6 +824,23 @@ export default function App() {
             나중에
           </button>
           {updateError && <span className="update-error">설치 실패: {updateError}</span>}
+        </div>
+      )}
+      {showDonation && (
+        <div className="donation-banner">
+          <CoffeeIcon size={18} />
+          <span>이 앱이 도움이 됐다면 개발자에게 커피 한 잔 어때요?</span>
+          <button className="btn small donate" onClick={openDonation}>
+            ☕ 커피 사주기
+          </button>
+          {donationErr && <span className="donation-err">{donationErr}</span>}
+          <button
+            className="icon-btn donation-close"
+            title="닫기 (30분 뒤 다시 표시)"
+            onClick={dismissDonation}
+          >
+            <CloseCircleIcon size={16} />
+          </button>
         </div>
       )}
       <header className="topbar">

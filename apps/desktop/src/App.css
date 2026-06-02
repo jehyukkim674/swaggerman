@@ -1537,6 +1537,40 @@ mark.hl.active {
   font-size: 11px;
 }
 
+/* 후원(커피 사주기) 배너 */
+.donation-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 12px;
+  background: #3a2e1a;
+  border-bottom: 1px solid #ffcd00;
+  font-size: 12px;
+  color: #ffd866;
+}
+.donation-banner span {
+  font-weight: 600;
+}
+.donation-banner .donation-close {
+  margin-left: auto;
+}
+.donation-err {
+  color: #ff7b72;
+  font-weight: 400 !important;
+  user-select: text;
+}
+.btn.donate {
+  background: #ffcd00;
+  border-color: #ffcd00;
+  color: #3c1e1e;
+  font-weight: 700;
+}
+.btn.donate:hover {
+  background: #ffdb4d;
+  border-color: #ffdb4d;
+  color: #3c1e1e;
+}
+
 /* cURL 가져오기 모달 */
 .curl-modal {
   width: 640px;
