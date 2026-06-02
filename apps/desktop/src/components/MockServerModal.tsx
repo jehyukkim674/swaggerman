@@ -170,7 +170,7 @@ export function MockServerModal({ spec, specUrl, history, onClose }: Props) {
     return () => {
       cancelled = true;
     };
-  }, [startPoll]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [startPoll]);  
 
   // ─ 서버 시작 ─
   async function handleStart() {
