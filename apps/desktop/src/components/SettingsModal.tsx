@@ -1,7 +1,10 @@
 import { useEffect, useState } from "react";
+import { getVersion } from "@tauri-apps/api/app";
+import { openUrl } from "@tauri-apps/plugin-opener";
 import type { NetworkSettings } from "../core/types";
 import { clearCookies, listCookies, type CookieInfo } from "../core/cookies";
-import { CloseCircleIcon } from "./icons";
+import { DONATION_URL } from "../core/donation";
+import { CloseCircleIcon, CoffeeIcon } from "./icons";
 import { useEscToClose } from "./useEscToClose";
 
 interface Props {
@@ -20,6 +23,15 @@ export function SettingsModal({ settings, onChange, onClose, claudePath = "", on
 
   const [cookies, setCookies] = useState<CookieInfo[]>([]);
   const [cookieErr, setCookieErr] = useState<string | null>(null);
+
+  // 정보 섹션: 앱 버전 + 후원
+  const [version, setVersion] = useState("");
+  const [donationErr, setDonationErr] = useState<string | null>(null);
+  useEffect(() => {
+    getVersion()
+      .then(setVersion)
+      .catch(() => {});
+  }, []);
 
   const refresh = () => {
     listCookies()
@@ -117,6 +129,22 @@ export function SettingsModal({ settings, onChange, onClose, claudePath = "", on
               </span>
             </div>
           ))}
+
+          <div className="settings-section">정보</div>
+          <div className="hint">SwaggerMan {version && `v${version}`} — 이 앱이 도움이 됐다면</div>
+          <button
+            className="btn donate"
+            onClick={() => {
+              openUrl(DONATION_URL).catch((e) =>
+                setDonationErr(
+                  `브라우저 열기 실패(${e instanceof Error ? e.message : e}) — 직접 열기: ${DONATION_URL}`,
+                ),
+              );
+            }}
+          >
+            <CoffeeIcon size={15} /> 개발자에게 커피 사주기
+          </button>
+          {donationErr && <div className="error-box">{donationErr}</div>}
         </div>
 
         <div className="modal-foot">
