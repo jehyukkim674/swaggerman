@@ -6,7 +6,6 @@ import type { ParsedSpec } from "../core/types";
 import type { HistoryItem } from "../core/history";
 import type { MockOperationConfig, MockServerConfig } from "../core/mock-config";
 import {
-  DEFAULT_MOCK_PORT,
   buildMockRoutes,
   loadMockConfig,
   saveMockConfig,
@@ -69,7 +68,6 @@ export function MockServerModal({ spec, specUrl, history, onClose }: Props) {
 
   // 서버 상태
   const [running, setRunning] = useState(false);
-  const [serverPort, setServerPort] = useState<number>(DEFAULT_MOCK_PORT);
   const [serverError, setServerError] = useState<string | null>(null);
   const [logs, setLogs] = useState<MockLogEntry[]>([]);
 
@@ -94,15 +92,11 @@ export function MockServerModal({ spec, specUrl, history, onClose }: Props) {
   // 폴링 타이머 ref
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  // ─ 설정 변경 시 자동 저장 ─
+  // ─ 설정 변경 시 자동 저장 (디바운스 400ms) ─
   useEffect(() => {
-    saveMockConfig(specUrl, config);
+    const timer = setTimeout(() => saveMockConfig(specUrl, config), 400);
+    return () => clearTimeout(timer);
   }, [config, specUrl]);
-
-  // ─ serverPort: config.port와 동기화 (초기) ─
-  useEffect(() => {
-    setServerPort(config.port);
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ─ 선택 operation 변경 시 데이터셋 텍스트 갱신 ─
   useEffect(() => {
@@ -159,11 +153,14 @@ export function MockServerModal({ spec, specUrl, history, onClose }: Props) {
   // ─ 서버 시작 ─
   async function handleStart() {
     setServerError(null);
-    const portNum = serverPort;
-    const updatedConfig: MockServerConfig = { ...config, port: portNum };
-    const routes = buildMockRoutes(spec, updatedConfig);
+    const portNum = config.port;
+    const routes = buildMockRoutes(spec, config);
     try {
-      await startMockServer(portNum, routes);
+      const boundPort = await startMockServer(portNum, routes);
+      // OS가 실제로 바인딩한 포트가 다를 경우 config.port를 갱신
+      if (typeof boundPort === "number" && boundPort !== portNum) {
+        setConfig((prev) => ({ ...prev, port: boundPort }));
+      }
       setRunning(true);
       setLogs([]);
       startPoll();
@@ -328,13 +325,7 @@ export function MockServerModal({ spec, specUrl, history, onClose }: Props) {
 
   // ─ Base URL 복사 ─
   function copyBaseUrl() {
-    navigator.clipboard.writeText(`http://localhost:${serverPort}`).catch(() => {});
-  }
-
-  // ─ 포트 변경 ─
-  function handlePortChange(value: number) {
-    setServerPort(value);
-    setConfig((prev) => ({ ...prev, port: value }));
+    navigator.clipboard.writeText(`http://localhost:${config.port}`).catch(() => {});
   }
 
   return (
@@ -349,7 +340,7 @@ export function MockServerModal({ spec, specUrl, history, onClose }: Props) {
             <h3>Mock 서버</h3>
             {running && (
               <span className="mock-running-badge">
-                실행 중 — http://localhost:{serverPort}
+                실행 중 — http://localhost:{config.port}
                 <button
                   className="icon-btn"
                   onClick={copyBaseUrl}
@@ -371,11 +362,11 @@ export function MockServerModal({ spec, specUrl, history, onClose }: Props) {
           <input
             type="number"
             className="mock-port-input"
-            value={serverPort}
+            value={config.port}
             min={1024}
             max={65535}
             disabled={running}
-            onChange={(e) => handlePortChange(Number(e.target.value))}
+            onChange={(e) => setConfig((prev) => ({ ...prev, port: Number(e.target.value) }))}
           />
           {!running ? (
             <button className="btn primary small" onClick={handleStart}>
@@ -539,12 +530,12 @@ export function MockServerModal({ spec, specUrl, history, onClose }: Props) {
             <div className="mock-log-header">요청 로그</div>
             {logs.length === 0 ? (
               <div className="mock-log-empty">
-                아직 요청이 없습니다 — http://localhost:{serverPort} 로 호출해보세요
+                아직 요청이 없습니다 — http://localhost:{config.port} 로 호출해보세요
               </div>
             ) : (
               <div className="mock-log-list">
                 {logs.map((log, i) => (
-                  <div key={i} className="mock-log-row">
+                  <div key={`${log.atMs}-${i}`} className="mock-log-row">
                     <span
                       className="mock-method mock-log-method"
                       style={{ color: methodColor(log.method) }}
