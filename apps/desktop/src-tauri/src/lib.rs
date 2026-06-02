@@ -233,8 +233,14 @@ pub fn run() {
             mock_server::mock_stop,
             mock_server::mock_status
         ])
-        .run(tauri::generate_context!())
-        .expect("error while running tauri application");
+        .build(tauri::generate_context!())
+        .expect("error while building tauri application")
+        .run(|_app, event| {
+            // 앱 종료 시 mock 서버 정리 (포트 점유 방지)
+            if matches!(event, tauri::RunEvent::Exit) {
+                mock_server::stop_server_internal();
+            }
+        });
 }
 
 #[cfg(test)]

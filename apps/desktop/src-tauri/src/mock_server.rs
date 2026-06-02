@@ -412,7 +412,8 @@ pub fn mock_status() -> MockStatus {
 }
 
 /// 서버를 중지하는 내부 함수 (비동기 아님).
-fn stop_server_internal() {
+/// lib.rs의 Tauri RunEvent::Exit 훅에서 호출해 포트 점유를 방지한다.
+pub(crate) fn stop_server_internal() {
     let mut handle = server_handle().lock().unwrap();
     if let Some(server) = handle.take() {
         if let Some(tx) = server.shutdown_tx {
@@ -601,6 +602,30 @@ mod tests {
         assert_eq!(status, 201);
         assert_eq!(body["created"], true);
         assert_eq!(body["id"], 100);
+    }
+
+    // ── stop_server_internal pub(crate) 테스트 ──
+
+    #[tokio::test]
+    async fn stop_server_internal_cleans_up_running_server() {
+        // 서버 시작
+        let config = MockConfig {
+            port: 0,
+            routes: vec![],
+        };
+        let port = mock_start(config).await.expect("서버 시작 실패");
+        assert!(port > 0);
+        assert!(mock_status().running);
+
+        // pub(crate) stop_server_internal 직접 호출
+        stop_server_internal();
+
+        // handle이 None으로 전환되어야 함
+        let status = mock_status();
+        assert!(!status.running, "stop_server_internal 후 running이 true");
+
+        // 서버 태스크 종료 대기 (다른 테스트와 포트 충돌 방지)
+        tokio::time::sleep(std::time::Duration::from_millis(50)).await;
     }
 
     // ── 통합 테스트 (실제 HTTP 서버) ─────────
