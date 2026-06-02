@@ -1,4 +1,5 @@
 mod ai;
+mod mock_server;
 
 use std::collections::HashMap;
 use std::sync::{Arc, OnceLock};
@@ -227,7 +228,10 @@ pub fn run() {
             ai::ai_detect,
             ai::ai_complete,
             ai::ai_chat,
-            ai::ai_cancel
+            ai::ai_cancel,
+            mock_server::mock_start,
+            mock_server::mock_stop,
+            mock_server::mock_status
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
