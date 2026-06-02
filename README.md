@@ -2,6 +2,10 @@
 
 [![커피 사주기](https://img.shields.io/badge/☕_커피_사주기-카카오페이-FFCD00?style=for-the-badge)](https://qr.kakaopay.com/FcUzxPAhE)
 
+> 후원 링크는 **모바일 전용**입니다. PC에서는 휴대폰 카메라로 아래 QR을 스캔하세요.
+>
+> <img src="docs/donation-qr.png" width="140" alt="카카오페이 송금 QR">
+
 macOS용 OpenAPI / Swagger 탐색기 앱.
 
 ## 개발 환경 설정
