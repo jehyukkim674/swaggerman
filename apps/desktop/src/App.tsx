@@ -28,9 +28,7 @@ import {
 import { emptyOAuth2Config, fetchOAuth2Token, type OAuth2Config } from "./core/oauth2";
 import { findActiveEnv } from "./core/env";
 import { checkUpdateStatus, type AvailableUpdate } from "./core/updater";
-import { openUrl } from "@tauri-apps/plugin-opener";
 import {
-  DONATION_URL,
   loadDonationDismissedAt,
   saveDonationDismissedAt,
   shouldShowDonationBanner,
@@ -62,6 +60,7 @@ import { EnvironmentsModal } from "./components/EnvironmentsModal";
 import { GlobalHeadersModal } from "./components/GlobalHeadersModal";
 import { ProjectsModal } from "./components/ProjectsModal";
 import { CompareModal } from "./components/CompareModal";
+import { DonationModal } from "./components/DonationModal";
 import { AiPanel } from "./components/AiPanel";
 import { getProvider } from "./core/ai/provider";
 import { buildAiContext } from "./core/ai/context";
@@ -459,7 +458,7 @@ export default function App() {
   const [showDonation, setShowDonation] = useState(() =>
     shouldShowDonationBanner(loadDonationDismissedAt(), Date.now()),
   );
-  const [donationErr, setDonationErr] = useState<string | null>(null);
+  const [donationOpen, setDonationOpen] = useState(false);
   useEffect(() => {
     const t = setInterval(() => {
       setShowDonation(shouldShowDonationBanner(loadDonationDismissedAt(), Date.now()));
@@ -469,18 +468,11 @@ export default function App() {
   function dismissDonation() {
     saveDonationDismissedAt(Date.now());
     setShowDonation(false);
-    setDonationErr(null);
   }
-  async function openDonation() {
-    try {
-      await openUrl(DONATION_URL);
-      dismissDonation();
-    } catch (e) {
-      // 열기 실패 시 URL을 보여줘 수동으로 열 수 있게 한다.
-      setDonationErr(
-        `브라우저 열기 실패(${e instanceof Error ? e.message : e}) — 직접 열기: ${DONATION_URL}`,
-      );
-    }
+  /** 카카오페이 링크는 모바일 전용이라 브라우저로 열지 않고 QR 모달을 띄운다. */
+  function openDonation() {
+    setDonationOpen(true);
+    dismissDonation();
   }
 
   async function manualCheckUpdate() {
@@ -833,7 +825,6 @@ export default function App() {
           <button className="btn small donate" onClick={openDonation}>
             ☕ 커피 사주기
           </button>
-          {donationErr && <span className="donation-err">{donationErr}</span>}
           <button
             className="icon-btn donation-close"
             title="닫기 (30분 뒤 다시 표시)"
@@ -1224,6 +1215,7 @@ export default function App() {
           onClaudePathChange={setClaudePath}
         />
       )}
+      {donationOpen && <DonationModal onClose={() => setDonationOpen(false)} />}
       {paletteOpen && (
         <CommandPalette
           operations={spec?.operations ?? []}

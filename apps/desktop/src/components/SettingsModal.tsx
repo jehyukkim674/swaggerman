@@ -1,11 +1,10 @@
 import { useEffect, useState } from "react";
 import { getVersion } from "@tauri-apps/api/app";
-import { openUrl } from "@tauri-apps/plugin-opener";
 import type { NetworkSettings } from "../core/types";
 import { clearCookies, listCookies, type CookieInfo } from "../core/cookies";
-import { DONATION_URL } from "../core/donation";
-import { CloseCircleIcon, CoffeeIcon } from "./icons";
+import { CloseCircleIcon } from "./icons";
 import { useEscToClose } from "./useEscToClose";
+import { DonationQR } from "./DonationQR";
 
 interface Props {
   settings: NetworkSettings;
@@ -26,7 +25,6 @@ export function SettingsModal({ settings, onChange, onClose, claudePath = "", on
 
   // 정보 섹션: 앱 버전 + 후원
   const [version, setVersion] = useState("");
-  const [donationErr, setDonationErr] = useState<string | null>(null);
   useEffect(() => {
     getVersion()
       .then(setVersion)
@@ -131,20 +129,17 @@ export function SettingsModal({ settings, onChange, onClose, claudePath = "", on
           ))}
 
           <div className="settings-section">정보</div>
-          <div className="hint">SwaggerMan {version && `v${version}`} — 이 앱이 도움이 됐다면</div>
-          <button
-            className="btn donate"
-            onClick={() => {
-              openUrl(DONATION_URL).catch((e) =>
-                setDonationErr(
-                  `브라우저 열기 실패(${e instanceof Error ? e.message : e}) — 직접 열기: ${DONATION_URL}`,
-                ),
-              );
-            }}
-          >
-            <CoffeeIcon size={15} /> 개발자에게 커피 사주기
-          </button>
-          {donationErr && <div className="error-box">{donationErr}</div>}
+          <div className="hint">
+            SwaggerMan {version && `v${version}`} — 이 앱이 도움이 됐다면 개발자에게 커피 한 잔 ☕
+          </div>
+          <div className="donation-inline">
+            <DonationQR size={140} />
+            <div className="hint">
+              휴대폰 <b>카메라</b> 또는 <b>카카오톡 스캔</b>으로
+              <br />
+              QR을 찍으면 카카오페이 송금 화면이 열려요.
+            </div>
+          </div>
         </div>
 
         <div className="modal-foot">
