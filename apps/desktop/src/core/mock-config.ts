@@ -67,6 +67,47 @@ function firstSuccessStatus(op: ParsedOperation): number {
   return Number.isNaN(n) ? 200 : n;
 }
 
+/**
+ * 단건 GET 라우트의 idField를 다음 우선순위로 추론한다.
+ *  1. path param 이름이 dataset 아이템의 키에 있으면 그것 사용
+ *     예: /pets/{petId} → 아이템에 petId 키 있으면 "petId"
+ *  2. 아이템에 "id" 키가 있으면 "id"
+ *  3. 아이템 키 중 "id"로 끝나는 첫 키 (예: appId)
+ *  4. 그 외 → 폴백 "id"
+ *
+ * @param path    - operation 경로 (예: /pets/{petId})
+ * @param dataset - 부모 목록 dataset (undefined 또는 빈 배열이면 폴백 "id")
+ */
+function inferIdField(path: string, dataset: unknown[] | undefined): string {
+  // dataset 첫 아이템의 키 목록 추출
+  const firstItem = dataset?.[0];
+  const itemKeys: string[] =
+    firstItem !== null && typeof firstItem === "object" ? Object.keys(firstItem as object) : [];
+
+  // path 마지막 {…} 안의 param 이름 추출
+  const paramMatch = path.match(/\{([^}]+)\}(?!.*\{)/);
+  const paramName = paramMatch?.[1];
+
+  // 우선순위 1: path param 이름이 아이템 키에 있으면 사용
+  if (paramName && itemKeys.includes(paramName)) {
+    return paramName;
+  }
+
+  // 우선순위 2: 아이템에 "id" 키가 있으면 "id"
+  if (itemKeys.includes("id")) {
+    return "id";
+  }
+
+  // 우선순위 3: 아이템 키 중 "id"로 끝나는 첫 키
+  const idSuffixKey = itemKeys.find((k) => k.toLowerCase().endsWith("id"));
+  if (idSuffixKey !== undefined) {
+    return idSuffixKey;
+  }
+
+  // 우선순위 4: 폴백
+  return "id";
+}
+
 /** operation 하나에 대한 기본 MockOperationConfig를 생성한다 */
 function defaultOpConfig(op: ParsedOperation): MockOperationConfig {
   return {
@@ -192,13 +233,14 @@ export function buildMockRoutes(spec: ParsedSpec, config: MockServerConfig): Moc
         ?? cfg.dataset
         ?? generateDataset(op, 1, cfg.seed);
 
+      // idField: path param 이름/아이템 키 기반으로 추론 (하드코딩 제거)
       routes.push({
         method: op.method,
         path: op.path,
         status: cfg.status,
         dataset: parentDataset,
         delayMs: cfg.delayMs,
-        idField: "id",
+        idField: inferIdField(op.path, parentDataset),
       });
     } else {
       // POST/PUT/PATCH/DELETE 등: body 라우트

@@ -223,7 +223,7 @@ describe("buildMockRoutes — 목록 GET", () => {
 });
 
 // ────────────────────────────────────────────────
-// 테스트 5: 단건 GET (path param) → 부모 dataset 공유 + idField="id"
+// 테스트 5: 단건 GET (path param) → 부모 dataset 공유 + idField 추론
 // ────────────────────────────────────────────────
 
 describe("buildMockRoutes — path param GET", () => {
@@ -271,6 +271,148 @@ describe("buildMockRoutes — path param GET", () => {
     expect(detailRoute).toBeDefined();
     expect(detailRoute?.idField).toBe("id");
     expect(detailRoute?.dataset).toEqual(sharedDataset);
+  });
+
+  it("아이템에 path param 이름(petId)과 같은 키가 있으면 idField로 사용한다", () => {
+    // 목록 op의 dataset 아이템이 { petId: 1, name: "..." } 형태
+    // → 단건 라우트의 idField가 "petId"
+    const listOp = makeOp({
+      id: "GET /pets",
+      method: "GET",
+      path: "/pets",
+      responses: [
+        {
+          statusCode: "200",
+          schema: {
+            type: "array",
+            items: {
+              type: "object",
+              properties: { petId: { type: "integer" }, name: { type: "string" } },
+            },
+          },
+        },
+      ],
+    });
+    const detailOp = makeOp({
+      id: "GET /pets/{petId}",
+      method: "GET",
+      path: "/pets/{petId}",
+      responses: [
+        {
+          statusCode: "200",
+          schema: {
+            type: "object",
+            properties: { petId: { type: "integer" }, name: { type: "string" } },
+          },
+        },
+      ],
+    });
+    const spec = makeSpec([listOp, detailOp]);
+    const config = defaultMockConfig(spec);
+    // 아이템 키가 petId인 dataset 설정
+    const sharedDataset = [{ petId: 1, name: "펫1" }, { petId: 2, name: "펫2" }];
+    config.operations[0].dataset = sharedDataset;
+
+    const routes = buildMockRoutes(spec, config);
+
+    const detailRoute = routes.find((r) => r.path === "/pets/{petId}");
+    expect(detailRoute).toBeDefined();
+    expect(detailRoute?.idField).toBe("petId");
+    expect(detailRoute?.dataset).toEqual(sharedDataset);
+  });
+
+  it("path param 이름과 일치하는 키가 없고 id 키가 있으면 idField는 id", () => {
+    // 아이템이 { id: 1, name: "..." } 인데 path param은 {petId}
+    // → idField "id"
+    const listOp = makeOp({
+      id: "GET /pets",
+      method: "GET",
+      path: "/pets",
+      responses: [
+        {
+          statusCode: "200",
+          schema: {
+            type: "array",
+            items: {
+              type: "object",
+              properties: { id: { type: "integer" }, name: { type: "string" } },
+            },
+          },
+        },
+      ],
+    });
+    const detailOp = makeOp({
+      id: "GET /pets/{petId}",
+      method: "GET",
+      path: "/pets/{petId}",
+      responses: [
+        {
+          statusCode: "200",
+          schema: {
+            type: "object",
+            properties: { id: { type: "integer" }, name: { type: "string" } },
+          },
+        },
+      ],
+    });
+    const spec = makeSpec([listOp, detailOp]);
+    const config = defaultMockConfig(spec);
+    // 아이템 키가 "id"이고, path param은 "petId" (불일치)
+    const sharedDataset = [{ id: 1, name: "펫1" }];
+    config.operations[0].dataset = sharedDataset;
+
+    const routes = buildMockRoutes(spec, config);
+
+    const detailRoute = routes.find((r) => r.path === "/pets/{petId}");
+    expect(detailRoute).toBeDefined();
+    expect(detailRoute?.idField).toBe("id");
+  });
+
+  it("id도 없으면 'id'로 끝나는 첫 키를 idField로 사용한다", () => {
+    // 아이템이 { appId: "A-1", name: "..." }, path param은 {code}
+    // → idField "appId"
+    const listOp = makeOp({
+      id: "GET /apps",
+      method: "GET",
+      path: "/apps",
+      responses: [
+        {
+          statusCode: "200",
+          schema: {
+            type: "array",
+            items: {
+              type: "object",
+              properties: { appId: { type: "string" }, name: { type: "string" } },
+            },
+          },
+        },
+      ],
+    });
+    const detailOp = makeOp({
+      id: "GET /apps/{code}",
+      method: "GET",
+      path: "/apps/{code}",
+      responses: [
+        {
+          statusCode: "200",
+          schema: {
+            type: "object",
+            properties: { appId: { type: "string" }, name: { type: "string" } },
+          },
+        },
+      ],
+    });
+    const spec = makeSpec([listOp, detailOp]);
+    const config = defaultMockConfig(spec);
+    // appId 키만 있고, "id" 키도 없으며 path param("code")과도 불일치
+    const sharedDataset = [{ appId: "A-1", name: "앱1" }];
+    config.operations[0].dataset = sharedDataset;
+
+    const routes = buildMockRoutes(spec, config);
+
+    const detailRoute = routes.find((r) => r.path === "/apps/{code}");
+    expect(detailRoute).toBeDefined();
+    expect(detailRoute?.idField).toBe("appId");
   });
 });
 
