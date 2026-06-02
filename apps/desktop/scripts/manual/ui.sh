@@ -15,27 +15,36 @@ activate() {
   sleep 1
 }
 
-# 최전면 SwaggerMan의 가장 큰 창(본 창) 논리 bounds: "x y w h"
-# (window 1이 메뉴바 보조 창일 수 있어 면적 최대 창을 고른다)
+# 등록된 데모 창(get_win)의 논리 bounds: "x y w h"
+# CGWindowList 기준이라 System Events의 창 순서 모호함이 없다.
 bounds() {
-  osascript <<'EOF'
-tell application "System Events" to tell process "SwaggerMan"
-  set bestPos to {0, 0}
-  set bestSize to {0, 0}
-  set bestArea to 0
-  repeat with w in windows
-    set s to size of w
-    set a to (item 1 of s) * (item 2 of s)
-    if a > bestArea then
-      set bestArea to a
-      set bestSize to s
-      set bestPos to position of w
-    end if
-  end repeat
-  return ((item 1 of bestPos) as text) & " " & ((item 2 of bestPos) as text) & " " & ¬
-    ((item 1 of bestSize) as text) & " " & ((item 2 of bestSize) as text)
-end tell
+  local win_id
+  win_id="$(get_win)"
+  list_windows | awk -F'|' -v id="$win_id" '$1 == id {print $4, $5, $2, $3; found=1} END {exit !found}'
+}
+
+# 데모 창 크기·위치 변경: resize_demo <x> <y> <w> <h>
+# (System Events에서 현재 크기가 일치하는 창을 찾아 변경)
+resize_demo() {
+  local nx="$1" ny="$2" nw="$3" nh="$4"
+  read -r _ _ cw ch <<< "$(bounds)"
+  osascript - "$cw" "$ch" "$nx" "$ny" "$nw" "$nh" <<'EOF'
+on run argv
+  set cw to (item 1 of argv) as integer
+  set ch to (item 2 of argv) as integer
+  tell application "System Events" to tell process "SwaggerMan"
+    repeat with w in windows
+      set s to size of w
+      if (item 1 of s) = cw and (item 2 of s) = ch then
+        set position of w to {(item 3 of argv) as integer, (item 4 of argv) as integer}
+        set size of w to {(item 5 of argv) as integer, (item 6 of argv) as integer}
+        exit repeat
+      end if
+    end repeat
+  end tell
+end run
 EOF
+  sleep 1
 }
 
 # 창 내 비율 좌표(0.0~1.0) 클릭: click_frac <fx> <fy> [double]
