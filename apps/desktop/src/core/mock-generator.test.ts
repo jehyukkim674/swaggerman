@@ -6,9 +6,27 @@ import {
   mulberry32,
   hashString,
   generateFromSchema,
+  extractItemSchema,
+  generateDataset,
 } from "./mock-generator";
 import type { GenerateOptions } from "./mock-generator";
-import type { ParsedSchema } from "./types";
+import type { ParsedOperation, ParsedSchema } from "./types";
+
+// ────────────────────────────────────────────────
+// 헬퍼
+// ────────────────────────────────────────────────
+
+function op(overrides: Partial<ParsedOperation> = {}): ParsedOperation {
+  return {
+    id: "GET /items",
+    method: "GET",
+    path: "/items",
+    tags: [],
+    parameters: [],
+    responses: [],
+    ...overrides,
+  };
+}
 
 const baseOpts: GenerateOptions = { seed: 42 };
 
@@ -37,6 +55,7 @@ describe("mulberry32", () => {
   it("다른 시드는 다른 시퀀스를 생성한다", () => {
     const a = mulberry32(1);
     const b = mulberry32(2);
+    // 첫 10개 중 적어도 하나는 달라야 한다
     const seqA = Array.from({ length: 10 }, () => a());
     const seqB = Array.from({ length: 10 }, () => b());
     expect(seqA).not.toEqual(seqB);
@@ -136,6 +155,8 @@ describe("generateFromSchema — 기본 타입 생성", () => {
     const r1 = generateFromSchema(schema, { seed: 100 }) as Record<string, unknown>;
     const r2 = generateFromSchema(schema, { seed: 100 }) as Record<string, unknown>;
     expect(r1).toEqual(r2);
+    // a, b는 서로 다른 시드로 생성되므로 값이 다를 수 있다
+    // (a와 b의 fieldName hash가 달라 결과가 다름 — 필수는 아니지만 확인)
   });
 
   it("array 스키마 → items 타입의 배열 3개를 반환한다", () => {
@@ -348,5 +369,189 @@ describe("generateFromSchema — 정수 필드명 도메인 인식", () => {
     const r1 = generateFromSchema(schema, { seed: 7, fieldName: "price" });
     const r2 = generateFromSchema(schema, { seed: 7, fieldName: "price" });
     expect(r1).toBe(r2);
+  });
+});
+
+// ────────────────────────────────────────────────
+// Task 3: extractItemSchema + generateDataset
+// ────────────────────────────────────────────────
+
+describe("extractItemSchema", () => {
+  it("배열 스키마 → isList=true, itemSchema=items 반환", () => {
+    const schema: ParsedSchema = {
+      type: "array",
+      items: { type: "object", properties: { id: { type: "integer" } } },
+    };
+    const result = extractItemSchema(schema);
+    expect(result).not.toBeNull();
+    expect(result!.isList).toBe(true);
+    expect(result!.listWrapper).toBeUndefined();
+    expect(result!.itemSchema.type).toBe("object");
+  });
+
+  it("페이징 래퍼(content 배열 속성) → isList=true, listWrapper='content' 반환", () => {
+    const schema: ParsedSchema = {
+      type: "object",
+      properties: {
+        content: {
+          type: "array",
+          items: { type: "object", properties: { id: { type: "integer" } } },
+        },
+        totalElements: { type: "integer" },
+        totalPages: { type: "integer" },
+      },
+    };
+    const result = extractItemSchema(schema);
+    expect(result).not.toBeNull();
+    expect(result!.isList).toBe(true);
+    expect(result!.listWrapper).toBe("content");
+    expect(result!.itemSchema.type).toBe("object");
+  });
+
+  it("페이징 래퍼(data 배열 속성) → isList=true, listWrapper='data' 반환", () => {
+    const schema: ParsedSchema = {
+      type: "object",
+      properties: {
+        data: {
+          type: "array",
+          items: { type: "object", properties: { name: { type: "string" } } },
+        },
+      },
+    };
+    const result = extractItemSchema(schema);
+    expect(result).not.toBeNull();
+    expect(result!.isList).toBe(true);
+    expect(result!.listWrapper).toBe("data");
+  });
+
+  it("일반 object → isList=false, itemSchema=자기 자신", () => {
+    const schema: ParsedSchema = {
+      type: "object",
+      properties: { id: { type: "integer" }, name: { type: "string" } },
+    };
+    const result = extractItemSchema(schema);
+    expect(result).not.toBeNull();
+    expect(result!.isList).toBe(false);
+    expect(result!.itemSchema).toBe(schema);
+  });
+
+  it("undefined 스키마 → null 반환", () => {
+    expect(extractItemSchema(undefined)).toBeNull();
+  });
+
+  it("results/rows/items/list 키도 페이징 래퍼로 인식", () => {
+    for (const key of ["results", "rows", "items", "list"] as const) {
+      const schema: ParsedSchema = {
+        type: "object",
+        properties: {
+          [key]: {
+            type: "array",
+            items: { type: "object" },
+          },
+        },
+      };
+      const result = extractItemSchema(schema);
+      expect(result!.isList).toBe(true);
+      expect(result!.listWrapper).toBe(key);
+    }
+  });
+});
+
+describe("generateDataset", () => {
+  const itemSchema: ParsedSchema = {
+    type: "object",
+    properties: {
+      id: { type: "integer" },
+      name: { type: "string" },
+    },
+  };
+
+  it("배열 응답 → count개 생성", () => {
+    const operation = op({
+      responses: [
+        { statusCode: "200", schema: { type: "array", items: itemSchema } },
+      ],
+    });
+    const dataset = generateDataset(operation, 5, 42);
+    expect(dataset).toHaveLength(5);
+  });
+
+  it("배열 응답의 id 필드 → 1부터 순번으로 채워진다", () => {
+    const operation = op({
+      responses: [
+        { statusCode: "200", schema: { type: "array", items: itemSchema } },
+      ],
+    });
+    const dataset = generateDataset(operation, 3, 42) as Array<Record<string, unknown>>;
+    expect(dataset[0].id).toBe(1);
+    expect(dataset[1].id).toBe(2);
+    expect(dataset[2].id).toBe(3);
+  });
+
+  it("페이징 래퍼(content) 응답 → count개 생성", () => {
+    const pagedSchema: ParsedSchema = {
+      type: "object",
+      properties: {
+        content: { type: "array", items: itemSchema },
+        totalElements: { type: "integer" },
+      },
+    };
+    const operation = op({
+      responses: [{ statusCode: "200", schema: pagedSchema }],
+    });
+    const dataset = generateDataset(operation, 4, 1);
+    expect(dataset).toHaveLength(4);
+  });
+
+  it("단건 응답(일반 object) → 1개 생성", () => {
+    const operation = op({
+      responses: [{ statusCode: "200", schema: itemSchema }],
+    });
+    const dataset = generateDataset(operation, 10, 42);
+    expect(dataset).toHaveLength(1);
+  });
+
+  it("2xx 응답 우선 사용 (201도 인식)", () => {
+    const operation = op({
+      responses: [
+        { statusCode: "400", schema: { type: "object" } },
+        { statusCode: "201", schema: { type: "array", items: itemSchema } },
+      ],
+    });
+    const dataset = generateDataset(operation, 3, 1);
+    expect(dataset).toHaveLength(3);
+  });
+
+  it("같은 시드는 같은 데이터셋을 반환한다 (결정적)", () => {
+    const operation = op({
+      responses: [
+        { statusCode: "200", schema: { type: "array", items: itemSchema } },
+      ],
+    });
+    const d1 = generateDataset(operation, 3, 100);
+    const d2 = generateDataset(operation, 3, 100);
+    expect(d1).toEqual(d2);
+  });
+
+  it("다른 시드는 다른 데이터셋을 반환한다", () => {
+    const operation = op({
+      responses: [
+        { statusCode: "200", schema: { type: "array", items: itemSchema } },
+      ],
+    });
+    const d1 = generateDataset(operation, 3, 1);
+    const d2 = generateDataset(operation, 3, 2);
+    // 적어도 하나의 name 필드는 달라야 한다 (시드가 다르므로)
+    const names1 = (d1 as Array<Record<string, unknown>>).map((x) => x.name);
+    const names2 = (d2 as Array<Record<string, unknown>>).map((x) => x.name);
+    expect(names1).not.toEqual(names2);
+  });
+
+  it("2xx 응답 스키마가 없으면 빈 배열 반환", () => {
+    const operation = op({
+      responses: [{ statusCode: "404", description: "Not found" }],
+    });
+    const dataset = generateDataset(operation, 5, 1);
+    expect(dataset).toEqual([]);
   });
 });

@@ -1,7 +1,7 @@
 // mock 데이터 생성기. OpenAPI ParsedSchema로부터 결정적(시드 기반) 가짜 데이터를 생성한다.
 // Rust axum mock 서버가 이 데이터를 HTTP 응답으로 제공한다.
 
-import type { ParsedSchema } from "./types";
+import type { ParsedOperation, ParsedSchema } from "./types";
 
 // ────────────────────────────────────────────────
 // 공개 타입
@@ -11,6 +11,12 @@ export interface GenerateOptions {
   seed: number;
   fieldName?: string;
   index?: number;
+}
+
+export interface ItemSchemaInfo {
+  itemSchema: ParsedSchema;
+  listWrapper?: string;
+  isList: boolean;
 }
 
 // ────────────────────────────────────────────────
@@ -47,7 +53,7 @@ export function hashString(s: string): number {
 }
 
 // ────────────────────────────────────────────────
-// Task 2: 도메인 데이터 + 인식 함수
+// 내부 도메인 데이터
 // ────────────────────────────────────────────────
 
 const KOREAN_SURNAMES = ["김", "이", "박", "최", "정", "강", "조", "윤", "장", "임", "한", "오", "서", "신", "권", "황", "안", "송", "류", "전"];
@@ -83,7 +89,7 @@ const HTTPS_URLS = [
 ];
 
 // ────────────────────────────────────────────────
-// 내부 유틸
+// Task 2: 도메인 인식 생성 함수
 // ────────────────────────────────────────────────
 
 /** 시드 기반으로 배열에서 하나를 선택한다 */
@@ -309,4 +315,75 @@ export function generateFromSchema(
     default:
       return null;
   }
+}
+
+// ────────────────────────────────────────────────
+// Task 3: extractItemSchema + generateDataset
+// ────────────────────────────────────────────────
+
+/** 페이징 래퍼로 인식하는 배열 속성 키 */
+const PAGING_KEYS = ["content", "data", "items", "list", "results", "rows"] as const;
+
+/**
+ * 응답 스키마에서 아이템 스키마 정보를 추출한다.
+ * - 배열 스키마 → isList=true
+ * - 페이징 래퍼 object → isList=true, listWrapper 지정
+ * - 일반 object → isList=false (단건)
+ * - undefined → null
+ */
+export function extractItemSchema(schema: ParsedSchema | undefined): ItemSchemaInfo | null {
+  if (!schema) return null;
+
+  if (schema.type === "array") {
+    return {
+      itemSchema: schema.items ?? { type: "unknown" },
+      isList: true,
+    };
+  }
+
+  if (schema.type === "object" && schema.properties) {
+    for (const key of PAGING_KEYS) {
+      const prop = schema.properties[key];
+      if (prop && prop.type === "array") {
+        return {
+          itemSchema: prop.items ?? { type: "unknown" },
+          listWrapper: key,
+          isList: true,
+        };
+      }
+    }
+  }
+
+  // 단건 object (또는 기타 타입)
+  return {
+    itemSchema: schema,
+    isList: false,
+  };
+}
+
+/**
+ * ParsedOperation의 2xx 응답 스키마로부터 mock 데이터셋을 생성한다.
+ * - isList면 count개, 단건이면 1개
+ * - 각 아이템의 시드: seed * 7919 + i (id 필드가 1,2,3... 순번이 됨)
+ */
+export function generateDataset(
+  operation: ParsedOperation,
+  count: number,
+  seed: number,
+): unknown[] {
+  // 2xx 응답 중 스키마가 있는 첫 번째 응답 사용
+  const twoxxResponse = operation.responses.find(
+    (r) => r.statusCode.startsWith("2") && r.schema,
+  );
+  if (!twoxxResponse?.schema) return [];
+
+  const info = extractItemSchema(twoxxResponse.schema);
+  if (!info) return [];
+
+  const itemCount = info.isList ? count : 1;
+
+  return Array.from({ length: itemCount }, (_, i) => {
+    const itemSeed = ((seed * 7919 + i) >>> 0);
+    return generateFromSchema(info.itemSchema, { seed: itemSeed, index: i });
+  });
 }
