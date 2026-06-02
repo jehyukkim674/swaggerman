@@ -169,8 +169,8 @@ function generateStringByFieldName(fieldName: string, rng: () => number): string
   if (/email/.test(lower)) {
     return generateEmail(rng);
   }
-  // name/username/이름 패턴 (fileName 같은 복합어는 "file"이 앞에 붙으므로 name으로 끝나거나 ^name이거나 username 등)
-  if (/(?:^|[^a-z])name$|^name$|username|이름/.test(lower)) {
+  // name/username/이름 패턴 — 원본 fieldName에서 camelCase 인식 (firstName, companyName 등)
+  if (/[Nn]ame$|^name$|username|이름/.test(fieldName)) {
     return pick(KOREAN_SURNAMES, rng) + pick(KOREAN_GIVEN_NAMES, rng);
   }
   if (/at$|date|time/.test(lower)) {
@@ -279,6 +279,10 @@ export function generateFromSchema(
     }
 
     case "number": {
+      if (opts.fieldName) {
+        const fromField = generateIntegerByFieldName(opts.fieldName, opts.index, rng);
+        if (fromField !== null) return fromField;
+      }
       return Math.round(rng() * 9999 * 100) / 100;
     }
 

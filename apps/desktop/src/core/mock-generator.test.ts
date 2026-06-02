@@ -250,6 +250,13 @@ describe("generateFromSchema — 문자열 필드명 도메인 인식", () => {
     expect(result.length).toBeGreaterThan(0);
   });
 
+  it("camelCase name 필드(firstName/companyName)도 한국어 이름으로 인식한다", () => {
+    const schema: ParsedSchema = { type: "string" };
+    expect(String(generateFromSchema(schema, { seed: 1, fieldName: "firstName" }))).toMatch(/^[가-힣]{2,4}$/);
+    expect(String(generateFromSchema(schema, { seed: 2, fieldName: "companyName" }))).toMatch(/^[가-힣]{2,4}$/);
+    expect(String(generateFromSchema(schema, { seed: 3, fieldName: "displayName" }))).toMatch(/^[가-힣]{2,4}$/);
+  });
+
   it("fieldName=createdAt → ISO 날짜 형식 반환", () => {
     const schema: ParsedSchema = { type: "string" };
     const result = generateFromSchema(schema, { seed: 1, fieldName: "createdAt" }) as string;
@@ -369,6 +376,13 @@ describe("generateFromSchema — 정수 필드명 도메인 인식", () => {
     const r1 = generateFromSchema(schema, { seed: 7, fieldName: "price" });
     const r2 = generateFromSchema(schema, { seed: 7, fieldName: "price" });
     expect(r1).toBe(r2);
+  });
+
+  it("number 타입 price 필드도 1000 단위 금액으로 생성한다", () => {
+    const v = generateFromSchema({ type: "number" } as ParsedSchema, {
+      seed: 7, fieldName: "price", index: 0,
+    });
+    expect((v as number) % 1000).toBe(0);
   });
 });
 
