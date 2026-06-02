@@ -80,7 +80,7 @@
 ## 퍼블리시
 
 - `gh-pages` 브랜치: `index.html` 전면 교체 + `screenshots/` 14장 교체(기존 5장 삭제) → 커밋 → **personal 레포(jehyukkim674/swaggerman) gh-pages 푸시** → Pages 자동 반영
-- `main` 브랜치(origin+personal): 이 설계 문서와 구현 계획만 커밋
+- `main` 브랜치(origin+personal): 설계 문서·구현 계획 + **스크린샷 자동화 스크립트(`apps/desktop/scripts/manual/`)** 커밋 — 다음 매뉴얼 갱신 때 재사용
 - 매뉴얼 본문 푸터에 "v0.3.22 기준" 표기 추가 (이후 갱신 시점 추적용)
 
 ## 안전장치
