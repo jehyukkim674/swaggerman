@@ -63,6 +63,7 @@ import { GlobalHeadersModal } from "./components/GlobalHeadersModal";
 import { ProjectsModal } from "./components/ProjectsModal";
 import { CompareModal } from "./components/CompareModal";
 import { DonationModal } from "./components/DonationModal";
+import { MockServerModal } from "./components/MockServerModal";
 import { AiPanel } from "./components/AiPanel";
 import { getProvider } from "./core/ai/provider";
 import { buildAiContext } from "./core/ai/context";
@@ -171,6 +172,7 @@ export default function App() {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [collectionsOpen, setCollectionsOpen] = useState(false);
   const [runnerOpen, setRunnerOpen] = useState(false);
+  const [mockOpen, setMockOpen] = useState(false);
   // 새 창 열기 확인 다이얼로그 (실수 클릭으로 창이 늘어나는 것 방지)
   const [newWindowConfirm, setNewWindowConfirm] = useState(false);
 
@@ -896,6 +898,14 @@ export default function App() {
         </button>
         <button
           className="btn"
+          title="Mock 서버 — 스펙 기반 가짜 API 서버를 로컬에 띄웁니다"
+          onClick={() => setMockOpen(true)}
+          disabled={!spec}
+        >
+          Mock
+        </button>
+        <button
+          className="btn"
           title="새 창 열기 — 다른 프로젝트를 동시에 볼 수 있습니다 (⌘N)"
           onClick={() => setNewWindowConfirm(true)}
         >
@@ -1229,6 +1239,14 @@ export default function App() {
       )}
       {runnerOpen && (
         <RunnerModal collections={collections} onRun={runSaved} onClose={() => setRunnerOpen(false)} />
+      )}
+      {mockOpen && spec && (
+        <MockServerModal
+          spec={spec}
+          specUrl={activeSpecUrl || specUrl}
+          history={history}
+          onClose={() => setMockOpen(false)}
+        />
       )}
       {collectionsOpen && (
         <CollectionsModal

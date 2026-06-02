@@ -141,6 +141,14 @@
       case "ai_cancel":
         return null;
 
+      // --- Mock 서버 ---
+      case "mock_start":
+        return Promise.reject(new Error("브라우저 모드에서는 Mock 서버를 사용할 수 없습니다 (데스크톱 앱 전용)"));
+      case "mock_stop":
+        return Promise.resolve();
+      case "mock_status":
+        return Promise.resolve({ running: false, port: 0, logs: [] });
+
       // --- 쿠키/파일 ---
       case "list_cookies":
         return [
