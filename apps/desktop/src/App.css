@@ -2698,3 +2698,264 @@ tr.cmp-changed td { background: #d2992214; }
   gap: 8px;
   margin-top: 8px;
 }
+
+/* ============================================================
+ * Mock 서버 모달 (.mock-)
+ * ============================================================ */
+
+/* 모달 크기 오버라이드 — 기본 620px보다 넓게 */
+.modal.mock-modal {
+  width: 980px;
+  max-width: 96vw;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* 헤더 왼쪽 영역 */
+.mock-head-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* 실행 중 녹색 뱃지 */
+.mock-running-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #3fb950;
+  background: rgba(63, 185, 80, 0.12);
+  border: 1px solid rgba(63, 185, 80, 0.35);
+  border-radius: 10px;
+  padding: 2px 8px 2px 10px;
+}
+
+/* 제어 바 */
+.mock-control-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-3);
+  flex-shrink: 0;
+}
+
+.mock-port-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.mock-port-input {
+  width: 80px;
+}
+
+/* 인라인 에러 (제어 바) */
+.mock-error-inline {
+  color: #f85149;
+  font-size: 11px;
+  margin-left: 4px;
+}
+
+/* 에러 블록 (패널 내) */
+.mock-error-block {
+  color: #f85149;
+  font-size: 11px;
+  background: rgba(248, 81, 73, 0.08);
+  border: 1px solid rgba(248, 81, 73, 0.25);
+  border-radius: 6px;
+  padding: 6px 10px;
+}
+
+/* 2단 바디 */
+.mock-body {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* 좌측 operation 목록 */
+.mock-op-list {
+  width: 340px;
+  flex-shrink: 0;
+  border-right: 1px solid var(--border);
+  overflow-y: auto;
+}
+
+.mock-op-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 12px;
+  cursor: pointer;
+  border-bottom: 1px solid var(--bg);
+  border-left: 3px solid transparent;
+}
+
+.mock-op-row:hover {
+  background: var(--bg-2);
+}
+
+.mock-op-row.selected {
+  background: rgba(56, 139, 253, 0.14);
+  border-left-color: var(--accent);
+}
+
+/* 메서드 레이블 */
+.mock-method {
+  font-family: ui-monospace, monospace;
+  font-weight: 700;
+  font-size: 10px;
+  width: 52px;
+  flex-shrink: 0;
+}
+
+/* 경로 */
+.mock-path {
+  font-family: ui-monospace, monospace;
+  font-size: 11px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text);
+}
+
+/* 우측 상세 패널 */
+.mock-detail {
+  flex: 1;
+  min-width: 0;
+  overflow-y: auto;
+  padding: 12px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.mock-detail-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+/* 필드 행 */
+.mock-field-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.mock-field-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+/* 짧은 숫자 입력 */
+.mock-num-input {
+  width: 72px;
+}
+
+/* 재생성 버튼 행 */
+.mock-regen-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* 선택 없음 안내 */
+.mock-no-selection {
+  color: var(--muted);
+  font-size: 12px;
+  padding: 24px;
+  text-align: center;
+}
+
+/* 데이터셋 라벨 */
+.mock-dataset-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+/* 데이터셋 textarea */
+.mock-dataset-textarea {
+  width: 100%;
+  min-height: 200px;
+  flex: 1;
+  font-family: ui-monospace, monospace;
+  font-size: 11px;
+  resize: vertical;
+  line-height: 1.5;
+}
+
+/* 로그 섹션 */
+.mock-log-section {
+  border-top: 1px solid var(--border);
+  flex-shrink: 0;
+  max-height: 160px;
+  display: flex;
+  flex-direction: column;
+}
+
+.mock-log-header {
+  padding: 6px 16px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--muted);
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-3);
+  flex-shrink: 0;
+}
+
+.mock-log-empty {
+  color: var(--muted);
+  font-size: 11px;
+  padding: 10px 16px;
+}
+
+.mock-log-list {
+  overflow-y: auto;
+  flex: 1;
+}
+
+.mock-log-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 4px 16px;
+  border-bottom: 1px solid var(--bg);
+  font-size: 11px;
+  font-family: ui-monospace, monospace;
+}
+
+.mock-log-method {
+  width: 52px;
+}
+
+.mock-log-path {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text);
+}
+
+.mock-log-status {
+  font-weight: 700;
+  width: 36px;
+  text-align: right;
+}
+
+.mock-log-time {
+  width: 60px;
+  text-align: right;
+}
