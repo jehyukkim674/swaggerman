@@ -47,6 +47,42 @@ export function hashString(s: string): number {
 }
 
 // ────────────────────────────────────────────────
+// Task 2: 도메인 데이터 + 인식 함수
+// ────────────────────────────────────────────────
+
+const KOREAN_SURNAMES = ["김", "이", "박", "최", "정", "강", "조", "윤", "장", "임", "한", "오", "서", "신", "권", "황", "안", "송", "류", "전"];
+const KOREAN_GIVEN_NAMES = ["민준", "서준", "도윤", "예준", "시우", "주원", "지우", "준서", "준우", "현우", "서연", "서윤", "지우", "서현", "민서", "하은", "하윤", "윤서", "지유", "채원"];
+
+const EMAIL_USERS = ["user", "admin", "test", "info", "support", "dev", "api", "service", "web", "app"];
+const EMAIL_DOMAINS = ["example.com", "test.org", "sample.net", "mock.io", "demo.co.kr"];
+
+const SAMPLE_WORDS = ["alpha", "bravo", "charlie", "delta", "echo", "foxtrot", "golf", "hotel", "india", "juliet", "kilo", "lima", "mike", "november", "oscar"];
+
+const DESCRIPTIONS = [
+  "샘플 데이터입니다.",
+  "테스트용 설명입니다.",
+  "이 항목에 대한 간략한 설명입니다.",
+  "상세 내용을 여기에 입력합니다.",
+  "목 서버가 생성한 예시 설명입니다.",
+];
+
+const KOREAN_ADDRESSES = [
+  "서울특별시 강남구 테헤란로 123",
+  "서울특별시 마포구 홍익로 456",
+  "경기도 성남시 분당구 판교로 789",
+  "부산광역시 해운대구 센텀중앙로 10",
+  "인천광역시 연수구 송도대로 200",
+];
+
+const HTTPS_URLS = [
+  "https://example.com/image.png",
+  "https://sample.org/photo.jpg",
+  "https://demo.io/resource/1",
+  "https://mock.co.kr/asset/2",
+  "https://test.net/file/3",
+];
+
+// ────────────────────────────────────────────────
 // 내부 유틸
 // ────────────────────────────────────────────────
 
@@ -60,7 +96,124 @@ function randInt(min: number, max: number, rng: () => number): number {
   return min + Math.floor(rng() * (max - min + 1));
 }
 
-const SAMPLE_WORDS = ["alpha", "bravo", "charlie", "delta", "echo", "foxtrot", "golf", "hotel", "india", "juliet", "kilo", "lima", "mike", "november", "oscar"];
+/** 시드 기반 UUID v4 형식 생성 */
+function generateUUID(rng: () => number): string {
+  const hex = () => Math.floor(rng() * 16).toString(16);
+  const seg = (n: number) => Array.from({ length: n }, hex).join("");
+  return `${seg(8)}-${seg(4)}-4${seg(3)}-${["8", "9", "a", "b"][Math.floor(rng() * 4)]}${seg(3)}-${seg(12)}`;
+}
+
+/** 시드 기반 ISO 날짜-시간 생성 */
+function generateDateTime(rng: () => number): string {
+  const year = 2024 + Math.floor(rng() * 3); // 2024~2026
+  const month = String(randInt(1, 12, rng)).padStart(2, "0");
+  const day = String(randInt(1, 28, rng)).padStart(2, "0");
+  const hour = String(randInt(0, 23, rng)).padStart(2, "0");
+  const min = String(randInt(0, 59, rng)).padStart(2, "0");
+  const sec = String(randInt(0, 59, rng)).padStart(2, "0");
+  return `${year}-${month}-${day}T${hour}:${min}:${sec}.000Z`;
+}
+
+/** 시드 기반 YYYY-MM-DD 생성 */
+function generateDate(rng: () => number): string {
+  const year = 2024 + Math.floor(rng() * 3);
+  const month = String(randInt(1, 12, rng)).padStart(2, "0");
+  const day = String(randInt(1, 28, rng)).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+/** 시드 기반 이메일 생성 */
+function generateEmail(rng: () => number): string {
+  const num = randInt(1, 99, rng);
+  const user = pick(EMAIL_USERS, rng);
+  const domain = pick(EMAIL_DOMAINS, rng);
+  return `${user}${num}.${pick(["alpha", "beta", "gamma"], rng)}@${domain}`;
+}
+
+/** 시드 기반 한국 전화번호 생성 */
+function generatePhone(rng: () => number): string {
+  const mid = String(randInt(1000, 9999, rng));
+  const end = String(randInt(1000, 9999, rng));
+  return `010-${mid}-${end}`;
+}
+
+/** format 기반 문자열 생성 (최우선) */
+function generateStringByFormat(format: string, rng: () => number): string | null {
+  switch (format) {
+    case "date-time":
+      return generateDateTime(rng);
+    case "date":
+      return generateDate(rng);
+    case "email":
+      return generateEmail(rng);
+    case "uuid":
+      return generateUUID(rng);
+    case "uri":
+    case "url":
+      return pick(HTTPS_URLS, rng);
+    default:
+      return null;
+  }
+}
+
+/** 필드명 패턴 기반 문자열 생성 */
+function generateStringByFieldName(fieldName: string, rng: () => number): string | null {
+  const lower = fieldName.toLowerCase();
+
+  if (/email/.test(lower)) {
+    return generateEmail(rng);
+  }
+  // name/username/이름 패턴 (fileName 같은 복합어는 "file"이 앞에 붙으므로 name으로 끝나거나 ^name이거나 username 등)
+  if (/(?:^|[^a-z])name$|^name$|username|이름/.test(lower)) {
+    return pick(KOREAN_SURNAMES, rng) + pick(KOREAN_GIVEN_NAMES, rng);
+  }
+  if (/at$|date|time/.test(lower)) {
+    return generateDateTime(rng);
+  }
+  if (/phone|mobile|tel/.test(lower)) {
+    return generatePhone(rng);
+  }
+  if (/url|image|href|link|photo/.test(lower)) {
+    return pick(HTTPS_URLS, rng);
+  }
+  if (/address|주소/.test(lower)) {
+    return pick(KOREAN_ADDRESSES, rng);
+  }
+  if (/description|desc|summary|메모|비고/.test(lower)) {
+    return pick(DESCRIPTIONS, rng);
+  }
+
+  return null;
+}
+
+/** 필드명 패턴 기반 정수 생성 */
+function generateIntegerByFieldName(
+  fieldName: string,
+  index: number | undefined,
+  rng: () => number,
+): number | null {
+  const lower = fieldName.toLowerCase();
+
+  // id로 끝나는 필드 → 순번
+  if (/id$/.test(lower)) {
+    return (index ?? 0) + 1;
+  }
+  if (/price|amount|cost|금액|가격/.test(lower)) {
+    return (randInt(1, 100, rng)) * 1000;
+  }
+  if (/count|total|size|개수/.test(lower)) {
+    return randInt(0, 99, rng);
+  }
+  if (/age|나이/.test(lower)) {
+    return randInt(20, 69, rng);
+  }
+
+  return null;
+}
+
+// ────────────────────────────────────────────────
+// Task 1 + 2: 핵심 생성 함수
+// ────────────────────────────────────────────────
 
 /**
  * ParsedSchema에서 결정적으로 mock 값을 생성한다.
@@ -96,17 +249,36 @@ export function generateFromSchema(
   }
 
   switch (schema.type) {
-    case "string":
+    case "string": {
+      // format 우선
+      if (schema.format) {
+        const fromFormat = generateStringByFormat(schema.format, rng);
+        if (fromFormat !== null) return fromFormat;
+      }
+      // 필드명 도메인 인식
+      if (opts.fieldName) {
+        const fromField = generateStringByFieldName(opts.fieldName, rng);
+        if (fromField !== null) return fromField;
+      }
+      // 기본: 샘플 단어
       return pick(SAMPLE_WORDS, rng);
+    }
 
-    case "integer":
+    case "integer": {
+      if (opts.fieldName) {
+        const fromField = generateIntegerByFieldName(opts.fieldName, opts.index, rng);
+        if (fromField !== null) return fromField;
+      }
       return randInt(1, 1000, rng);
+    }
 
-    case "number":
+    case "number": {
       return Math.round(rng() * 9999 * 100) / 100;
+    }
 
-    case "boolean":
+    case "boolean": {
       return rng() < 0.5;
+    }
 
     case "object": {
       const obj: Record<string, unknown> = {};
