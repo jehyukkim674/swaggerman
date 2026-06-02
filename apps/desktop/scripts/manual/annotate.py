@@ -46,6 +46,9 @@ def circle_center(a, img_w, img_h):
         "br": (x + w - R - pad, y + h - R - pad),
         "l": (x - R - 12, y + R),
         "r": (x + w + R + 12, y + R),
+        "t": (x + w // 2, y - R - 12),          # 박스 위 바깥(가운데)
+        "b": (x + w // 2, y + h + R + 12),      # 박스 아래 바깥(가운데)
+        "tl-out": (x - R - 10, y - R - 10),      # 좌상단 대각 바깥
     }
     cx, cy = centers[pos]
     cx = max(R + 2, min(img_w - R - 2, cx))
