@@ -307,6 +307,82 @@ describe("MockServerModal", () => {
     expect(checkbox?.checked).toBe(false);
   });
 
+  // ── 테스트 6.5(I2): 마운트 시 서버 실행 중이면 "실행 중" 표시 + 서버 중지 버튼 ──
+  it("마운트 시 getMockStatus가 running=true를 반환하면 즉시 실행 중 뱃지와 서버 중지 버튼이 표시된다", async () => {
+    mockGetMockStatus.mockResolvedValue({ running: true, port: 9090, logs: [] });
+
+    const spec = makeSpec([
+      { id: "GET /users", method: "GET", path: "/users" },
+    ]);
+
+    const { container } = render(
+      <MockServerModal
+        spec={spec}
+        specUrl="https://api.example.com/openapi.json"
+        history={[]}
+        onClose={() => {}}
+      />
+    );
+
+    // 마운트 직후 getMockStatus 응답이 반영될 때까지 대기
+    await waitFor(() => {
+      const badge = container.querySelector(".mock-running-badge");
+      expect(badge).toBeTruthy();
+      expect(badge?.textContent).toContain("실행 중");
+    });
+
+    // "서버 중지" 버튼이 표시되어야 함
+    const stopBtn = screen.getByText("서버 중지");
+    expect(stopBtn).toBeTruthy();
+  });
+
+  // ── 테스트 6.6(I1): AI 실패 시 자동 생성 폴백 + 에러 메시지 "대체했습니다" ──
+  it("AI complete가 reject되면 자동 생성 데이터로 폴백되고 에러 메시지에 '대체했습니다'가 포함된다", async () => {
+    const { getProvider } = await import("../core/ai/provider");
+    vi.mocked(getProvider).mockReturnValueOnce({
+      complete: vi.fn().mockRejectedValueOnce(new Error("API 키 없음")),
+    } as unknown as ReturnType<typeof getProvider>);
+
+    const spec = makeSpec([
+      { id: "GET /users", method: "GET", path: "/users" },
+    ]);
+
+    const { container } = render(
+      <MockServerModal
+        spec={spec}
+        specUrl="https://api.example.com/openapi.json"
+        history={[]}
+        onClose={() => {}}
+      />
+    );
+
+    // AI 소스 선택
+    const trigger = container.querySelector(".cselect-trigger");
+    expect(trigger).toBeTruthy();
+
+    await act(async () => {
+      fireEvent.click(trigger!);
+    });
+
+    await waitFor(() => {
+      const aiOption = screen.getByText("AI 생성 (Claude)");
+      expect(aiOption).toBeTruthy();
+      fireEvent.mouseDown(aiOption);
+    });
+
+    // AI 생성 실패 후 에러 메시지에 "대체했습니다" 포함 확인
+    await waitFor(() => {
+      const errorEl = screen.getByText(/대체했습니다/);
+      expect(errorEl).toBeTruthy();
+    });
+
+    // 데이터셋 textarea에 자동 생성 데이터가 있어야 함
+    const textarea = container.querySelector<HTMLTextAreaElement>(".mock-dataset-textarea");
+    expect(textarea).toBeTruthy();
+    const parsed = JSON.parse(textarea!.value);
+    expect(Array.isArray(parsed)).toBe(true);
+  });
+
   // ── 테스트 7: 히스토리 없을 때 에러 표시 ──
   it("히스토리 소스 선택 시 성공 히스토리 없으면 에러 표시", async () => {
     const spec = makeSpec([

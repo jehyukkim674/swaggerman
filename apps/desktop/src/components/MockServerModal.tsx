@@ -150,6 +150,28 @@ export function MockServerModal({ spec, specUrl, history, onClose }: Props) {
     return () => stopPoll();
   }, [stopPoll]);
 
+  // ─ 마운트 시 실제 서버 상태로 동기화 (모달 재오픈 시 불일치 방지) ─
+  useEffect(() => {
+    let cancelled = false;
+    getMockStatus()
+      .then((status) => {
+        if (cancelled) return;
+        setRunning(status.running);
+        setLogs(status.logs);
+        if (status.running) {
+          // 포트도 실제 값으로 맞춤
+          setConfig((prev) => ({ ...prev, port: status.port }));
+          startPoll();
+        }
+      })
+      .catch(() => {
+        // 상태 조회 실패는 무시 (Tauri 미초기화 등)
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [startPoll]); // eslint-disable-line react-hooks/exhaustive-deps
+
   // ─ 서버 시작 ─
   async function handleStart() {
     setServerError(null);
@@ -253,7 +275,16 @@ export function MockServerModal({ spec, specUrl, history, onClose }: Props) {
       setDatasetText(JSON.stringify(dataset, null, 2));
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
-      setPanelError(`AI 생성 실패: ${msg} — 자동 생성으로 대체하세요`);
+      // AI 실패 시 스키마 기반 자동 생성으로 폴백
+      const opCfgFallback = config.operations.find((o) => o.opId === opId);
+      const fallbackDataset = generateDataset(
+        op,
+        opCfgFallback?.itemCount ?? 20,
+        opCfgFallback?.seed ?? 1
+      );
+      updateOpCfg(opId, { source: "schema", dataset: fallbackDataset });
+      setDatasetText(JSON.stringify(fallbackDataset, null, 2));
+      setPanelError(`AI 생성 실패: ${msg} — 자동 생성 데이터로 대체했습니다`);
     } finally {
       setAiGenerating(false);
     }
