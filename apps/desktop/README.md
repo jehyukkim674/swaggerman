@@ -1,5 +1,7 @@
 # Swagger Man Desktop (크로스플랫폼)
 
+[![커피 사주기](https://img.shields.io/badge/☕_커피_사주기-카카오페이-FFCD00?style=for-the-badge)](https://qr.kakaopay.com/FcUzxPAhE)
+
 macOS·Windows·Linux용 OpenAPI/Swagger 탐색기. **Tauri 2 + React + TypeScript**.
 
 기존 macOS 네이티브 앱(`/SwaggerMan`, SwiftUI)과 **별도 코드베이스**이며, 도메인 로직(파서·HTTP·cURL)을 TypeScript로 포팅했습니다. Swift 코드는 건드리지 않습니다.

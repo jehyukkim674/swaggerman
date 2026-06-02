@@ -1,5 +1,7 @@
 # SwaggerMan
 
+[![커피 사주기](https://img.shields.io/badge/☕_커피_사주기-카카오페이-FFCD00?style=for-the-badge)](https://qr.kakaopay.com/FcUzxPAhE)
+
 macOS용 OpenAPI / Swagger 탐색기 앱.
 
 ## 개발 환경 설정
