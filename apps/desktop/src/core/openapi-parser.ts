@@ -90,6 +90,7 @@ export function parseSpec(doc: AnyObj): ParsedSpec {
       defaultValue: schema.default != null ? String(schema.default) : undefined,
       example: schema.example != null ? String(schema.example) : undefined,
       description: schema.description,
+      format: typeof schema.format === "string" ? schema.format : undefined,
     };
   };
 

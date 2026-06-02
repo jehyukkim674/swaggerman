@@ -32,6 +32,8 @@ export interface ParsedSchema {
   defaultValue?: string;
   example?: string;
   description?: string;
+  /** OpenAPI format 힌트 (date-time, email, uuid 등). 파서가 있으면 저장. */
+  format?: string;
 }
 
 export interface ParsedParameter {
