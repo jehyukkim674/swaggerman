@@ -8,6 +8,11 @@
 > **macOS 설치 시 "손상되어 열 수 없습니다"가 뜨면** (서명 미인증 앱): 터미널에서
 > `xattr -dr com.apple.quarantine /Applications/SwaggerMan.app` 실행 후 다시 여세요.
 
+## v0.4.3
+
+- 문서: **사용 매뉴얼 전면 보강** — Mock 서버·프록시 녹화·API 성능 추이·시간여행·가이드 문서 생성·플로우 빌더·메모/공유/권한 매트릭스·전역 단축키 섹션 추가 (https://jehyukkim674.github.io/swaggerman/)
+- 문서: README 구현 현황·기능 목록을 v0.4.x 전체 기능으로 최신화
+
 ## v0.4.2
 
 생산성·자동화 기능 5종 추가.
