@@ -3206,3 +3206,28 @@ tr.cmp-changed td { background: #d2992214; }
   font-weight: 700;
   font-family: ui-monospace, monospace;
 }
+
+/* ============================================================
+ * 전역 단축키 입력
+ * ============================================================ */
+.shortcut-input {
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+}
+.shortcut-capture {
+  min-width: 120px;
+  background: var(--bg-3);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 5px 10px;
+  font-family: ui-monospace, monospace;
+  font-size: 12px;
+  cursor: pointer;
+}
+.shortcut-capture.capturing {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(56, 139, 253, 0.22);
+  color: var(--muted);
+}

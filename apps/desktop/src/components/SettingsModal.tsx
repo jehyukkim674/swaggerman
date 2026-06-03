@@ -5,6 +5,7 @@ import { clearCookies, listCookies, type CookieInfo } from "../core/cookies";
 import { CloseCircleIcon } from "./icons";
 import { useEscToClose } from "./useEscToClose";
 import { DonationQR } from "./DonationQR";
+import { ShortcutInput } from "./ShortcutInput";
 
 interface Props {
   settings: NetworkSettings;
@@ -13,10 +14,24 @@ interface Props {
   /** claude 실행파일 경로 수동 지정(비우면 자동 탐지). */
   claudePath?: string;
   onClaudePathChange?: (path: string) => void;
+  /** 전역 단축키 accelerator(빈 문자열 = 비활성). */
+  globalShortcut?: string;
+  onGlobalShortcutChange?: (acc: string) => void;
+  /** 단축키 등록 에러(있으면 표시). */
+  shortcutError?: string | null;
 }
 
 /** 네트워크 설정(타임아웃/SSL/프록시) + AI(claude 경로) + 쿠키 조회·삭제 모달. */
-export function SettingsModal({ settings, onChange, onClose, claudePath = "", onClaudePathChange }: Props) {
+export function SettingsModal({
+  settings,
+  onChange,
+  onClose,
+  claudePath = "",
+  onClaudePathChange,
+  globalShortcut = "",
+  onGlobalShortcutChange,
+  shortcutError = null,
+}: Props) {
   // ESC 키로 닫기
   useEscToClose(onClose);
 
@@ -127,6 +142,20 @@ export function SettingsModal({ settings, onChange, onClose, claudePath = "", on
               </span>
             </div>
           ))}
+
+          {onGlobalShortcutChange && (
+            <>
+              <div className="settings-section">전역 단축키</div>
+              <label className="settings-field">
+                <span>앞으로 가져오기 + 검색</span>
+                <ShortcutInput value={globalShortcut} onChange={onGlobalShortcutChange} />
+              </label>
+              <div className="hint">
+                어느 앱에서든 이 단축키로 SwaggerMan을 불러내 검색 팔레트를 엽니다. 비우면 비활성.
+              </div>
+              {shortcutError && <div className="error-box">{shortcutError}</div>}
+            </>
+          )}
 
           <div className="settings-section">정보</div>
           <div className="hint">
