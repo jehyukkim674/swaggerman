@@ -49,3 +49,67 @@ export function fromBase64Url(s: string): Uint8Array {
   for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
   return out;
 }
+
+async function gzip(bytes: Uint8Array): Promise<Uint8Array> {
+  const cs = new CompressionStream("gzip");
+  const writer = cs.writable.getWriter();
+  writer.write(bytes);
+  writer.close();
+  const buf = await new Response(cs.readable).arrayBuffer();
+  return new Uint8Array(buf);
+}
+
+async function gunzip(bytes: Uint8Array): Promise<Uint8Array> {
+  const ds = new DecompressionStream("gzip");
+  const writer = ds.writable.getWriter();
+  writer.write(bytes);
+  writer.close();
+  const buf = await new Response(ds.readable).arrayBuffer();
+  return new Uint8Array(buf);
+}
+
+export interface EncodeOptions {
+  includeSecrets?: boolean;
+}
+
+/** 요청을 공유 코드 문자열로 인코딩. 기본은 민감 헤더 제외. */
+export async function encodeShare(req: ShareableRequest, opts: EncodeOptions = {}): Promise<string> {
+  const payload: ShareableRequest = { ...req };
+  if (!opts.includeSecrets) {
+    const excluded: string[] = [];
+    payload.headers = req.headers.filter((h) => {
+      if (isSecretHeader(h.key)) {
+        excluded.push(h.key);
+        return false;
+      }
+      return true;
+    });
+    payload.excludedSecrets = excluded;
+  } else {
+    payload.excludedSecrets = [];
+  }
+  const json = JSON.stringify(payload);
+  const bytes = new TextEncoder().encode(json);
+  const compressed = await gzip(bytes);
+  return SHARE_PREFIX + toBase64Url(compressed);
+}
+
+/** 공유 코드 문자열을 ShareableRequest로 디코딩. 실패 시 throw. */
+export async function decodeShare(code: string): Promise<ShareableRequest> {
+  const trimmed = code.trim();
+  if (!trimmed.startsWith(SHARE_PREFIX)) {
+    throw new Error("공유 코드 형식이 아닙니다 (swaggerman:req: 로 시작해야 함)");
+  }
+  let parsed: ShareableRequest;
+  try {
+    const compressed = fromBase64Url(trimmed.slice(SHARE_PREFIX.length));
+    const bytes = await gunzip(compressed);
+    parsed = JSON.parse(new TextDecoder().decode(bytes));
+  } catch {
+    throw new Error("공유 코드를 읽을 수 없습니다 (손상되었거나 형식이 잘못됨)");
+  }
+  if (parsed.v !== 1) {
+    throw new Error(`지원하지 않는 공유 코드 버전입니다 (v${parsed.v})`);
+  }
+  return parsed;
+}
