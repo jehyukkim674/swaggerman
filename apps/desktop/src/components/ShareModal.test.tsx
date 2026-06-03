@@ -2,7 +2,7 @@
 import { describe, it, expect, vi, beforeAll } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { ShareModal } from "./ShareModal";
-import type { ShareableRequest } from "../core/share";
+import { encodeShare, type ShareableRequest } from "../core/share";
 
 const writeText = vi.fn();
 beforeAll(() => {
@@ -59,5 +59,31 @@ describe("ShareModal 내보내기", () => {
       const after = (screen.getByLabelText("공유 코드") as HTMLTextAreaElement).value;
       expect(after).not.toBe(before); // 페이로드가 달라져 코드도 달라짐
     });
+  });
+});
+
+describe("ShareModal 가져오기", () => {
+  it("유효한 코드를 붙여넣으면 미리보기를 표시하고 적용 콜백을 호출한다", async () => {
+    const onApply = vi.fn();
+    // current를 encodeShare로 인코딩해 가져오기 입력값으로 사용
+    const code = await encodeShare(current);
+    render(<ShareModal current={null} onApply={onApply} onClose={vi.fn()} />);
+    // current=null이라 가져오기 탭이 기본
+    const input = screen.getByLabelText("공유 코드 입력") as HTMLTextAreaElement;
+    fireEvent.change(input, { target: { value: code } });
+    // 미리보기에 메서드·URL 표시
+    expect(await screen.findByText(/GET/)).toBeTruthy();
+    expect(screen.getByText(/api\.example\.com\/pets/)).toBeTruthy();
+    // 적용 버튼 클릭
+    fireEvent.click(screen.getByRole("button", { name: /적용/ }));
+    expect(onApply).toHaveBeenCalledWith(expect.objectContaining({ method: "GET" }));
+  });
+
+  it("깨진 코드는 에러를 표시하고 적용 버튼이 비활성이다", async () => {
+    render(<ShareModal current={null} onApply={vi.fn()} onClose={vi.fn()} />);
+    const input = screen.getByLabelText("공유 코드 입력");
+    fireEvent.change(input, { target: { value: "swaggerman:req:!!!깨짐" } });
+    expect(await screen.findByText(/읽을 수 없습니다|형식/)).toBeTruthy();
+    expect((screen.getByRole("button", { name: /적용/ }) as HTMLButtonElement).disabled).toBe(true);
   });
 });

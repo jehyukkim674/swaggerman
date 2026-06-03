@@ -111,9 +111,72 @@ function ExportTab({ current }: { current: ShareableRequest }) {
   );
 }
 
-// ImportTab은 Task 4에서 구현. 우선 stub.
-function ImportTab({ onApply, onClose }: { onApply: (req: ShareableRequest) => void; onClose: () => void }) {
-  void onApply;
-  void onClose;
-  return <div className="hint">가져오기는 다음 단계에서 구현됩니다.</div>;
+function ImportTab({
+  onApply,
+  onClose,
+}: {
+  onApply: (req: ShareableRequest) => void;
+  onClose: () => void;
+}) {
+  const [text, setText] = useState("");
+  const [preview, setPreview] = useState<ShareableRequest | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  const onText = (value: string) => {
+    setText(value);
+    setError(null);
+    setPreview(null);
+    if (!value.trim()) return;
+    decodeShare(value)
+      .then(setPreview)
+      .catch((e) => setError(e instanceof Error ? e.message : String(e)));
+  };
+
+  return (
+    <div className="share-import">
+      <p className="hint">받은 공유 코드를 붙여넣으면 현재 요청 화면에 적용됩니다.</p>
+      <textarea
+        className="share-code"
+        aria-label="공유 코드 입력"
+        value={text}
+        onChange={(e) => onText(e.target.value)}
+        placeholder="swaggerman:req:..."
+        rows={4}
+        spellCheck={false}
+      />
+      {error && <div className="share-warn">{error}</div>}
+      {preview && (
+        <div className="share-preview">
+          <div className="share-preview-line">
+            <span className="method">{preview.method}</span> {preview.url}
+          </div>
+          <div className="share-preview-meta">
+            헤더 {preview.headers.length}개
+            {preview.body ? " · Body 있음" : ""}
+            {preview.note ? " · 메모 포함" : ""}
+          </div>
+          {preview.excludedSecrets && preview.excludedSecrets.length > 0 && (
+            <div className="share-note">
+              🔒 보낸 사람이 민감 헤더 {preview.excludedSecrets.length}개를 제외함:{" "}
+              {preview.excludedSecrets.join(", ")}
+            </div>
+          )}
+        </div>
+      )}
+      <div className="share-actions">
+        <button
+          className="btn small primary"
+          disabled={!preview}
+          onClick={() => {
+            if (preview) {
+              onApply(preview);
+              onClose();
+            }
+          }}
+        >
+          적용
+        </button>
+      </div>
+    </div>
+  );
 }
