@@ -67,7 +67,7 @@ export function TimeTravelModal({ specUrl, spec, snapshots, onCapture, onCompare
               자동
             </label>
             <Select value={String(config.intervalMin)} onChange={(v) => setConfig((c) => ({ ...c, intervalMin: Number(v) }))} options={INTERVAL_OPTS} />
-            {config.autoOn && <span className="tt-auto-on">자동 캡처 중 (앱 열린 동안)</span>}
+            {config.autoOn && <span className="tt-auto-on">자동 캡처 켜짐 — 닫으면 시작 (앱 열린 동안)</span>}
           </div>
           <div className="tt-targets">
             <div className="tt-section">대상 API</div>
