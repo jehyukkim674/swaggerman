@@ -69,6 +69,10 @@ import { ProjectsModal } from "./components/ProjectsModal";
 import { CompareModal } from "./components/CompareModal";
 import { DonationModal } from "./components/DonationModal";
 import { MockServerModal } from "./components/MockServerModal";
+import { ProxyModal } from "./components/ProxyModal";
+import { recordingToMock } from "./core/proxy-to-mock";
+import type { ProxyRecord } from "./core/proxy-client";
+import { loadMockConfig, saveMockConfig } from "./core/mock-config";
 import { ShareModal } from "./components/ShareModal";
 import { PermissionMatrixModal } from "./components/PermissionMatrixModal";
 import type { MatrixCell } from "./core/permission-matrix";
@@ -183,6 +187,7 @@ export default function App() {
   const [collectionsOpen, setCollectionsOpen] = useState(false);
   const [runnerOpen, setRunnerOpen] = useState(false);
   const [mockOpen, setMockOpen] = useState(false);
+  const [proxyOpen, setProxyOpen] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
   const [pmatrixOpen, setPmatrixOpen] = useState(false);
   // 새 창 열기 확인 다이얼로그 (실수 클릭으로 창이 늘어나는 것 방지)
@@ -222,6 +227,24 @@ export default function App() {
     } catch (e) {
       return { status: 0, ok: false, durationMs: Date.now() - t0, error: String(e) };
     }
+  }
+
+  // 프록시 녹화를 Mock 데이터로 저장. 결과 메시지 반환.
+  function sendRecordingToMock(record: ProxyRecord): string {
+    if (!spec) return "스펙이 로드되지 않았습니다";
+    const target = recordingToMock(spec, record);
+    if (!target) return `스펙에 없는 경로입니다: ${record.method} ${record.path}`;
+    const url = activeSpecUrl || specUrl;
+    const cfg = loadMockConfig(url, spec);
+    const op = cfg.operations.find((o) => o.opId === target.opId);
+    if (op) {
+      op.enabled = true;
+      op.source = "manual";
+      op.dataset = target.dataset;
+      op.body = target.body;
+    }
+    saveMockConfig(url, cfg);
+    return `Mock 저장됨: ${target.opId}`;
   }
 
   // 컬렉션(저장 요청) — 전역 저장
@@ -1032,6 +1055,14 @@ export default function App() {
         </button>
         <button
           className="btn"
+          title="프록시 녹화 — 실서버로 포워딩하며 응답을 녹화해 Mock으로"
+          onClick={() => setProxyOpen(true)}
+          disabled={!spec}
+        >
+          프록시
+        </button>
+        <button
+          className="btn"
           title="새 창 열기 — 다른 프로젝트를 동시에 볼 수 있습니다 (⌘N)"
           onClick={() => setNewWindowConfirm(true)}
         >
@@ -1380,6 +1411,13 @@ export default function App() {
           specUrl={activeSpecUrl || specUrl}
           history={history}
           onClose={() => setMockOpen(false)}
+        />
+      )}
+      {proxyOpen && spec && (
+        <ProxyModal
+          defaultTarget={baseURL}
+          onSendToMock={sendRecordingToMock}
+          onClose={() => setProxyOpen(false)}
         />
       )}
       {shareOpen && (

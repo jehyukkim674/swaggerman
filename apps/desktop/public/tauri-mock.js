@@ -149,6 +149,14 @@
       case "mock_status":
         return Promise.resolve({ running: false, port: 0, logs: [] });
 
+      // --- 프록시 녹화 (브라우저 모드 no-op) ---
+      case "proxy_start":
+        return Promise.reject(new Error("브라우저 모드에서는 프록시를 사용할 수 없습니다 (데스크톱 전용)"));
+      case "proxy_stop":
+        return Promise.resolve();
+      case "proxy_recordings":
+        return Promise.resolve([]);
+
       // --- 전역 단축키 (브라우저 모드 no-op) ---
       case "register_global_shortcut":
         return Promise.resolve();
