@@ -3231,3 +3231,14 @@ tr.cmp-changed td { background: #d2992214; }
   box-shadow: 0 0 0 3px rgba(56, 139, 253, 0.22);
   color: var(--muted);
 }
+
+/* 프록시 녹화 모달 */
+.modal.proxy-modal { width: 680px; max-width: 94vw; max-height: 82vh; }
+.proxy-body { display: flex; flex-direction: column; gap: 10px; overflow: hidden; }
+.proxy-running { margin-left: 10px; font-size: 11px; color: #3fb950; font-weight: 600; }
+.proxy-control { display: flex; gap: 10px; align-items: flex-end; flex-wrap: wrap; }
+.proxy-sendmsg { color: var(--accent); font-size: 12px; }
+.proxy-records { overflow: auto; border: 1px solid var(--border); border-radius: 6px; flex: 1; min-height: 120px; }
+.proxy-rec-row { display: flex; align-items: center; gap: 8px; padding: 4px 8px; font-size: 12px; border-bottom: 1px solid var(--border); }
+.proxy-rec-path { font-family: ui-monospace, monospace; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.proxy-rec-status { font-family: ui-monospace, monospace; font-weight: 700; }
