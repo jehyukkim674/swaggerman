@@ -121,6 +121,13 @@ async fn forward_handler(
     match req.send().await {
         Ok(res) => {
             let status = res.status().as_u16();
+            // 업스트림 Content-Type을 본문 소비 전에 캡처한다.
+            let upstream_ct = res
+                .headers()
+                .get(reqwest::header::CONTENT_TYPE)
+                .and_then(|v| v.to_str().ok())
+                .map(|s| s.to_owned());
+            // 주의: 바이너리/비-UTF8 응답은 text() 디코딩 시 손실될 수 있다.
             let resp_body = res.text().await.unwrap_or_default();
             push_record(ProxyRecord {
                 at_ms: now_ms(),
@@ -137,6 +144,13 @@ async fn forward_handler(
             )
                 .into_response();
             cors_headers(resp.headers_mut());
+            // 업스트림 Content-Type을 덮어써서 axum 기본값(text/plain)을 방지한다.
+            if let Some(ct) = upstream_ct {
+                if let Ok(val) = ct.parse::<axum::http::HeaderValue>() {
+                    resp.headers_mut()
+                        .insert(axum::http::header::CONTENT_TYPE, val);
+                }
+            }
             resp
         }
         Err(e) => {
@@ -257,5 +271,58 @@ mod tests {
         let recs = recordings().lock().unwrap();
         assert_eq!(recs.len(), 100);
         assert_eq!(recs.first().unwrap().path, "/p30"); // 앞 30개 드레인
+    }
+
+    /// 업스트림이 application/json을 반환하면 프록시 응답에도 content-type이 보존되는지 확인한다.
+    #[tokio::test]
+    async fn proxy_preserves_upstream_content_type() {
+        use axum::routing::get;
+        use axum::Json;
+        use serde_json::json;
+
+        // ── 타깃 서버(로컬) 구동 ──────────────────────────────────────
+        let target_app = Router::new().route(
+            "/data",
+            get(|| async { Json(json!({"ok": true})) }),
+        );
+        let target_listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let target_port = target_listener.local_addr().unwrap().port();
+        tokio::spawn(async move {
+            axum::serve(target_listener, target_app).await.unwrap();
+        });
+
+        // ── 프록시 서버 구동 ──────────────────────────────────────────
+        let proxy_listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let proxy_port = proxy_listener.local_addr().unwrap().port();
+        let state = ProxyState {
+            target: Arc::new(format!("http://127.0.0.1:{target_port}")),
+            client: reqwest::Client::new(),
+        };
+        let proxy_app = Router::new().fallback(forward_handler).with_state(state);
+        tokio::spawn(async move {
+            axum::serve(proxy_listener, proxy_app).await.unwrap();
+        });
+
+        // 서버가 바인드될 여유를 준다.
+        tokio::time::sleep(std::time::Duration::from_millis(50)).await;
+
+        // ── 프록시를 통해 요청 ────────────────────────────────────────
+        let client = reqwest::Client::new();
+        let resp = client
+            .get(format!("http://127.0.0.1:{proxy_port}/data"))
+            .send()
+            .await
+            .expect("프록시 요청 실패");
+
+        assert_eq!(resp.status().as_u16(), 200);
+        let ct = resp
+            .headers()
+            .get(reqwest::header::CONTENT_TYPE)
+            .and_then(|v| v.to_str().ok())
+            .unwrap_or("");
+        assert!(
+            ct.contains("application/json"),
+            "Content-Type이 application/json이어야 하지만 '{ct}'",
+        );
     }
 }
