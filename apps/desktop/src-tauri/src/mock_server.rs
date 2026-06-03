@@ -431,6 +431,69 @@ mod tests {
     use super::*;
     use serde_json::json;
 
+    // ── TS ↔ Rust IPC 직렬화 경계 테스트 ──────────────────────
+    // (UI E2E를 대신하는 검증: TS mock-client/mock-config가 보내는/받는
+    //  JSON 모양이 Rust serde 타입과 정확히 호환되는지 고정한다)
+
+    #[test]
+    fn mock_config_deserializes_ts_camelcase_json() {
+        // TS buildMockRoutes → startMockServer가 보내는 실제 JSON 형태 (camelCase)
+        let ts_json = r#"{
+            "port": 9090,
+            "routes": [
+                {
+                    "method": "GET",
+                    "path": "/pets/{petId}",
+                    "status": 200,
+                    "dataset": [{"id": 1, "name": "코코"}],
+                    "delayMs": 100,
+                    "idField": "petId",
+                    "listWrapper": "content"
+                },
+                {
+                    "method": "POST",
+                    "path": "/pets",
+                    "status": 201,
+                    "body": {"ok": true},
+                    "delayMs": 0
+                }
+            ]
+        }"#;
+        let config: MockConfig = serde_json::from_str(ts_json).expect("TS JSON 역직렬화 실패");
+        assert_eq!(config.port, 9090);
+        assert_eq!(config.routes.len(), 2);
+        let r0 = &config.routes[0];
+        assert_eq!(r0.delay_ms, 100);
+        assert_eq!(r0.id_field.as_deref(), Some("petId"));
+        assert_eq!(r0.list_wrapper.as_deref(), Some("content"));
+        assert_eq!(r0.dataset.as_ref().unwrap()[0]["name"], "코코");
+        let r1 = &config.routes[1];
+        assert_eq!(r1.status, 201);
+        assert!(r1.dataset.is_none());
+        assert_eq!(r1.body.as_ref().unwrap()["ok"], true);
+    }
+
+    #[test]
+    fn mock_status_serializes_to_ts_camelcase() {
+        // Rust mock_status() 응답 → TS MockStatus 인터페이스(camelCase 필드)와 일치해야 함
+        let status = MockStatus {
+            running: true,
+            port: 9090,
+            logs: vec![MockLogEntry {
+                at_ms: 1717000000000,
+                method: "GET".into(),
+                path: "/pets".into(),
+                status: 200,
+            }],
+        };
+        let json = serde_json::to_value(&status).unwrap();
+        assert_eq!(json["running"], true);
+        assert_eq!(json["port"], 9090);
+        // TS 인터페이스 필드명: atMs (snake_case at_ms가 아니어야 함)
+        assert_eq!(json["logs"][0]["atMs"], 1717000000000u64);
+        assert!(json["logs"][0].get("at_ms").is_none());
+    }
+
     // ── match_path 테스트 ──────────────────────
 
     #[test]
@@ -604,31 +667,10 @@ mod tests {
         assert_eq!(body["id"], 100);
     }
 
-    // ── stop_server_internal pub(crate) 테스트 ──
-
-    #[tokio::test]
-    async fn stop_server_internal_cleans_up_running_server() {
-        // 서버 시작
-        let config = MockConfig {
-            port: 0,
-            routes: vec![],
-        };
-        let port = mock_start(config).await.expect("서버 시작 실패");
-        assert!(port > 0);
-        assert!(mock_status().running);
-
-        // pub(crate) stop_server_internal 직접 호출
-        stop_server_internal();
-
-        // handle이 None으로 전환되어야 함
-        let status = mock_status();
-        assert!(!status.running, "stop_server_internal 후 running이 true");
-
-        // 서버 태스크 종료 대기 (다른 테스트와 포트 충돌 방지)
-        tokio::time::sleep(std::time::Duration::from_millis(50)).await;
-    }
-
     // ── 통합 테스트 (실제 HTTP 서버) ─────────
+    // 주의: mock 서버는 전역 싱글톤(SERVER_HANDLE)이라 서버를 띄우는 tokio 테스트가
+    // 병렬로 돌면 서로의 서버를 중지시켜 깨진다. 라이프사이클 검증은 모두
+    // 이 테스트 하나에서 순차로 수행한다.
 
     #[tokio::test]
     async fn integration_start_request_stop() {
@@ -694,5 +736,19 @@ mod tests {
         tokio::time::sleep(std::time::Duration::from_millis(50)).await;
         let status3 = mock_status();
         assert!(!status3.running);
+
+        // ── stop_server_internal(pub(crate)) 검증: 재시작 후 동기 정리 호출 ──
+        // (앱 종료 시 Tauri RunEvent 훅이 호출하는 경로)
+        let port2 = mock_start(MockConfig { port: 0, routes: vec![] })
+            .await
+            .expect("재시작 실패");
+        assert!(port2 > 0);
+        assert!(mock_status().running);
+
+        stop_server_internal();
+        assert!(
+            !mock_status().running,
+            "stop_server_internal 후 running이 true"
+        );
     }
 }
