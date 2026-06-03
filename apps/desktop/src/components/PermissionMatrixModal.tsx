@@ -6,10 +6,12 @@ import {
   savePersonas,
   defaultPersonas,
   runMatrix,
+  statusKind,
   newId,
   type Persona,
   type MatrixCell,
   type MatrixResult,
+  type StatusKind,
 } from "../core/permission-matrix";
 import { methodColor } from "./method";
 import { CloseCircleIcon, TrashIcon } from "./icons";
@@ -166,7 +168,7 @@ export function PermissionMatrixModal({ specUrl, operations, runOne, onClose }: 
             </button>
           </div>
 
-          {/* 결과 표 (Task 4에서 구현) */}
+          {/* 결과 표 */}
           {result && <MatrixTable personas={personas} ops={checkedOps} result={result} />}
         </div>
       </div>
@@ -187,7 +189,64 @@ export function PermissionMatrixModal({ specUrl, operations, runOne, onClose }: 
   );
 }
 
-// 결과 표는 Task 4에서 구현. 우선 stub.
-function MatrixTable(_props: { personas: Persona[]; ops: ParsedOperation[]; result: MatrixResult }) {
-  return <div className="hint">결과 표는 다음 단계에서 구현됩니다.</div>;
+// 상태코드 kind별 색상
+const KIND_COLOR: Record<StatusKind, string> = {
+  success: "#3fb950",
+  redirect: "var(--muted)",
+  perm: "#d29922",
+  error: "#f85149",
+  net: "#f85149",
+};
+
+/** 결과 표: 행=op, 열=persona, 셀=상태코드(kind 색상). 401/403은 주황 강조. */
+function MatrixTable({
+  personas,
+  ops,
+  result,
+}: {
+  personas: Persona[];
+  ops: ParsedOperation[];
+  result: MatrixResult;
+}) {
+  return (
+    <div className="pmatrix-result">
+      <table className="pmatrix-table">
+        <thead>
+          <tr>
+            <th>API</th>
+            {personas.map((p) => (
+              <th key={p.id}>{p.name}</th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {ops.map((op) => (
+            <tr key={op.id}>
+              <td className="pmatrix-table-op">
+                <span className="method" style={{ color: methodColor(op.method) }}>
+                  {op.method}
+                </span>{" "}
+                {op.path}
+              </td>
+              {personas.map((p) => {
+                const cell = result[op.id]?.[p.id];
+                if (!cell) return <td key={p.id}>—</td>;
+                const kind = statusKind(cell.status);
+                return (
+                  <td
+                    key={p.id}
+                    className="pmatrix-cell"
+                    style={{ color: KIND_COLOR[kind] }}
+                    title={cell.error ? cell.error : `${cell.durationMs}ms`}
+                  >
+                    {cell.status === 0 ? "ERR" : cell.status}
+                  </td>
+                );
+              })}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
 }
