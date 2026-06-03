@@ -130,6 +130,9 @@ export function FlowModal({ specUrl, spec, initialVars, execOne, onClose }: Prop
                   + 단계 추가
                 </button>
               </div>
+              <div className="hint">
+                단계 요청은 스펙 기본값으로 생성되며, 이전 단계에서 추출한 {"{{변수}}"}로 값을 채웁니다.
+              </div>
               <div className="flow-steps">
                 {active.steps.map((step, idx) => {
                   const r = results[step.id];

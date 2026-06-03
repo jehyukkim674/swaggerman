@@ -97,7 +97,12 @@ export async function runFlow(
     const res = await execOne(step.opId, vars);
     const extracted = res.body ? applyExtractRules(res.body, step.extractRules) : {};
     Object.assign(vars, extracted);
-    const assertResults = runAssertions(res.status, res.body, step.assertions);
+    // 네트워크 오류(error 있음 또는 status === 0)인 단계는 어서션을 건너뛴다.
+    // ERR 뱃지와 어서션 실패가 중복 보고되는 혼란을 방지한다.
+    const assertResults =
+      res.error || res.status === 0
+        ? []
+        : runAssertions(res.status, res.body, step.assertions);
     results.push({
       stepId: step.id,
       status: res.status,

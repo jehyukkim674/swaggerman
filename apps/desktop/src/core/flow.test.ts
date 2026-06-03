@@ -97,6 +97,28 @@ describe("runFlow", () => {
     expect(results[1].status).toBe(200); // 계속 실행
   });
 
+  it("status 0(네트워크 오류) 단계는 assertions가 있어도 assertResults가 빈 배열", async () => {
+    const f = flowWith([
+      {
+        id: "s1",
+        opId: "GET /a",
+        name: "a",
+        extractRules: [],
+        assertions: [{ kind: "status", op: "equals", expected: "200" }],
+      },
+    ]);
+    const execOne = async (): Promise<ExecResult> => ({
+      status: 0,
+      ok: false,
+      body: "",
+      durationMs: 0,
+      error: "네트워크 오류",
+    });
+    const { results } = await runFlow(f, execOne, {});
+    expect(results[0].error).toBe("네트워크 오류");
+    expect(results[0].assertResults).toEqual([]); // 어서션 skip
+  });
+
   it("JSON 아닌 응답은 추출 skip(빈 extracted)", async () => {
     const f = flowWith([
       {
