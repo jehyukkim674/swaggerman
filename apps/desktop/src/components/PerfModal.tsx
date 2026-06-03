@@ -24,12 +24,28 @@ type SortKey = "avgMs" | "p95Ms" | "count";
 export function PerfModal({ history, onClose }: Props) {
   useEscToClose(onClose);
   const [sortKey, setSortKey] = useState<SortKey>("avgMs");
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
+
+  const toggleSort = (key: SortKey) => {
+    if (key === sortKey) {
+      setSortDir((d) => (d === "desc" ? "asc" : "desc"));
+    } else {
+      setSortKey(key);
+      setSortDir("desc");
+    }
+  };
+
   const stats = useMemo(() => {
     const base = computePerfTrends(history);
-    return [...base].sort((a, b) => b[sortKey] - a[sortKey]);
-  }, [history, sortKey]);
+    return [...base].sort((a, b) =>
+      sortDir === "desc" ? b[sortKey] - a[sortKey] : a[sortKey] - b[sortKey]
+    );
+  }, [history, sortKey, sortDir]);
 
   const trendColor = (t: PerfTrend) => TREND_META[t].color;
+
+  const sortIndicator = (key: SortKey) =>
+    sortKey === key ? (sortDir === "desc" ? " ▼" : " ▲") : "";
 
   return (
     <div className="modal-overlay" onMouseDown={onClose}>
@@ -46,9 +62,9 @@ export function PerfModal({ history, onClose }: Props) {
               <thead>
                 <tr>
                   <th>API</th>
-                  <th className="perf-sortable" onClick={() => setSortKey("count")}>호출</th>
-                  <th className="perf-sortable" onClick={() => setSortKey("avgMs")}>평균</th>
-                  <th className="perf-sortable" onClick={() => setSortKey("p95Ms")}>p95</th>
+                  <th className={`perf-sortable${sortKey === "count" ? " perf-sort-active" : ""}`} onClick={() => toggleSort("count")}>호출{sortIndicator("count")}</th>
+                  <th className={`perf-sortable${sortKey === "avgMs" ? " perf-sort-active" : ""}`} onClick={() => toggleSort("avgMs")}>평균{sortIndicator("avgMs")}</th>
+                  <th className={`perf-sortable${sortKey === "p95Ms" ? " perf-sort-active" : ""}`} onClick={() => toggleSort("p95Ms")}>p95{sortIndicator("p95Ms")}</th>
                   <th>추이</th>
                 </tr>
               </thead>

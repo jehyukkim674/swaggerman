@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, fireEvent } from "@testing-library/react";
 import { PerfModal } from "./PerfModal";
 import type { HistoryItem } from "../core/history";
 
@@ -23,5 +23,25 @@ describe("PerfModal", () => {
   it("스파크라인을 렌더한다", () => {
     const { container } = render(<PerfModal history={hist} onClose={vi.fn()} />);
     expect(container.querySelectorAll(".sparkline").length).toBeGreaterThan(0);
+  });
+  it("평균 헤더 클릭 시 ▼ 표시, 재클릭 시 ▲로 토글된다", () => {
+    render(<PerfModal history={hist} onClose={vi.fn()} />);
+    const avgHeader = screen.getByText(/평균/);
+    // 초기: avgMs desc → ▼
+    expect(avgHeader.textContent).toContain("▼");
+    // 재클릭 → asc → ▲
+    fireEvent.click(avgHeader);
+    expect(avgHeader.textContent).toContain("▲");
+    // 한 번 더 클릭 → desc → ▼
+    fireEvent.click(avgHeader);
+    expect(avgHeader.textContent).toContain("▼");
+  });
+  it("다른 컬럼 클릭 시 해당 컬럼이 활성화되고 방향은 desc로 초기화된다", () => {
+    render(<PerfModal history={hist} onClose={vi.fn()} />);
+    const p95Header = screen.getByText(/p95/);
+    fireEvent.click(p95Header);
+    expect(p95Header.textContent).toContain("▼");
+    // 평균 헤더에는 방향 표시 없음
+    expect(screen.getByText(/평균/).textContent).toBe("평균");
   });
 });
