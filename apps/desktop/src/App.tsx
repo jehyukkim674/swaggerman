@@ -44,6 +44,7 @@ import { Select } from "./components/Select";
 import { ConfirmDialog } from "./components/ConfirmDialog";
 import {
   defaultNetworkSettings,
+  type HTTPMethod,
   type HTTPRequest,
   type HTTPResponse,
   type NetworkSettings,
@@ -773,7 +774,7 @@ export default function App() {
     }
     const op: ParsedOperation = {
       id: `share:${req.method} ${pathname}`,
-      method: req.method as import("./core/types").HTTPMethod,
+      method: req.method as HTTPMethod,
       path: pathname,
       tags: ["공유"],
       summary: "공유받은 요청",
