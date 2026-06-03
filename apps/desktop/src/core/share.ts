@@ -25,7 +25,7 @@ export const SHARE_PREFIX = "swaggerman:req:";
 
 // 민감 헤더: 정확 일치(authorization/cookie/set-cookie) + 부분 일치 패턴
 const SECRET_EXACT = new Set(["authorization", "cookie", "set-cookie"]);
-const SECRET_PARTS = ["token", "api-key", "apikey", "secret", "password", "passwd", "auth"];
+const SECRET_PARTS = ["token", "api-key", "apikey", "secret", "password", "passwd", "auth", "credential", "bearer", "session", "jwt", "signature", "private", "sso"];
 
 /** 헤더 key가 토큰/인증 등 민감 정보인지 판별(대소문자 무시). */
 export function isSecretHeader(key: string): boolean {
@@ -110,6 +110,18 @@ export async function decodeShare(code: string): Promise<ShareableRequest> {
   }
   if (parsed.v !== 1) {
     throw new Error(`지원하지 않는 공유 코드 버전입니다 (v${parsed.v})`);
+  }
+  if (
+    typeof parsed.method !== "string" ||
+    typeof parsed.url !== "string" ||
+    !Array.isArray(parsed.headers) ||
+    !Array.isArray(parsed.queryParams) ||
+    typeof parsed.pathParams !== "object" ||
+    parsed.pathParams === null ||
+    Array.isArray(parsed.pathParams) ||
+    typeof parsed.body !== "string"
+  ) {
+    throw new Error("공유 코드 내용이 올바르지 않습니다");
   }
   return parsed;
 }

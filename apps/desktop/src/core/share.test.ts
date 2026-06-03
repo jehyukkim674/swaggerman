@@ -15,6 +15,11 @@ describe("isSecretHeader", () => {
       expect(isSecretHeader(k)).toBe(true);
     }
   });
+  it("확장된 민감 패턴을 식별한다", () => {
+    for (const k of ["X-Session-Id", "Authorization-Bearer", "X-Credential", "X-JWT", "X-Signature"]) {
+      expect(isSecretHeader(k)).toBe(true);
+    }
+  });
   it("일반 헤더는 민감하지 않다", () => {
     for (const k of ["Accept", "Content-Type", "User-Agent", "X-Request-Id", "Accept-Language"]) {
       expect(isSecretHeader(k)).toBe(false);
@@ -94,5 +99,13 @@ describe("encodeShare / decodeShare", () => {
     (bad as unknown as { v: number }).v = 2;
     const code = await encodeShare(bad, { includeSecrets: true });
     await expect(decodeShare(code)).rejects.toThrow(/버전/);
+  });
+
+  it("핵심 필드 타입이 틀리면 에러를 던진다", async () => {
+    // headers를 배열이 아닌 문자열로 넣어 형태 검증에 걸리게 함.
+    // includeSecrets:true 경로는 headers를 순회하지 않으므로 인코딩은 통과하고 디코딩에서 걸린다.
+    const broken = { v: 1, method: "GET", url: "x", pathParams: {}, queryParams: [], headers: "oops", body: "" };
+    const code = await encodeShare(broken as unknown as ShareableRequest, { includeSecrets: true });
+    await expect(decodeShare(code)).rejects.toThrow(/올바르지 않습니다/);
   });
 });
