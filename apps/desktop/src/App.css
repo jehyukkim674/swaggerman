@@ -3265,3 +3265,22 @@ tr.cmp-changed td { background: #d2992214; }
 .guide-op-path { font-family: ui-monospace, monospace; }
 .guide-actions { display: flex; gap: 8px; align-items: center; }
 .guide-preview { flex: 1; background: var(--bg); color: var(--text); border: 1px solid var(--border); border-radius: 6px; padding: 10px; font-family: ui-monospace, monospace; font-size: 12px; resize: none; }
+
+/* API 시간여행 모달 */
+.modal.tt-modal { width: 720px; max-width: 94vw; height: 80vh; }
+.tt-body { display: flex; flex-direction: column; gap: 10px; overflow: hidden; }
+.tt-control { display: flex; align-items: center; gap: 10px; }
+.tt-auto { display: flex; align-items: center; gap: 4px; font-size: 12px; color: var(--muted); }
+.tt-auto-on { font-size: 11px; color: #3fb950; }
+.tt-section { font-size: 11px; font-weight: 700; color: var(--muted); }
+.tt-targets { max-height: 120px; overflow: auto; border: 1px solid var(--border); border-radius: 6px; padding: 4px; }
+.tt-target-check { display: flex; align-items: center; gap: 6px; padding: 3px 6px; font-size: 12px; cursor: pointer; }
+.tt-target-check:hover { background: var(--bg-3); }
+.tt-path { font-family: ui-monospace, monospace; }
+.tt-timeline-head { display: flex; align-items: center; gap: 8px; }
+.tt-timeline { flex: 1; overflow: auto; border: 1px solid var(--border); border-radius: 6px; }
+.tt-snap-row { display: flex; align-items: center; gap: 8px; padding: 4px 8px; font-size: 12px; border-bottom: 1px solid var(--border); }
+.tt-snap-time { font-family: ui-monospace, monospace; flex: 1; }
+.tt-snap-status { font-weight: 700; }
+.tt-snap-dur { color: var(--muted); }
+.tt-body-view { max-height: 200px; overflow: auto; background: var(--bg); border: 1px solid var(--border); border-radius: 6px; padding: 8px; font-family: ui-monospace, monospace; font-size: 11px; white-space: pre-wrap; }

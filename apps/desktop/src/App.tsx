@@ -87,6 +87,11 @@ import { applySuggestion, applySuggestionForOp, filterKnownParams } from "./core
 import { diagnosePrompt, explainPrompt } from "./core/ai/prompts";
 import type { RequestSuggestion } from "./core/ai/types";
 import type { ShareableRequest } from "./core/share";
+import { TimeTravelModal } from "./components/TimeTravelModal";
+import {
+  loadSnapshots, saveSnapshots, addSnapshot, loadTTConfig,
+  type Snapshot,
+} from "./core/snapshots";
 
 const DEFAULT_SPEC_URL = "http://localhost:8000/v3/api-docs";
 
@@ -622,6 +627,7 @@ export default function App() {
         loadJSON(`swaggerman.samples.${targetUrl}`, {} as Record<string, RequestSample[]>),
       );
       setGlobalHeaders(loadJSON(`swaggerman.headers.${targetUrl}`, [] as RequestParam[]));
+      setSnapshots(loadSnapshots(targetUrl));
       opCacheRef.current.clear();
       // 마지막 위치·요청 정보 복원: 저장된 입력값 로드 + 마지막으로 보던 오퍼레이션 자동 선택
       const savedIns = loadJSON(
@@ -664,6 +670,73 @@ export default function App() {
 
   // 히스토리 비교 모달(2건)
   const [compareItems, setCompareItems] = useState<[HistoryItem, HistoryItem] | null>(null);
+
+  // 시간여행: 스냅샷 목록 + 모달 오픈 상태
+  const [ttOpen, setTtOpen] = useState(false);
+  const [snapshots, setSnapshots] = useState<Snapshot[]>([]);
+  // 스냅샷 영속화: activeSpecUrl·snapshots 변경 시 저장
+  useEffect(() => {
+    if (activeSpecUrl) saveSnapshots(activeSpecUrl, snapshots);
+  }, [snapshots, activeSpecUrl]);
+
+  // captureSnapshots: 최신 클로저 stale 방지를 위해 ref로 감싼다
+  const captureSnapshotsRef = useRef<(opIds: string[]) => Promise<void>>(async () => {});
+  captureSnapshotsRef.current = async function captureSnapshots(opIds: string[]) {
+    if (!spec) return;
+    for (const opId of opIds) {
+      const op = spec.operations.find((o) => o.id === opId);
+      if (!op) continue;
+      const ins = defaultInputs(op);
+      const securityHeaders = computeSecurityHeaders(spec.securitySchemes ?? [], authValues);
+      const request = buildRequest(baseURL, op, ins, securityHeaders, globalHeaders, activeVars);
+      const t0 = Date.now();
+      let snap: Snapshot;
+      try {
+        const res = await executeRequest(request, netSettings);
+        snap = { id: newId(), opId, at: Date.now(), method: op.method, path: op.path, status: res.statusCode, body: res.body, durationMs: res.durationMs };
+      } catch (e) {
+        snap = { id: newId(), opId, at: Date.now(), method: op.method, path: op.path, status: 0, body: String(e), durationMs: Date.now() - t0 };
+      }
+      setSnapshots((prev) => addSnapshot(prev, snap));
+    }
+  };
+  async function captureSnapshots(opIds: string[]) {
+    return captureSnapshotsRef.current(opIds);
+  }
+
+  // compareSnapshots: Snapshot → HistoryItem 어댑터 → CompareModal 재활용
+  function compareSnapshots(a: Snapshot, b: Snapshot) {
+    const emptyInputs = (): RequestInputs => ({ pathParams: {}, queryParams: [], headers: [], body: "" });
+    const toHist = (s: Snapshot): HistoryItem => {
+      const op = spec?.operations.find((o) => o.id === s.opId);
+      return {
+        id: s.id,
+        opId: s.opId,
+        method: s.method,
+        path: s.path,
+        url: `${baseURL}${s.path}`,
+        status: s.status,
+        durationMs: s.durationMs,
+        size: s.body.length,
+        executedAt: s.at,
+        inputs: op ? defaultInputs(op) : emptyInputs(),
+        responseHeaders: {},
+        responseBody: s.body,
+      };
+    };
+    setCompareItems([toHist(a), toHist(b)]);
+  }
+
+  // 자동 주기 캡처: ttOpen 변경 시(모달에서 설정 변경 후) 재등록
+  useEffect(() => {
+    const cfg = activeSpecUrl ? loadTTConfig(activeSpecUrl) : null;
+    if (!cfg?.autoOn || cfg.opIds.length === 0) return;
+    const timer = setInterval(() => {
+      void captureSnapshotsRef.current(cfg.opIds);
+    }, cfg.intervalMin * 60000);
+    return () => clearInterval(timer);
+  }, [activeSpecUrl, ttOpen]);
+
   function addProject(title: string, url: string) {
     const u = url.trim();
     if (!u) return;
@@ -1094,6 +1167,14 @@ export default function App() {
         </button>
         <button
           className="btn"
+          title="API 시간여행 — 선택 API 응답을 수동/자동주기로 스냅샷하고 타임라인·비교"
+          onClick={() => setTtOpen(true)}
+          disabled={!spec}
+        >
+          시간여행
+        </button>
+        <button
+          className="btn"
           title="새 창 열기 — 다른 프로젝트를 동시에 볼 수 있습니다 (⌘N)"
           onClick={() => setNewWindowConfirm(true)}
         >
@@ -1460,6 +1541,16 @@ export default function App() {
           current={currentShareable()}
           onApply={applyShared}
           onClose={() => setShareOpen(false)}
+        />
+      )}
+      {ttOpen && spec && (
+        <TimeTravelModal
+          specUrl={activeSpecUrl || specUrl}
+          spec={spec}
+          snapshots={snapshots}
+          onCapture={(opIds) => void captureSnapshots(opIds)}
+          onCompare={compareSnapshots}
+          onClose={() => setTtOpen(false)}
         />
       )}
       {pmatrixOpen && spec && (
