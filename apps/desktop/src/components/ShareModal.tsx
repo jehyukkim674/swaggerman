@@ -1,5 +1,5 @@
 // 요청 공유: 내보내기(코드 생성·복사) / 가져오기(붙여넣기·적용) 모달.
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { encodeShare, decodeShare, type ShareableRequest } from "../core/share";
 import { CloseCircleIcon, CopyIcon } from "./icons";
 import { useEscToClose } from "./useEscToClose";
@@ -79,9 +79,9 @@ function ExportTab({ current }: { current: ShareableRequest }) {
         <button
           className="btn small primary"
           onClick={() => {
-            navigator.clipboard.writeText(code);
-            setCopied(true);
-            setTimeout(() => setCopied(false), 1200);
+            navigator.clipboard.writeText(code)
+              .then(() => { setCopied(true); setTimeout(() => setCopied(false), 1200); })
+              .catch(() => {/* 클립보드 차단 등 무시 */});
           }}
         >
           <CopyIcon size={13} /> {copied ? "복사됨" : "복사"}
@@ -121,15 +121,17 @@ function ImportTab({
   const [text, setText] = useState("");
   const [preview, setPreview] = useState<ShareableRequest | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const reqId = useRef(0);
 
   const onText = (value: string) => {
+    const id = ++reqId.current;
     setText(value);
     setError(null);
     setPreview(null);
     if (!value.trim()) return;
     decodeShare(value)
-      .then(setPreview)
-      .catch((e) => setError(e instanceof Error ? e.message : String(e)));
+      .then((r) => { if (id === reqId.current) setPreview(r); })
+      .catch((e) => { if (id === reqId.current) setError(e instanceof Error ? e.message : String(e)); });
   };
 
   return (
@@ -144,7 +146,7 @@ function ImportTab({
         rows={4}
         spellCheck={false}
       />
-      {error && <div className="share-warn">{error}</div>}
+      {error && <div className="error-box">{error}</div>}
       {preview && (
         <div className="share-preview">
           <div className="share-preview-line">

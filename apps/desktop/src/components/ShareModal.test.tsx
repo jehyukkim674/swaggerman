@@ -4,7 +4,7 @@ import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { ShareModal } from "./ShareModal";
 import { encodeShare, type ShareableRequest } from "../core/share";
 
-const writeText = vi.fn();
+const writeText = vi.fn().mockResolvedValue(undefined);
 beforeAll(() => {
   Object.defineProperty(navigator, "clipboard", { value: { writeText }, configurable: true });
 });
