@@ -22,18 +22,23 @@ export function ShortcutInput({ value, onChange }: Props) {
         onFocus={() => setCapturing(true)}
         onBlur={() => setCapturing(false)}
         onKeyDown={(e) => {
+          // Tab은 포커스 이동을 허용(캡처 위젯에 갇히지 않게).
+          if (e.key === "Tab") return;
+          // 캡처 중에는 키 이벤트가 앱 전역 단축키(⌘K 등)로 전파되지 않게 막는다.
+          // window에 addEventListener로 붙은 핸들러까지 막으려면 native
+          // stopImmediatePropagation이 필요(React 합성 stopPropagation만으론 부족).
+          e.preventDefault();
+          e.stopPropagation();
+          (e.nativeEvent as KeyboardEvent | undefined)?.stopImmediatePropagation?.();
           // fireEvent.keyDown(테스트)은 합성이벤트에 직접 프로퍼티를 심으므로
           // e.nativeEvent 대신 e(React.KeyboardEvent)를 넘긴다.
           // eventToAccelerator는 metaKey/ctrlKey/shiftKey/altKey/key만 읽어 호환됨.
           const acc = eventToAccelerator(e as unknown as KeyboardEvent);
           if (acc) {
-            e.preventDefault();
             onChange(acc);
             (e.target as HTMLButtonElement).blur();
-          } else {
-            // 주 키가 아니면(modifier만 등) 캡처 유지, 기본 동작은 막아 탭 이동 등 방지
-            if (e.key !== "Tab") e.preventDefault();
           }
+          // 주 키가 아니면(modifier만 등) 캡처 유지
         }}
       >
         {capturing ? "키 조합을 누르세요…" : display || "(미설정)"}

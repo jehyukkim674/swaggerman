@@ -31,4 +31,24 @@ describe("ShortcutInput", () => {
     fireEvent.click(screen.getByRole("button", { name: "지우기" }));
     expect(onChange).toHaveBeenCalledWith("");
   });
+
+  it("캡처 중 키는 window 핸들러(앱 단축키)로 전파되지 않는다", () => {
+    // 캡처 입력에서 ⌘K를 누르면 앱 전역 ⌘K(팔레트)가 발동하면 안 된다.
+    const windowHandler = vi.fn();
+    window.addEventListener("keydown", windowHandler);
+    render(<ShortcutInput value="" onChange={vi.fn()} />);
+    const btn = screen.getByRole("button", { name: /단축키/ });
+    fireEvent.keyDown(btn, { metaKey: true, key: "k" });
+    expect(windowHandler).not.toHaveBeenCalled();
+    window.removeEventListener("keydown", windowHandler);
+  });
+
+  it("Tab은 전파를 막지 않는다(포커스 이동 허용)", () => {
+    const windowHandler = vi.fn();
+    window.addEventListener("keydown", windowHandler);
+    render(<ShortcutInput value="" onChange={vi.fn()} />);
+    fireEvent.keyDown(screen.getByRole("button", { name: /단축키/ }), { key: "Tab" });
+    expect(windowHandler).toHaveBeenCalled();
+    window.removeEventListener("keydown", windowHandler);
+  });
 });
