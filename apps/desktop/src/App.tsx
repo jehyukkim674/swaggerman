@@ -65,12 +65,14 @@ import { ProjectsModal } from "./components/ProjectsModal";
 import { CompareModal } from "./components/CompareModal";
 import { DonationModal } from "./components/DonationModal";
 import { MockServerModal } from "./components/MockServerModal";
+import { ShareModal } from "./components/ShareModal";
 import { AiPanel } from "./components/AiPanel";
 import { getProvider } from "./core/ai/provider";
 import { buildAiContext } from "./core/ai/context";
 import { applySuggestion, applySuggestionForOp, filterKnownParams } from "./core/ai/schema";
 import { diagnosePrompt, explainPrompt } from "./core/ai/prompts";
 import type { RequestSuggestion } from "./core/ai/types";
+import type { ShareableRequest } from "./core/share";
 
 const DEFAULT_SPEC_URL = "http://localhost:8000/v3/api-docs";
 
@@ -175,6 +177,7 @@ export default function App() {
   const [collectionsOpen, setCollectionsOpen] = useState(false);
   const [runnerOpen, setRunnerOpen] = useState(false);
   const [mockOpen, setMockOpen] = useState(false);
+  const [shareOpen, setShareOpen] = useState(false);
   // 새 창 열기 확인 다이얼로그 (실수 클릭으로 창이 늘어나는 것 방지)
   const [newWindowConfirm, setNewWindowConfirm] = useState(false);
 
@@ -738,6 +741,60 @@ export default function App() {
     log.info("curl", `import: ${op.method} ${importedBaseURL}${op.path}`);
   }
 
+  // 현재 화면 요청을 공유 페이로드로 변환(선택된 operation + inputs 기준).
+  function currentShareable(): ShareableRequest | null {
+    if (!selected || !inputs) return null;
+    const url = buildRequestUrl(baseURL, selected, inputs, false, activeVars);
+    const note = notes[selected.id];
+    return {
+      v: 1,
+      method: selected.method,
+      url,
+      baseURL,
+      pathParams: inputs.pathParams,
+      queryParams: inputs.queryParams.map((p) => ({ key: p.key, value: p.value, enabled: p.enabled })),
+      headers: inputs.headers.map((p) => ({ key: p.key, value: p.value, enabled: p.enabled })),
+      body: inputs.body,
+      bodyMode: inputs.bodyMode,
+      note: note ? { text: note.text, status: note.status } : undefined,
+    };
+  }
+
+  // 공유 코드 적용: ad-hoc operation으로 요청 화면에 반영(cURL import와 동일 경로).
+  function applyShared(req: ShareableRequest) {
+    let pathname = "/";
+    let origin = req.baseURL ?? "";
+    try {
+      const u = new URL(req.url);
+      pathname = u.pathname || "/";
+      if (!origin) origin = u.origin;
+    } catch {
+      /* URL 파싱 실패 시 기본값 유지 */
+    }
+    const op: ParsedOperation = {
+      id: `share:${req.method} ${pathname}`,
+      method: req.method as import("./core/types").HTTPMethod,
+      path: pathname,
+      tags: ["공유"],
+      summary: "공유받은 요청",
+      parameters: [],
+      requestBody: req.body ? { required: false, contentType: "application/json" } : undefined,
+      responses: [],
+    };
+    const ins: RequestInputs = {
+      pathParams: req.pathParams ?? {},
+      queryParams: req.queryParams ?? [],
+      headers: req.headers ?? [],
+      body: req.body ?? "",
+      bodyMode: req.bodyMode as RequestInputs["bodyMode"],
+    };
+    importCurl(op, ins, origin);
+    // 메모가 포함됐으면 해당 operation에 적용
+    if (req.note) {
+      updateNote(op.id, { text: req.note.text, status: req.note.status as ApiNote["status"], updatedAt: Date.now() });
+    }
+  }
+
   // 최신 send를 ref로 보관(전역 단축키에서 stale closure 방지)
   const sendRef = useRef(send);
   sendRef.current = send;
@@ -891,6 +948,13 @@ export default function App() {
           onClick={() => setCurlModalOpen(true)}
         >
           cURL
+        </button>
+        <button
+          className="btn"
+          title="현재 요청을 공유 코드로 내보내거나, 받은 코드를 가져옵니다"
+          onClick={() => setShareOpen(true)}
+        >
+          공유
         </button>
         <button
           className="btn"
@@ -1261,6 +1325,13 @@ export default function App() {
           specUrl={activeSpecUrl || specUrl}
           history={history}
           onClose={() => setMockOpen(false)}
+        />
+      )}
+      {shareOpen && (
+        <ShareModal
+          current={currentShareable()}
+          onApply={applyShared}
+          onClose={() => setShareOpen(false)}
         />
       )}
       {collectionsOpen && (
