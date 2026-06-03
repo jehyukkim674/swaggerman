@@ -1,6 +1,8 @@
 import { useMemo, useState } from "react";
 import { open } from "@tauri-apps/plugin-dialog";
 import type { ParsedOperation } from "../core/types";
+import { ApiNoteEditor } from "./ApiNoteEditor";
+import { emptyNote, type ApiNote } from "../core/notes";
 import { validateRequestInputs } from "../core/schema-validate";
 import {
   applySample,
@@ -43,6 +45,8 @@ interface Props {
   onAssertChange: (asserts: Assertion[]) => void;
   highlightKeys?: string[];
   mentionKeys?: string[];
+  note?: ApiNote;
+  onNoteChange?: (note: ApiNote) => void;
 }
 
 export function HistoryBanner({ item }: { item: HistoryItem }) {
@@ -81,6 +85,8 @@ export function RequestEditor({
   onAssertChange,
   highlightKeys = [],
   mentionKeys = [],
+  note,
+  onNoteChange,
 }: Props) {
   const [sampleName, setSampleName] = useState<string | null>(null);
   const [activeSample, setActiveSample] = useState("");
@@ -219,6 +225,13 @@ export function RequestEditor({
 
       <div className="request-body-scroll">
         {operation.summary && <p className="op-desc">{operation.summary}</p>}
+        {onNoteChange && (
+          <ApiNoteEditor
+            key={operation.id}
+            note={note ?? emptyNote()}
+            onChange={onNoteChange}
+          />
+        )}
 
         {/* 요청 샘플: 현재 Query/Headers/Body를 이름 붙여 따로 보관·전환 (body 없는 GET에서도 사용 가능) */}
         <div className="sample-bar">

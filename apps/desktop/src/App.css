@@ -2959,3 +2959,73 @@ tr.cmp-changed td { background: #d2992214; }
   width: 60px;
   text-align: right;
 }
+
+/* ============================================================
+ * API 메모 (요청 화면 상단)
+ * ============================================================ */
+.api-note-add {
+  align-self: flex-start;
+  background: transparent;
+  border: 1px dashed var(--border);
+  color: var(--muted);
+  border-radius: 6px;
+  padding: 4px 10px;
+  font-size: 12px;
+  cursor: pointer;
+  margin: 4px 0 8px;
+}
+.api-note-add:hover {
+  border-color: var(--accent);
+  color: var(--text);
+}
+.api-note {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 10px;
+  margin: 4px 0 10px;
+  background: var(--bg-2);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.api-note-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.api-note-title {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--muted);
+}
+.api-note-status {
+  margin-left: auto;
+}
+.api-note-text {
+  background: var(--bg);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 6px 8px;
+  font-size: 12px;
+  font-family: inherit;
+  resize: vertical;
+  min-height: 38px;
+}
+
+/* ============================================================
+ * 사이드바 상태 점 / 메모 아이콘
+ * ============================================================ */
+.op-status-dot {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  margin-right: 5px;
+  vertical-align: middle;
+}
+.op-note-icon {
+  margin-left: 5px;
+  font-size: 10px;
+  opacity: 0.8;
+}

@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi } from "vitest";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen, fireEvent, cleanup } from "@testing-library/react";
 import { ApiNoteEditor } from "./ApiNoteEditor";
 import { emptyNote, type ApiNote } from "../core/notes";
 
@@ -44,5 +44,32 @@ describe("ApiNoteEditor", () => {
     const option = screen.getByRole("option", { name: /사용금지/ });
     fireEvent.mouseDown(option);
     expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ status: "blocked" }));
+  });
+
+  it("key가 바뀌면(다른 API로 전환) 빈 노트는 접힘 상태로 리셋된다", () => {
+    // 메모 있는 노트로 렌더 → 펼침(textarea 표시)
+    const onChange1 = vi.fn();
+    const { unmount } = render(
+      <ApiNoteEditor
+        key="api-a"
+        note={{ text: "API A 메모", status: "review", updatedAt: 1 }}
+        onChange={onChange1}
+      />,
+    );
+    expect(screen.getByPlaceholderText(/메모/)).toBeTruthy();
+    unmount();
+    cleanup();
+
+    // key 변경 → 새 컴포넌트 마운트(빈 노트). 접힘 버튼만 보여야 함.
+    const onChange2 = vi.fn();
+    render(
+      <ApiNoteEditor
+        key="api-b"
+        note={emptyNote()}
+        onChange={onChange2}
+      />,
+    );
+    expect(screen.getByRole("button", { name: /메모 추가/ })).toBeTruthy();
+    expect(screen.queryByPlaceholderText(/메모/)).toBeNull();
   });
 });
