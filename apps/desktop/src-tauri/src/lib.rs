@@ -1,6 +1,7 @@
 mod ai;
 mod global_shortcut;
 mod mock_server;
+mod proxy_server;
 
 use std::collections::HashMap;
 use std::sync::{Arc, OnceLock};
@@ -235,7 +236,10 @@ pub fn run() {
             mock_server::mock_stop,
             mock_server::mock_status,
             global_shortcut::register_global_shortcut,
-            global_shortcut::unregister_global_shortcut
+            global_shortcut::unregister_global_shortcut,
+            proxy_server::proxy_start,
+            proxy_server::proxy_stop,
+            proxy_server::proxy_recordings
         ])
         .build(tauri::generate_context!())
         .expect("error while building tauri application")
@@ -243,6 +247,7 @@ pub fn run() {
             // 앱 종료 시 mock 서버 정리 (포트 점유 방지)
             if matches!(event, tauri::RunEvent::Exit) {
                 mock_server::stop_server_internal();
+                proxy_server::stop_proxy_internal();
             }
         });
 }
