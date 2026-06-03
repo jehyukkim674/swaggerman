@@ -75,6 +75,7 @@ import type { ProxyRecord } from "./core/proxy-client";
 import { loadMockConfig, saveMockConfig } from "./core/mock-config";
 import { ShareModal } from "./components/ShareModal";
 import { PermissionMatrixModal } from "./components/PermissionMatrixModal";
+import { PerfModal } from "./components/PerfModal";
 import type { MatrixCell } from "./core/permission-matrix";
 import { AiPanel } from "./components/AiPanel";
 import { getProvider } from "./core/ai/provider";
@@ -188,6 +189,7 @@ export default function App() {
   const [runnerOpen, setRunnerOpen] = useState(false);
   const [mockOpen, setMockOpen] = useState(false);
   const [proxyOpen, setProxyOpen] = useState(false);
+  const [perfOpen, setPerfOpen] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
   const [pmatrixOpen, setPmatrixOpen] = useState(false);
   // 새 창 열기 확인 다이얼로그 (실수 클릭으로 창이 늘어나는 것 방지)
@@ -1063,6 +1065,14 @@ export default function App() {
         </button>
         <button
           className="btn"
+          title="API 성능 추이 — 히스토리 기반 응답시간 통계"
+          onClick={() => setPerfOpen(true)}
+          disabled={history.length === 0}
+        >
+          성능
+        </button>
+        <button
+          className="btn"
           title="새 창 열기 — 다른 프로젝트를 동시에 볼 수 있습니다 (⌘N)"
           onClick={() => setNewWindowConfirm(true)}
         >
@@ -1420,6 +1430,7 @@ export default function App() {
           onClose={() => setProxyOpen(false)}
         />
       )}
+      {perfOpen && <PerfModal history={history} onClose={() => setPerfOpen(false)} />}
       {shareOpen && (
         <ShareModal
           current={currentShareable()}

@@ -3242,3 +3242,16 @@ tr.cmp-changed td { background: #d2992214; }
 .proxy-rec-row { display: flex; align-items: center; gap: 8px; padding: 4px 8px; font-size: 12px; border-bottom: 1px solid var(--border); }
 .proxy-rec-path { font-family: ui-monospace, monospace; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .proxy-rec-status { font-family: ui-monospace, monospace; font-weight: 700; }
+
+/* API 성능 추이 모달 */
+.modal.perf-modal { width: 680px; max-width: 94vw; max-height: 82vh; }
+.perf-body { overflow: auto; }
+.perf-table { border-collapse: collapse; width: 100%; font-size: 12px; }
+.perf-table th, .perf-table td { border-bottom: 1px solid var(--border); padding: 6px 8px; text-align: right; }
+.perf-table th:first-child, .perf-table td.perf-op { text-align: left; }
+.perf-table th { color: var(--muted); font-weight: 600; }
+.perf-sortable { cursor: pointer; user-select: none; }
+.perf-sortable:hover { color: var(--text); }
+.perf-op { font-family: ui-monospace, monospace; white-space: nowrap; }
+.perf-trend-cell { display: flex; align-items: center; gap: 8px; justify-content: flex-end; }
+.sparkline { display: block; }
