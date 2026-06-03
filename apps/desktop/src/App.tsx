@@ -34,6 +34,7 @@ import {
   shouldShowDonationBanner,
 } from "./core/donation";
 import { loadJSON, saveJSON } from "./core/storage";
+import { loadNotes, saveNotes, emptyNote, type NotesMap, type ApiNote } from "./core/notes";
 import { log } from "./core/log";
 import { newId, clampHistoryBody, type HistoryItem } from "./core/history";
 import { openNewWindow } from "./core/window";
@@ -109,6 +110,7 @@ export default function App() {
 
   const [authValues, setAuthValues] = useState<Record<string, string>>({});
   const [favorites, setFavorites] = useState<string[]>([]);
+  const [notes, setNotes] = useState<NotesMap>({});
   const [history, setHistory] = useState<HistoryItem[]>([]);
   const [responseTab, setResponseTab] = useState<"docs" | "response">("docs");
   // 현재 보고 있는 히스토리 항목(선택 시 표기). 직접 선택/전송하면 해제.
@@ -428,6 +430,9 @@ export default function App() {
     if (activeSpecUrl) saveJSON(`swaggerman.fav.${activeSpecUrl}`, favorites);
   }, [favorites, activeSpecUrl]);
   useEffect(() => {
+    if (activeSpecUrl) saveNotes(activeSpecUrl, notes);
+  }, [notes, activeSpecUrl]);
+  useEffect(() => {
     if (activeSpecUrl) saveJSON(`swaggerman.hist.${activeSpecUrl}`, history);
   }, [history, activeSpecUrl]);
   useEffect(() => {
@@ -524,6 +529,7 @@ export default function App() {
         ];
       });
       setFavorites(loadJSON(`swaggerman.fav.${targetUrl}`, [] as string[]));
+      setNotes(loadNotes(targetUrl));
       setHistory(loadJSON(`swaggerman.hist.${targetUrl}`, [] as HistoryItem[]));
       setAuthValues(loadJSON(`swaggerman.auth.${targetUrl}`, {} as Record<string, string>));
       setEnvs(loadJSON(`swaggerman.envs.${targetUrl}`, [] as Env[]));
@@ -761,6 +767,10 @@ export default function App() {
     setFavorites((prev) =>
       prev.includes(opId) ? prev.filter((x) => x !== opId) : [...prev, opId],
     );
+  }
+
+  function updateNote(opId: string, note: ApiNote) {
+    setNotes((prev) => ({ ...prev, [opId]: note }));
   }
 
   function selectHistory(item: HistoryItem) {
@@ -1067,6 +1077,7 @@ export default function App() {
             onDeleteHistory={(id) => setHistory((prev) => prev.filter((h) => h.id !== id))}
             onClearHistory={() => setHistory([])}
             selectedHistoryId={selectedHistory?.id ?? null}
+            notes={notes}
           />
         </Panel>
         <PanelResizeHandle className="resize-handle" />
@@ -1101,6 +1112,10 @@ export default function App() {
             }}
             highlightKeys={highlightedKeys}
             mentionKeys={mentionedKeys}
+            note={selected ? (notes[selected.id] ?? emptyNote()) : emptyNote()}
+            onNoteChange={(note) => {
+              if (selected) updateNote(selected.id, note);
+            }}
           />
         </Panel>
         <PanelResizeHandle className="resize-handle" />
