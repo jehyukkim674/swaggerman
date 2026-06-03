@@ -76,6 +76,9 @@ import { loadMockConfig, saveMockConfig } from "./core/mock-config";
 import { ShareModal } from "./components/ShareModal";
 import { PermissionMatrixModal } from "./components/PermissionMatrixModal";
 import { PerfModal } from "./components/PerfModal";
+import { GuideModal } from "./components/GuideModal";
+import { save } from "@tauri-apps/plugin-dialog";
+import { writeTextFile } from "./core/fs";
 import type { MatrixCell } from "./core/permission-matrix";
 import { AiPanel } from "./components/AiPanel";
 import { getProvider } from "./core/ai/provider";
@@ -191,6 +194,7 @@ export default function App() {
   const [proxyOpen, setProxyOpen] = useState(false);
   const [perfOpen, setPerfOpen] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
+  const [guideOpen, setGuideOpen] = useState(false);
   const [pmatrixOpen, setPmatrixOpen] = useState(false);
   // 새 창 열기 확인 다이얼로그 (실수 클릭으로 창이 늘어나는 것 방지)
   const [newWindowConfirm, setNewWindowConfirm] = useState(false);
@@ -930,6 +934,15 @@ export default function App() {
     sendWith(op, item.inputs);
   }
 
+  async function saveGuideFile(markdown: string) {
+    try {
+      const path = await save({ defaultPath: "api-guide.md", filters: [{ name: "Markdown", extensions: ["md"] }] });
+      if (typeof path === "string") await writeTextFile(path, markdown);
+    } catch {
+      /* 취소/실패 무시 */
+    }
+  }
+
   const title = useMemo(() => spec?.info.title ?? "Swagger Man", [spec]);
 
   return (
@@ -1070,6 +1083,14 @@ export default function App() {
           disabled={history.length === 0}
         >
           성능
+        </button>
+        <button
+          className="btn"
+          title="연동 가이드 문서(Markdown) 생성"
+          onClick={() => setGuideOpen(true)}
+          disabled={!spec}
+        >
+          가이드
         </button>
         <button
           className="btn"
@@ -1431,6 +1452,9 @@ export default function App() {
         />
       )}
       {perfOpen && <PerfModal history={history} onClose={() => setPerfOpen(false)} />}
+      {guideOpen && spec && (
+        <GuideModal spec={spec} history={history} baseURL={baseURL} onSaveFile={saveGuideFile} onClose={() => setGuideOpen(false)} />
+      )}
       {shareOpen && (
         <ShareModal
           current={currentShareable()}

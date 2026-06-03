@@ -3255,3 +3255,13 @@ tr.cmp-changed td { background: #d2992214; }
 .perf-op { font-family: ui-monospace, monospace; white-space: nowrap; }
 .perf-trend-cell { display: flex; align-items: center; gap: 8px; justify-content: flex-end; }
 .sparkline { display: block; }
+
+/* 가이드 문서 모달 */
+.modal.guide-modal { width: 720px; max-width: 94vw; height: 80vh; }
+.guide-body { display: flex; flex-direction: column; gap: 8px; overflow: hidden; }
+.guide-ops { max-height: 140px; overflow: auto; border: 1px solid var(--border); border-radius: 6px; padding: 4px; }
+.guide-op-check { display: flex; align-items: center; gap: 6px; padding: 3px 6px; font-size: 12px; cursor: pointer; }
+.guide-op-check:hover { background: var(--bg-3); }
+.guide-op-path { font-family: ui-monospace, monospace; }
+.guide-actions { display: flex; gap: 8px; align-items: center; }
+.guide-preview { flex: 1; background: var(--bg); color: var(--text); border: 1px solid var(--border); border-radius: 6px; padding: 10px; font-family: ui-monospace, monospace; font-size: 12px; resize: none; }

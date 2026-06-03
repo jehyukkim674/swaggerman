@@ -176,6 +176,9 @@
         throw "browser mode: 파일 읽기는 지원하지 않습니다";
 
       // --- Tauri 플러그인 ---
+      case "plugin:dialog|save":
+        return Promise.resolve(null); // 브라우저 모드: 저장 취소로 처리(무해)
+
       case "plugin:app|version":
         return "0.3.23";
       case "plugin:app|name":
