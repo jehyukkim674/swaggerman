@@ -30,15 +30,15 @@ export function statusKind(status: number): StatusKind {
 
 let seq = 0;
 /** 새 페르소나 id 생성. 모달에서 addPersona 시에도 재사용한다. */
-export function newId(): string {
+export function newPersonaId(): string {
   return `persona-${Date.now().toString(36)}-${seq++}`;
 }
 
 export function defaultPersonas(): Persona[] {
   return [
-    { id: newId(), name: "관리자", token: "" },
-    { id: newId(), name: "일반", token: "" },
-    { id: newId(), name: "게스트", token: "" },
+    { id: newPersonaId(), name: "관리자", token: "" },
+    { id: newPersonaId(), name: "일반", token: "" },
+    { id: newPersonaId(), name: "게스트", token: "" },
   ];
 }
 

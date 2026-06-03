@@ -7,7 +7,7 @@ import {
   defaultPersonas,
   runMatrix,
   statusKind,
-  newId,
+  newPersonaId,
   type Persona,
   type MatrixCell,
   type MatrixResult,
@@ -60,9 +60,9 @@ export function PermissionMatrixModal({ specUrl, operations, runOne, onClose }: 
   const patchPersona = (id: string, p: Partial<Persona>) =>
     setPersonas((prev) => prev.map((x) => (x.id === id ? { ...x, ...p } : x)));
 
-  // 페르소나 추가: newId()로 id 전략을 permission-matrix.ts와 통일
+  // 페르소나 추가: newPersonaId()로 id 전략을 permission-matrix.ts와 통일
   const addPersona = () =>
-    setPersonas((prev) => [...prev, { id: newId(), name: "새 역할", token: "" }]);
+    setPersonas((prev) => [...prev, { id: newPersonaId(), name: "새 역할", token: "" }]);
 
   const removePersona = (id: string) => setPersonas((prev) => prev.filter((x) => x.id !== id));
 
