@@ -4,6 +4,7 @@ import { methodColor, statusColor } from "./method";
 import { relativeTime, type HistoryItem } from "../core/history";
 import { ReplayIcon, TrashIcon } from "./icons";
 import { Select } from "./Select";
+import { STATUS_META, type NotesMap } from "../core/notes";
 
 interface Props {
   spec: ParsedSpec | null;
@@ -21,6 +22,8 @@ interface Props {
   selectedHistoryId: string | null;
   /** 히스토리 2건 비교 요청(비교 모달 열기). */
   onCompareHistory: (a: HistoryItem, b: HistoryItem) => void;
+  /** opId별 메모/상태 (상태 점·메모 아이콘 표시용) */
+  notes: NotesMap;
 }
 
 const FILTER_METHODS: HTTPMethod[] = ["GET", "POST", "PUT", "DELETE", "PATCH"];
@@ -112,7 +115,22 @@ export function Sidebar(props: Props) {
         {op.method}
       </span>
       <span className="op-text">
-        <span className="op-path">{op.path}</span>
+        <span className="op-path">
+          {(() => {
+            const note = props.notes[op.id];
+            return note && note.status !== "none" ? (
+              <span
+                className="op-status-dot"
+                style={{ background: STATUS_META[note.status].dot }}
+                title={STATUS_META[note.status].label}
+              />
+            ) : null;
+          })()}
+          {op.path}
+          {props.notes[op.id]?.text.trim() && (
+            <span className="op-note-icon" title="메모 있음">📝</span>
+          )}
+        </span>
         {op.summary && <span className="op-summary">{op.summary}</span>}
       </span>
     </div>
