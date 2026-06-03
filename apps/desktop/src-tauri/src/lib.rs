@@ -1,4 +1,5 @@
 mod ai;
+mod global_shortcut;
 mod mock_server;
 
 use std::collections::HashMap;
@@ -210,12 +211,13 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init());
 
-    // 자동 업데이트(데스크톱 전용): 릴리스의 서명된 업데이터 아티팩트를 확인/적용.
+    // 자동 업데이트 + 전역 단축키(데스크톱 전용)
     #[cfg(desktop)]
     {
         builder = builder
             .plugin(tauri_plugin_updater::Builder::new().build())
-            .plugin(tauri_plugin_process::init());
+            .plugin(tauri_plugin_process::init())
+            .plugin(tauri_plugin_global_shortcut::Builder::new().build());
     }
 
     builder
@@ -231,7 +233,9 @@ pub fn run() {
             ai::ai_cancel,
             mock_server::mock_start,
             mock_server::mock_stop,
-            mock_server::mock_status
+            mock_server::mock_status,
+            global_shortcut::register_global_shortcut,
+            global_shortcut::unregister_global_shortcut
         ])
         .build(tauri::generate_context!())
         .expect("error while building tauri application")

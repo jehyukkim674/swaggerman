@@ -10,6 +10,7 @@
     "core:webview:allow-create-webview-window",
     "updater:default",
     "process:default",
-    "dialog:default"
+    "dialog:default",
+    "global-shortcut:default"
   ]
 }
