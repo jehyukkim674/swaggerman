@@ -29,7 +29,8 @@ export function statusKind(status: number): StatusKind {
 }
 
 let seq = 0;
-function newId(): string {
+/** 새 페르소나 id 생성. 모달에서 addPersona 시에도 재사용한다. */
+export function newId(): string {
   return `persona-${Date.now().toString(36)}-${seq++}`;
 }
 
