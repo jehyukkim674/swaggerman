@@ -93,48 +93,48 @@ export function Sidebar(props: Props) {
     });
   }
 
-  const renderRow = (op: ParsedOperation) => (
-    <div
-      key={op.id}
-      className={`op-row${op.id === selectedId ? " selected" : ""}`}
-      onClick={() => onSelect(op)}
-    >
-      <button
-        className="star"
-        onClick={(e) => {
-          e.stopPropagation();
-          props.onToggleFavorite(op.id);
-        }}
-        title={favSet.has(op.id) ? "즐겨찾기 제거" : "즐겨찾기 추가"}
+  const renderRow = (op: ParsedOperation) => {
+    const note = props.notes[op.id];
+    return (
+      <div
+        key={op.id}
+        className={`op-row${op.id === selectedId ? " selected" : ""}`}
+        onClick={() => onSelect(op)}
       >
-        <span style={{ color: favSet.has(op.id) ? "#d29922" : "#555" }}>
-          {favSet.has(op.id) ? "★" : "☆"}
+        <button
+          className="star"
+          onClick={(e) => {
+            e.stopPropagation();
+            props.onToggleFavorite(op.id);
+          }}
+          title={favSet.has(op.id) ? "즐겨찾기 제거" : "즐겨찾기 추가"}
+        >
+          <span style={{ color: favSet.has(op.id) ? "#d29922" : "#555" }}>
+            {favSet.has(op.id) ? "★" : "☆"}
+          </span>
+        </button>
+        <span className="method" style={{ color: methodColor(op.method) }}>
+          {op.method}
         </span>
-      </button>
-      <span className="method" style={{ color: methodColor(op.method) }}>
-        {op.method}
-      </span>
-      <span className="op-text">
-        <span className="op-path">
-          {(() => {
-            const note = props.notes[op.id];
-            return note && note.status !== "none" ? (
+        <span className="op-text">
+          <span className="op-path">
+            {note && note.status !== "none" && (
               <span
                 className="op-status-dot"
                 style={{ background: STATUS_META[note.status].dot }}
                 title={STATUS_META[note.status].label}
               />
-            ) : null;
-          })()}
-          {op.path}
-          {props.notes[op.id]?.text.trim() && (
-            <span className="op-note-icon" title="메모 있음">📝</span>
-          )}
+            )}
+            {op.path}
+            {note?.text.trim() && (
+              <span className="op-note-icon" title="메모 있음">📝</span>
+            )}
+          </span>
+          {op.summary && <span className="op-summary">{op.summary}</span>}
         </span>
-        {op.summary && <span className="op-summary">{op.summary}</span>}
-      </span>
-    </div>
-  );
+      </div>
+    );
+  };
 
   return (
     <aside className="sidebar">
