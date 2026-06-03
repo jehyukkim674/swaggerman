@@ -52,3 +52,34 @@ export function loadPersonas(specUrl: string): Persona[] {
 export function savePersonas(specUrl: string, personas: Persona[]): void {
   saveJSON(storageKey(specUrl), personas);
 }
+
+export type RunOne = (opId: string, token: string) => Promise<MatrixCell>;
+export type ProgressFn = (done: number, total: number) => void;
+
+/** 각 (op × persona) 조합을 순차 실행해 매트릭스를 만든다.
+ *  runOne이 throw하면 해당 셀만 net 에러(status 0)로 기록하고 계속한다. */
+export async function runMatrix(
+  personas: Persona[],
+  opIds: string[],
+  runOne: RunOne,
+  onProgress?: ProgressFn,
+): Promise<MatrixResult> {
+  const result: MatrixResult = {};
+  const total = opIds.length * personas.length;
+  let done = 0;
+  for (const opId of opIds) {
+    result[opId] = {};
+    for (const persona of personas) {
+      let cell: MatrixCell;
+      try {
+        cell = await runOne(opId, persona.token);
+      } catch (e) {
+        cell = { status: 0, ok: false, durationMs: 0, error: e instanceof Error ? e.message : String(e) };
+      }
+      result[opId][persona.id] = cell;
+      done++;
+      onProgress?.(done, total);
+    }
+  }
+  return result;
+}
