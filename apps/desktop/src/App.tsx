@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Panel, PanelGroup, PanelResizeHandle, type ImperativePanelHandle } from "react-resizable-panels";
 import { getCurrentWebview } from "@tauri-apps/api/webview";
+import { listen } from "@tauri-apps/api/event";
+import { loadShortcut, saveShortcut, registerShortcut } from "./core/global-shortcut";
 import "./App.css";
 import { loadSpec as loadSpecFromUrl } from "./core/spec-loader";
 import { executeRequest } from "./core/http-client";
@@ -243,6 +245,25 @@ export default function App() {
   useEffect(() => {
     saveJSON("swaggerman.claudePath", claudePath);
   }, [claudePath]);
+
+  // 전역 단축키 — 전역 저장
+  const [globalShortcut, setGlobalShortcut] = useState<string>(() => loadShortcut());
+  const [shortcutError, setShortcutError] = useState<string | null>(null);
+
+  // 전역 단축키 등록 + quick-launch 이벤트 → 커맨드 팔레트 오픈
+  useEffect(() => {
+    let unlisten: (() => void) | undefined;
+    registerShortcut(globalShortcut)
+      .then(() => setShortcutError(null))
+      .catch((e) => setShortcutError(e instanceof Error ? e.message : String(e)));
+    saveShortcut(globalShortcut);
+    listen("quick-launch", () => setPaletteOpen(true)).then((un) => {
+      unlisten = un;
+    });
+    return () => {
+      unlisten?.();
+    };
+  }, [globalShortcut]);
 
   // OAuth2 토큰 발급 설정 — 프로젝트별 저장
   const [oauth2Config, setOauth2Config] = useState<OAuth2Config>(emptyOAuth2Config());
@@ -1329,6 +1350,9 @@ export default function App() {
           onClose={() => setSettingsOpen(false)}
           claudePath={claudePath}
           onClaudePathChange={setClaudePath}
+          globalShortcut={globalShortcut}
+          onGlobalShortcutChange={setGlobalShortcut}
+          shortcutError={shortcutError}
         />
       )}
       {donationOpen && <DonationModal onClose={() => setDonationOpen(false)} />}

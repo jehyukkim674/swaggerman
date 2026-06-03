@@ -149,6 +149,12 @@
       case "mock_status":
         return Promise.resolve({ running: false, port: 0, logs: [] });
 
+      // --- 전역 단축키 (브라우저 모드 no-op) ---
+      case "register_global_shortcut":
+        return Promise.resolve();
+      case "unregister_global_shortcut":
+        return Promise.resolve();
+
       // --- 쿠키/파일 ---
       case "list_cookies":
         return [
