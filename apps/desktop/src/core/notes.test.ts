@@ -6,7 +6,6 @@ import {
   isEmptyNote,
   STATUS_META,
   emptyNote,
-  type ApiNote,
   type NotesMap,
 } from "./notes";
 
