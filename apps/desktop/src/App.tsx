@@ -8,6 +8,7 @@ import {
   buildRequest,
   buildRequestUrl,
   captureSample,
+  defaultInputs,
   deriveBaseURL,
   restoreInputs,
   type RequestInputs,
@@ -67,6 +68,8 @@ import { CompareModal } from "./components/CompareModal";
 import { DonationModal } from "./components/DonationModal";
 import { MockServerModal } from "./components/MockServerModal";
 import { ShareModal } from "./components/ShareModal";
+import { PermissionMatrixModal } from "./components/PermissionMatrixModal";
+import type { MatrixCell } from "./core/permission-matrix";
 import { AiPanel } from "./components/AiPanel";
 import { getProvider } from "./core/ai/provider";
 import { buildAiContext } from "./core/ai/context";
@@ -179,6 +182,7 @@ export default function App() {
   const [runnerOpen, setRunnerOpen] = useState(false);
   const [mockOpen, setMockOpen] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
+  const [pmatrixOpen, setPmatrixOpen] = useState(false);
   // 새 창 열기 확인 다이얼로그 (실수 클릭으로 창이 늘어나는 것 방지)
   const [newWindowConfirm, setNewWindowConfirm] = useState(false);
 
@@ -195,6 +199,24 @@ export default function App() {
         ok: res.statusCode >= 200 && res.statusCode < 300,
         durationMs: res.durationMs,
       };
+    } catch (e) {
+      return { status: 0, ok: false, durationMs: Date.now() - t0, error: String(e) };
+    }
+  }
+
+  // 권한 매트릭스: 페르소나 토큰을 Authorization: Bearer로 붙여 op를 호출하고 상태코드 반환.
+  async function runForPersona(opId: string, token: string): Promise<MatrixCell> {
+    const op = spec?.operations.find((o) => o.id === opId);
+    if (!op) return { status: 0, ok: false, durationMs: 0, error: "operation 없음" };
+    const ins = defaultInputs(op);
+    const authHeaders: Record<string, string> = {};
+    const t = token.trim();
+    if (t) authHeaders["Authorization"] = /^bearer /i.test(t) ? t : `Bearer ${t}`;
+    const request = buildRequest(baseURL, op, ins, authHeaders, globalHeaders, activeVars);
+    const t0 = Date.now();
+    try {
+      const res = await executeRequest(request, netSettings);
+      return { status: res.statusCode, ok: res.statusCode >= 200 && res.statusCode < 300, durationMs: res.durationMs };
     } catch (e) {
       return { status: 0, ok: false, durationMs: Date.now() - t0, error: String(e) };
     }
@@ -973,6 +995,14 @@ export default function App() {
         </button>
         <button
           className="btn"
+          title="권한 매트릭스 — 토큰별로 API 접근 권한(상태코드)을 표로 비교"
+          onClick={() => setPmatrixOpen(true)}
+          disabled={!spec}
+        >
+          권한
+        </button>
+        <button
+          className="btn"
           title="Mock 서버 — 스펙 기반 가짜 API 서버를 로컬에 띄웁니다"
           onClick={() => setMockOpen(true)}
           disabled={!spec}
@@ -1333,6 +1363,14 @@ export default function App() {
           current={currentShareable()}
           onApply={applyShared}
           onClose={() => setShareOpen(false)}
+        />
+      )}
+      {pmatrixOpen && spec && (
+        <PermissionMatrixModal
+          specUrl={activeSpecUrl || specUrl}
+          operations={spec.operations}
+          runOne={runForPersona}
+          onClose={() => setPmatrixOpen(false)}
         />
       )}
       {collectionsOpen && (

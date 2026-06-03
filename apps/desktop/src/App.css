@@ -3116,3 +3116,93 @@ tr.cmp-changed td { background: #d2992214; }
   font-size: 11px;
   margin-top: 4px;
 }
+
+/* ============================================================
+ * 권한 매트릭스 모달
+ * ============================================================ */
+.modal.pmatrix-modal {
+  width: 720px;
+  max-width: 94vw;
+  max-height: 85vh;
+}
+.pmatrix-body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  overflow: auto;
+}
+.pmatrix-section-title {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--muted);
+  margin-bottom: 6px;
+}
+.pmatrix-warn-inline {
+  color: #d29922;
+  font-weight: 600;
+}
+.pmatrix-persona-row {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  margin-bottom: 4px;
+}
+.pmatrix-persona-name {
+  width: 120px;
+  flex: none;
+}
+.pmatrix-persona-token {
+  flex: 1;
+}
+.pmatrix-op-list {
+  max-height: 180px;
+  overflow: auto;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 4px;
+}
+.pmatrix-op-check {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 6px;
+  font-size: 12px;
+  cursor: pointer;
+}
+.pmatrix-op-check:hover {
+  background: var(--bg-3);
+}
+.pmatrix-op-path {
+  font-family: ui-monospace, monospace;
+}
+.pmatrix-actions {
+  display: flex;
+  gap: 8px;
+}
+.pmatrix-result {
+  overflow: auto;
+}
+.pmatrix-table {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: 12px;
+}
+.pmatrix-table th,
+.pmatrix-table td {
+  border: 1px solid var(--border);
+  padding: 5px 8px;
+  text-align: center;
+}
+.pmatrix-table th {
+  background: var(--bg-3);
+  color: var(--muted);
+}
+.pmatrix-table-op {
+  text-align: left !important;
+  font-family: ui-monospace, monospace;
+  white-space: nowrap;
+}
+.pmatrix-cell {
+  font-weight: 700;
+  font-family: ui-monospace, monospace;
+}
