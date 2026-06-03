@@ -92,6 +92,8 @@ import {
   loadSnapshots, saveSnapshots, addSnapshot, loadTTConfig,
   type Snapshot,
 } from "./core/snapshots";
+import { FlowModal } from "./components/FlowModal";
+import type { ExecResult } from "./core/flow";
 
 const DEFAULT_SPEC_URL = "http://localhost:8000/v3/api-docs";
 
@@ -673,6 +675,8 @@ export default function App() {
 
   // 시간여행: 스냅샷 목록 + 모달 오픈 상태
   const [ttOpen, setTtOpen] = useState(false);
+  // 플로우 빌더 모달
+  const [flowOpen, setFlowOpen] = useState(false);
   const [snapshots, setSnapshots] = useState<Snapshot[]>([]);
   // 스냅샷 영속화: activeSpecUrl·snapshots 변경 시 저장
   useEffect(() => {
@@ -702,6 +706,32 @@ export default function App() {
   };
   async function captureSnapshots(opIds: string[]) {
     return captureSnapshotsRef.current(opIds);
+  }
+
+  // 플로우 단계 실행: buildRequest + executeRequest. 변수는 activeVars와 병합.
+  async function execFlowStep(
+    opId: string,
+    vars: Record<string, string>,
+  ): Promise<ExecResult> {
+    if (!spec) return { status: 0, ok: false, body: "", durationMs: 0, error: "스펙 없음" };
+    const op = spec.operations.find((o) => o.id === opId);
+    if (!op) return { status: 0, ok: false, body: "", durationMs: 0, error: "없는 operation" };
+    const ins = defaultInputs(op);
+    const securityHeaders = computeSecurityHeaders(spec.securitySchemes ?? [], authValues);
+    const mergedVars = { ...activeVars, ...vars };
+    const request = buildRequest(baseURL, op, ins, securityHeaders, globalHeaders, mergedVars);
+    const t0 = Date.now();
+    try {
+      const res = await executeRequest(request, netSettings);
+      return {
+        status: res.statusCode,
+        ok: res.statusCode >= 200 && res.statusCode < 300,
+        body: res.body,
+        durationMs: res.durationMs,
+      };
+    } catch (e) {
+      return { status: 0, ok: false, body: "", durationMs: Date.now() - t0, error: String(e) };
+    }
   }
 
   // compareSnapshots: Snapshot → HistoryItem 어댑터 → CompareModal 재활용
@@ -1175,6 +1205,14 @@ export default function App() {
         </button>
         <button
           className="btn"
+          title="플로우 빌더 — API 단계를 순서대로 실행하며 변수를 전달"
+          onClick={() => setFlowOpen(true)}
+          disabled={!spec}
+        >
+          플로우
+        </button>
+        <button
+          className="btn"
           title="새 창 열기 — 다른 프로젝트를 동시에 볼 수 있습니다 (⌘N)"
           onClick={() => setNewWindowConfirm(true)}
         >
@@ -1551,6 +1589,15 @@ export default function App() {
           onCapture={(opIds) => void captureSnapshots(opIds)}
           onCompare={compareSnapshots}
           onClose={() => setTtOpen(false)}
+        />
+      )}
+      {flowOpen && spec && (
+        <FlowModal
+          specUrl={activeSpecUrl || specUrl}
+          spec={spec}
+          initialVars={activeVars}
+          execOne={execFlowStep}
+          onClose={() => setFlowOpen(false)}
         />
       )}
       {pmatrixOpen && spec && (

@@ -3284,3 +3284,23 @@ tr.cmp-changed td { background: #d2992214; }
 .tt-snap-status { font-weight: 700; }
 .tt-snap-dur { color: var(--muted); }
 .tt-body-view { max-height: 200px; overflow: auto; background: var(--bg); border: 1px solid var(--border); border-radius: 6px; padding: 8px; font-family: ui-monospace, monospace; font-size: 11px; white-space: pre-wrap; }
+
+/* 플로우 빌더 모달 */
+.modal.flow-modal { width: 760px; max-width: 95vw; height: 84vh; }
+.flow-body { display: flex; flex-direction: column; gap: 10px; overflow: hidden; }
+.flow-bar { display: flex; gap: 8px; align-items: center; }
+.flow-add { display: flex; gap: 8px; align-items: center; }
+.flow-steps { flex: 1; overflow: auto; display: flex; flex-direction: column; gap: 8px; }
+.flow-step { border: 1px solid var(--border); border-radius: 8px; background: var(--bg-2); }
+.flow-step-head { display: flex; align-items: center; gap: 8px; padding: 6px 10px; border-bottom: 1px solid var(--border); }
+.flow-drag { cursor: grab; color: var(--muted); }
+.flow-step-num { font-weight: 700; color: var(--muted); }
+.flow-step-path { font-family: ui-monospace, monospace; flex: 1; }
+.flow-step-result { font-weight: 700; font-family: ui-monospace, monospace; }
+.flow-step-edit { padding: 6px 10px; display: flex; flex-direction: column; gap: 4px; }
+.flow-sub { font-size: 10px; font-weight: 700; color: var(--muted); margin-top: 4px; }
+.flow-rule-row { display: flex; gap: 6px; align-items: center; }
+.flow-extracted { font-size: 11px; color: #3fb950; font-family: ui-monospace, monospace; }
+.flow-asserts { display: flex; gap: 10px; flex-wrap: wrap; font-size: 11px; }
+.flow-assert-ok { color: #3fb950; }
+.flow-assert-bad { color: #f85149; }
