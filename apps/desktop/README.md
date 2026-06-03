@@ -53,17 +53,26 @@ npm run tauri build    # 현재 OS용 설치본 생성 (.dmg / .msi 등)
 - 코드 서명: macOS는 Developer ID + 공증, Windows는 코드서명 인증서가 필요합니다.
   워크플로의 주석 처리된 `APPLE_*` / Windows secret을 채우면 자동 서명됩니다.
 
-## 구현 현황
+## 구현 현황 (v0.4.0 기준)
 
-- [x] OpenAPI spec URL 로드 (JSON/YAML, 로컬 $ref)
-- [x] 태그별 엔드포인트 목록 + 검색
-- [x] 요청 편집(path/query/header/body) 및 전송(임의 호스트, CORS 우회)
-- [x] 응답 표시(상태/시간/크기/헤더/본문) + Body 복사
-- [ ] 히스토리·즐겨찾기·환경/인증·미니맵·코드 스니펫 (macOS 앱 기능 — 추후 포팅)
+- [x] OpenAPI spec URL 로드 (JSON/YAML, $ref 해석, 디스커버리)
+- [x] 태그별 엔드포인트 목록 + 검색 + 즐겨찾기 + 커스텀 드롭다운(태그 검색)
+- [x] 요청 편집(path/query/header/body, multipart/파일) 및 전송(임의 호스트, CORS 우회)
+- [x] 응답 표시(상태/시간/크기/헤더/본문) + JSON 뷰어 + 스키마 검증
+- [x] 히스토리 + 비교(diff·미니맵·검색) / 컬렉션(Postman 호환) / 러너
+- [x] 환경·변수 치환 `{{}}` / 요청 체이닝(추출) / 어서션
+- [x] 인증(Bearer/Basic/API Key/OAuth2) + 전역 헤더 + 쿠키 관리
+- [x] cURL 가져오기/내보내기 + 코드 스니펫
+- [x] AI 어시스턴트 (Claude CLI — 설명/진단/폼 채우기/채팅)
+- [x] **Mock 서버** — 스펙 기반 로컬 가짜 API 서버 (스키마 자동 생성/AI/히스토리 응답)
+- [x] 자동 업데이트 / 멀티윈도우 / 커맨드 팔레트(⌘K) / 다크·라이트 테마
 
-## 로드맵(관리)
+## 로드맵
 
-1. SQLite(`tauri-plugin-sql`)로 프로젝트/환경/히스토리/즐겨찾기 영속화
-2. 인증(Bearer/Basic/API Key) + spec 디스커버리(`/v3/api-docs/swagger-config` 등)
-3. 미니맵·검색 등 응답 뷰어 고도화
-4. 자동 업데이트(`tauri-plugin-updater`)
+1. **프록시 녹화 모드** — 실서버 트래픽을 흘리며 자동 녹화 → mock 데이터화
+2. **API 성능 추이** — 히스토리 기반 응답시간 차트
+3. **가이드 문서 생성** — 스펙 + 실제 예시 → Markdown/HTML 내보내기
+4. **API 시간여행** — 주기 응답 스냅샷 + 시간축 탐색
+5. **플로우 빌더** — 노드 캔버스로 API 시나리오 구성
+
+사용 매뉴얼: https://jehyukkim674.github.io/swaggerman/
