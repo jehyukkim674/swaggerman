@@ -32,3 +32,28 @@ describe("GuideModal", () => {
     expect(writeText).toHaveBeenCalledWith(expect.stringContaining("연동 가이드"));
   });
 });
+
+describe("GuideModal 추가 동작", () => {
+  it("체크 해제로 모두 끄면 생성 버튼이 비활성", () => {
+    render(<GuideModal spec={spec} history={[]} baseURL="https://x" onSaveFile={vi.fn()} onClose={vi.fn()} />);
+    fireEvent.click(screen.getByRole("checkbox")); // 유일 op 해제
+    expect((screen.getByRole("button", { name: "생성" }) as HTMLButtonElement).disabled).toBe(true);
+  });
+
+  it("'파일로 저장'이 onSaveFile에 Markdown을 전달", () => {
+    const onSaveFile = vi.fn();
+    render(<GuideModal spec={spec} history={[]} baseURL="https://x" onSaveFile={onSaveFile} onClose={vi.fn()} />);
+    fireEvent.click(screen.getByRole("button", { name: "생성" }));
+    fireEvent.click(screen.getByRole("button", { name: "파일로 저장" }));
+    expect(onSaveFile).toHaveBeenCalledWith(expect.stringContaining("연동 가이드"));
+  });
+
+  it("오버레이 클릭 시 onClose", () => {
+    const onClose = vi.fn();
+    const { container } = render(
+      <GuideModal spec={spec} history={[]} baseURL="https://x" onSaveFile={vi.fn()} onClose={onClose} />,
+    );
+    fireEvent.mouseDown(container.querySelector(".modal-overlay")!);
+    expect(onClose).toHaveBeenCalled();
+  });
+});

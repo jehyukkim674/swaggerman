@@ -52,3 +52,19 @@ describe("ShortcutInput", () => {
     window.removeEventListener("keydown", windowHandler);
   });
 });
+
+describe("ShortcutInput 캡처 상태", () => {
+  it("포커스 시 캡처 안내, 블러 시 원래 표시로 돌아온다", () => {
+    render(<ShortcutInput value="CmdOrCtrl+Shift+P" onChange={vi.fn()} />);
+    const btn = screen.getByRole("button", { name: /단축키/ });
+    fireEvent.focus(btn);
+    expect(btn.textContent).toMatch(/키 조합을 누르세요/);
+    fireEvent.blur(btn);
+    expect(btn.textContent).toMatch(/P/);
+  });
+
+  it("미설정 값은 (미설정)으로 표시", () => {
+    render(<ShortcutInput value="" onChange={vi.fn()} />);
+    expect(screen.getByRole("button", { name: /단축키/ }).textContent).toMatch(/미설정/);
+  });
+});

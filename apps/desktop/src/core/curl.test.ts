@@ -54,3 +54,25 @@ describe("parseCurl", () => {
     expect(() => parseCurl("curl -X GET")).toThrow("URL");
   });
 });
+
+describe("parseCurl 추가 케이스", () => {
+  it("큰따옴표와 이스케이프(\\\")를 처리한다", () => {
+    const r = parseCurl('curl -X POST https://x/api -d "{\\"a\\":\\"b\\"}"');
+    expect(r.body).toBe('{"a":"b"}');
+  });
+
+  it("-G(--get)는 데이터가 있어도 메서드를 GET으로", () => {
+    const r = parseCurl("curl -G https://x/api -d q=1");
+    expect(r.method).toBe("GET");
+  });
+
+  it("curlToRequest는 operation/inputs/baseURL을 만든다", async () => {
+    const { curlToRequest } = await import("./curl");
+    const { operation, inputs, baseURL } = curlToRequest(
+      'curl -X POST https://api.x.com/users?p=1 -H "Accept: application/json" -d \'{"n":1}\'',
+    );
+    expect(operation.method).toBe("POST");
+    expect(baseURL).toContain("api.x.com");
+    expect(inputs.body).toBe('{"n":1}');
+  });
+});

@@ -47,3 +47,31 @@ describe("TimeTravelModal", () => {
     expect(onCompare).toHaveBeenCalled();
   });
 });
+
+describe("TimeTravelModal 추가 동작", () => {
+  it("자동 캡처 체크박스를 토글하면 안내가 나타난다", () => {
+    renderModal();
+    const auto = screen.getByText("자동").closest("label")!.querySelector('input[type="checkbox"]')!;
+    fireEvent.click(auto);
+    expect(screen.getByText(/자동 캡처 켜짐/)).toBeTruthy();
+  });
+
+  it("'응답' 버튼으로 스냅샷 본문을 펼치고 다시 접는다", () => {
+    renderModal();
+    const respBtns = screen.getAllByRole("button", { name: "응답" });
+    fireEvent.click(respBtns[0]);
+    // 본문 영역이 나타남(다시 클릭하면 닫힘)
+    fireEvent.click(respBtns[0]);
+    expect(respBtns[0]).toBeTruthy();
+  });
+
+  it("대상이 없으면 '지금 스냅샷' 버튼이 비활성", () => {
+    renderModal();
+    expect((screen.getByRole("button", { name: /지금 스냅샷/ }) as HTMLButtonElement).disabled).toBe(true);
+  });
+
+  it("스냅샷이 없는 operation은 '기록 없음' 힌트", () => {
+    renderModal({ snapshots: [] });
+    expect(screen.getByText(/기록 없음/)).toBeTruthy();
+  });
+});

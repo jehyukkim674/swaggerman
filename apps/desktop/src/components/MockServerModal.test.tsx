@@ -420,3 +420,79 @@ describe("MockServerModal", () => {
     });
   });
 });
+
+// ── 확장 커버리지: 상세 패널 편집 ──────────────────────────────
+describe("MockServerModal 상세 패널", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockStartMockServer.mockResolvedValue(9090);
+    mockStopMockServer.mockResolvedValue(undefined);
+    mockGetMockStatus.mockResolvedValue({ running: false, port: 9090, logs: [] });
+  });
+
+  function setup() {
+    const spec = makeSpec([{ id: "GET /users", method: "GET", path: "/users" }]);
+    const utils = render(
+      <MockServerModal spec={spec} specUrl="https://api.example.com/openapi.json" history={[]} onClose={() => {}} />,
+    );
+    fireEvent.click(utils.container.querySelector(".mock-op-row")!);
+    return utils;
+  }
+
+  it("선택된 operation이 없으면 안내 문구를 보여준다", () => {
+    const spec = makeSpec([]); // operation 없음 → 자동 선택 대상 없음
+    render(
+      <MockServerModal spec={spec} specUrl="u" history={[]} onClose={() => {}} />,
+    );
+    expect(screen.getByText(/operation을 선택하세요/)).toBeTruthy();
+  });
+
+  it("개수/지연/상태코드를 편집할 수 있다", () => {
+    const { container } = setup();
+    const nums = container.querySelectorAll<HTMLInputElement>(".mock-num-input");
+    expect(nums.length).toBe(3);
+    fireEvent.change(nums[0], { target: { value: "5" } });
+    fireEvent.change(nums[1], { target: { value: "100" } });
+    fireEvent.change(nums[2], { target: { value: "404" } });
+    expect(nums[0].value).toBe("5");
+    expect(nums[2].value).toBe("404");
+  });
+
+  it("잘못된 JSON 입력 시 파싱 오류 메시지를 표시", () => {
+    const { container } = setup();
+    const ta = container.querySelector<HTMLTextAreaElement>(".mock-dataset-textarea")!;
+    fireEvent.change(ta, { target: { value: "{ invalid json" } });
+    expect(screen.getByText(/JSON 파싱 오류/)).toBeTruthy();
+  });
+
+  it("유효한 배열 JSON 입력 시 오류 없이 반영", () => {
+    const { container } = setup();
+    const ta = container.querySelector<HTMLTextAreaElement>(".mock-dataset-textarea")!;
+    fireEvent.change(ta, { target: { value: '[{"id":9}]' } });
+    expect(screen.queryByText(/JSON 파싱 오류/)).toBeNull();
+  });
+
+  it("source가 schema면 재생성 버튼을 노출", () => {
+    setup();
+    expect(screen.getByText(/재생성/)).toBeTruthy();
+  });
+
+  it("포트 입력을 변경할 수 있다", () => {
+    const { container } = setup();
+    const port = container.querySelector<HTMLInputElement>(".mock-port-input")!;
+    fireEvent.change(port, { target: { value: "8081" } });
+    expect(port.value).toBe("8081");
+  });
+
+  it("실행 중이면 Base URL 복사 버튼이 동작한다", async () => {
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    Object.defineProperty(navigator, "clipboard", { value: { writeText }, configurable: true });
+    mockGetMockStatus.mockResolvedValue({ running: true, port: 9090, logs: [] });
+    setup();
+    await act(async () => {
+      fireEvent.click(screen.getByText("서버 시작"));
+    });
+    fireEvent.click(screen.getByTitle("Base URL 복사"));
+    expect(writeText).toHaveBeenCalledWith("http://localhost:9090");
+  });
+});

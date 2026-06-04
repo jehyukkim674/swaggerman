@@ -71,3 +71,46 @@ describe("loadSpec", () => {
     await expect(loadSpec("http://x/v3/api-docs")).rejects.toThrow("인증");
   });
 });
+
+describe("loadSpec - 추가 경로", () => {
+  it("직접 URL이 5xx면 HTTP 상태 에러", async () => {
+    table["http://x/v3/api-docs"] = { status: 503, body: "" };
+    await expect(loadSpec("http://x/v3/api-docs")).rejects.toThrow("HTTP 503");
+  });
+
+  it("operation이 없는 JSON도 빈 spec으로 파싱한다", async () => {
+    table["http://x/openapi.json"] = {
+      status: 200,
+      body: JSON.stringify({ openapi: "3.0.0", info: { title: "Empty", version: "1" }, paths: {} }),
+    };
+    const spec = await loadSpec("http://x/openapi.json");
+    expect(spec.info.title).toBe("Empty");
+    expect(spec.operations).toHaveLength(0);
+  });
+
+  it("swagger-config(JSON urls[])로 spec을 발견한다", async () => {
+    table["http://x/swagger-ui/index.html"] = { status: 200, body: HTML };
+    table["http://x/v3/api-docs/swagger-config"] = {
+      status: 200,
+      body: JSON.stringify({ urls: [{ url: "/group/a-docs" }] }),
+    };
+    table["http://x/group/a-docs"] = { status: 200, body: VALID_SPEC };
+    const spec = await loadSpec("http://x/swagger-ui/index.html");
+    expect(spec.info.title).toBe("T");
+  });
+
+  it("HTML의 url:\"...\" 후보에서 spec을 추출해 발견한다", async () => {
+    table["http://x/docs"] = {
+      status: 200,
+      body: '<html><script>const ui = { url: "/custom/openapi.json" }</script></html>',
+    };
+    table["http://x/custom/openapi.json"] = { status: 200, body: VALID_SPEC };
+    const spec = await loadSpec("http://x/docs");
+    expect(spec.operations).toHaveLength(1);
+  });
+
+  it("아무 후보도 못 찾으면 안내 에러", async () => {
+    table["http://x/swagger-ui/index.html"] = { status: 200, body: HTML };
+    await expect(loadSpec("http://x/swagger-ui/index.html")).rejects.toThrow("찾지 못했습니다");
+  });
+});

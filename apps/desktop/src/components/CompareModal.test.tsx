@@ -158,3 +158,43 @@ describe("CompareModal 2단 레이아웃·미니맵·검색·변경 구분", () 
     expect(input.value).toBe("");
   });
 });
+
+describe("CompareModal 매치 내비게이션/스크롤", () => {
+  it("다음/이전 매치 버튼으로 active를 이동한다", () => {
+    const { container } = renderModal();
+    const input = container.querySelector<HTMLInputElement>(".cmp-search-bar input.search")!;
+    fireEvent.change(input, { target: { value: "alpha" } });
+    fireEvent.keyDown(input, { key: "Enter" });
+    const counter = () => container.querySelector(".cmp-search-bar .match")?.textContent;
+    expect(counter()).toMatch(/1\//);
+    fireEvent.click(container.querySelector('[title="다음 매치 (Enter)"]')!);
+    expect(counter()).toMatch(/2\//);
+    fireEvent.click(container.querySelector('[title="이전 매치 (Shift+Enter)"]')!);
+    expect(counter()).toMatch(/1\//);
+  });
+
+  it("Enter 반복 시 다음 매치로 순환한다", () => {
+    const { container } = renderModal();
+    const input = container.querySelector<HTMLInputElement>(".cmp-search-bar input.search")!;
+    fireEvent.change(input, { target: { value: "alpha" } });
+    fireEvent.keyDown(input, { key: "Enter" });
+    fireEvent.keyDown(input, { key: "Enter" }); // 같은 검색어 → 다음 매치
+    expect(container.querySelector(".cmp-search-bar .match")?.textContent).toMatch(/2\//);
+  });
+
+  it("검색 지우기 버튼이 검색을 초기화한다", () => {
+    const { container } = renderModal();
+    const input = container.querySelector<HTMLInputElement>(".cmp-search-bar input.search")!;
+    fireEvent.change(input, { target: { value: "alpha" } });
+    fireEvent.keyDown(input, { key: "Enter" });
+    fireEvent.click(container.querySelector('[aria-label="검색 지우기"]')!);
+    expect(input.value).toBe("");
+    expect(container.querySelector(".cmp-search-bar .match")).toBeNull();
+  });
+
+  it("가상 스크롤 컨테이너 스크롤 시 throw 없이 갱신", () => {
+    const { container } = renderModal();
+    const virtual = container.querySelector(".cmp-diff-virtual")!;
+    expect(() => fireEvent.scroll(virtual, { target: { scrollTop: 200 } })).not.toThrow();
+  });
+});

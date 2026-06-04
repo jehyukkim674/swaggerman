@@ -87,3 +87,26 @@ describe("ShareModal 가져오기", () => {
     expect((screen.getByRole("button", { name: /적용/ }) as HTMLButtonElement).disabled).toBe(true);
   });
 });
+
+describe("ShareModal 탭 전환", () => {
+  it("current가 있으면 내보내기 탭이 기본, 가져오기로 전환 가능", async () => {
+    render(<ShareModal current={current} onApply={vi.fn()} onClose={vi.fn()} />);
+    expect(await screen.findByLabelText("공유 코드")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "가져오기" }));
+    expect(screen.getByLabelText("공유 코드 입력")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "내보내기" }));
+    expect(screen.getByLabelText("공유 코드")).toBeTruthy();
+  });
+
+  it("current가 없으면 내보내기 탭 버튼이 비활성", () => {
+    render(<ShareModal current={null} onApply={vi.fn()} onClose={vi.fn()} />);
+    expect((screen.getByRole("button", { name: "내보내기" }) as HTMLButtonElement).disabled).toBe(true);
+  });
+
+  it("닫기 버튼이 onClose 호출", () => {
+    const onClose = vi.fn();
+    render(<ShareModal current={current} onApply={vi.fn()} onClose={onClose} />);
+    fireEvent.click(screen.getByTitle("닫기"));
+    expect(onClose).toHaveBeenCalled();
+  });
+});

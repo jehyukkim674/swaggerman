@@ -57,3 +57,63 @@ describe("ProxyModal", () => {
     expect(onSend).toHaveBeenCalledWith(expect.objectContaining({ path: "/pet" }));
   });
 });
+
+describe("ProxyModal 추가 동작", () => {
+  it("타깃이 비면 시작 버튼이 비활성", () => {
+    render(<ProxyModal defaultTarget="" onSendToMock={vi.fn()} onClose={vi.fn()} />);
+    expect((screen.getByRole("button", { name: "시작" }) as HTMLButtonElement).disabled).toBe(true);
+  });
+
+  it("실행 중 중지하면 proxy_stop 호출 후 시작 버튼 복귀", async () => {
+    renderModal();
+    fireEvent.click(screen.getByRole("button", { name: "시작" }));
+    const stop = await screen.findByRole("button", { name: "중지" });
+    fireEvent.click(stop);
+    await waitFor(() => expect(invokeMock).toHaveBeenCalledWith("proxy_stop"));
+    expect(await screen.findByRole("button", { name: "시작" })).toBeTruthy();
+  });
+
+  it("PORT_IN_USE 에러 시 포트 충돌 안내", async () => {
+    invokeMock.mockImplementation(async (cmd: unknown) => {
+      if (cmd === "proxy_start") throw new Error("PORT_IN_USE: in use");
+      return undefined;
+    });
+    renderModal();
+    fireEvent.click(screen.getByRole("button", { name: "시작" }));
+    expect(await screen.findByText(/사용 중입니다/)).toBeTruthy();
+  });
+
+  it("기타 시작 실패는 '시작 실패' 메시지", async () => {
+    invokeMock.mockImplementation(async (cmd: unknown) => {
+      if (cmd === "proxy_start") throw new Error("boom");
+      return undefined;
+    });
+    renderModal();
+    fireEvent.click(screen.getByRole("button", { name: "시작" }));
+    expect(await screen.findByText(/시작 실패: boom/)).toBeTruthy();
+  });
+
+  it("실행 중 Base URL 복사 버튼이 클립보드에 복사", async () => {
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    Object.defineProperty(navigator, "clipboard", { value: { writeText }, configurable: true });
+    renderModal();
+    fireEvent.click(screen.getByRole("button", { name: "시작" }));
+    const copyBtn = await screen.findByTitle("Base URL 복사");
+    fireEvent.click(copyBtn);
+    expect(writeText).toHaveBeenCalledWith("http://localhost:9091");
+  });
+
+  it("onSendToMock 결과 메시지를 표시한다", async () => {
+    const recs: ProxyRecord[] = [{ atMs: 1, method: "GET", path: "/pet", status: 200, responseBody: "[]" }];
+    invokeMock.mockImplementation(async (cmd: unknown) => {
+      if (cmd === "proxy_start") return 9091;
+      if (cmd === "proxy_recordings") return recs;
+      return undefined;
+    });
+    renderModal(vi.fn(() => "Mock에 저장됨"));
+    fireEvent.click(screen.getByRole("button", { name: "시작" }));
+    const btn = await screen.findByRole("button", { name: /Mock으로/ });
+    fireEvent.click(btn);
+    expect(screen.getByText("Mock에 저장됨")).toBeTruthy();
+  });
+});

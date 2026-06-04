@@ -8,6 +8,12 @@
 > **macOS 설치 시 "손상되어 열 수 없습니다"가 뜨면** (서명 미인증 앱): 터미널에서
 > `xattr -dr com.apple.quarantine /Applications/SwaggerMan.app` 실행 후 다시 여세요.
 
+## v0.4.4
+
+- 개선: **스키마 검증 패널 기본 접힘** — 응답의 스키마 불일치가 있어도 패널을 자동으로 펼치지 않고 기본 접힌 상태로 표시(헤더에 불일치 건수 배지는 유지)
+- 테스트: **커버리지 보강(라인 93% / 구문 91%)** — 0% 컴포넌트(Sidebar·Authorize·Collections·Settings·TestPanel·CommandPalette·Environments·Runner·Projects·CurlImport·GlobalHeaders·DonationModal/QR·DocsPane·JsonEditor·SchemaTree·Minimap)와 부분 커버 화면(RequestEditor·ResponseView·VarInput·FlowModal·MockServerModal·GuideModal·ProxyModal·CompareModal·TimeTravelModal·ShareModal)·코어 로직(schema-format·security·collections·spec-loader·updater·global-shortcut·curl·ai)에 단위 테스트 추가(총 764 케이스)
+- 빌드: vitest 커버리지(v8) + 90% 게이트 도입(`npm run test:coverage`). App 진입점·얇은 Tauri IO 래퍼는 단위 테스트 범위에서 제외
+
 ## v0.4.3
 
 - 문서: **사용 매뉴얼 전면 보강** — Mock 서버·프록시 녹화·API 성능 추이·시간여행·가이드 문서 생성·플로우 빌더·메모/공유/권한 매트릭스·전역 단축키 섹션 추가 (https://jehyukkim674.github.io/swaggerman/)

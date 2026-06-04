@@ -258,7 +258,7 @@ export function ResponseView({
       )}
 
       {operation && operation.responses.some((r) => r.schema) && (
-        <details className="schema-check" open={schemaIssues.length > 0}>
+        <details className="schema-check">
           <summary>
             스키마 검증
             {schemaIssues.length === 0 ? (

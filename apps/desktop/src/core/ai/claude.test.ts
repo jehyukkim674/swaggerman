@@ -65,4 +65,15 @@ describe("claudeProvider", () => {
     handle.cancel();
     expect(invokeMock).toHaveBeenCalledWith("ai_cancel", { reqId: 9 });
   });
+
+  it("ai_chat invoke가 실패하면 error 이벤트를 전달한다", async () => {
+    invokeMock.mockRejectedValueOnce(new Error("spawn 실패"));
+    const events: unknown[] = [];
+    claudeProvider.chat(
+      { reqId: 11, prompt: "p", system: "s", model: "sonnet" },
+      (e) => events.push(e),
+    );
+    await new Promise((r) => setTimeout(r, 0));
+    expect(events.some((e) => (e as { kind: string }).kind === "error")).toBe(true);
+  });
 });

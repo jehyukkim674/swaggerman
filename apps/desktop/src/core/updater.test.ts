@@ -64,3 +64,28 @@ describe("checkUpdateStatus — 네트워크 설정 적용(사내망/프록시)"
     }
   });
 });
+
+describe("install() 및 checkForUpdate", () => {
+  beforeEach(() => checkMock.mockReset());
+
+  it("install()이 downloadAndInstall 후 relaunch를 호출한다", async () => {
+    const { relaunch } = await import("@tauri-apps/plugin-process");
+    const downloadAndInstall = vi.fn().mockResolvedValue(undefined);
+    checkMock.mockResolvedValue({ version: "1.2.3", body: "n", downloadAndInstall });
+    const result = await checkUpdateStatus();
+    expect(result.kind).toBe("available");
+    if (result.kind === "available") {
+      await result.update.install();
+      expect(downloadAndInstall).toHaveBeenCalled();
+      expect(relaunch).toHaveBeenCalled();
+    }
+  });
+
+  it("checkForUpdate는 업데이트가 있으면 정보를, 없으면 null을 반환", async () => {
+    const { checkForUpdate } = await import("./updater");
+    checkMock.mockResolvedValue({ version: "2.0.0", body: "", downloadAndInstall: vi.fn() });
+    expect((await checkForUpdate())?.version).toBe("2.0.0");
+    checkMock.mockResolvedValue(null);
+    expect(await checkForUpdate()).toBeNull();
+  });
+});

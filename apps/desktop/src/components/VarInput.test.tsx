@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
+import { useState } from "react";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { VarInput } from "./VarInput";
 
@@ -73,5 +74,82 @@ describe("VarInput 호버 툴팁", () => {
     const input = container.querySelector("input")!;
     fireEvent.change(input, { target: { value: "{{target" } });
     expect(screen.getByText("{{targetIp}}")).toBeTruthy();
+  });
+});
+
+describe("VarInput 자동완성 키보드/삽입", () => {
+  // controlled 컴포넌트 — value가 onChange로 갱신돼야 insert가 동작하므로 stateful 래퍼 사용
+  function Harness({ initial = "", onChange }: { initial?: string; onChange: (v: string) => void }) {
+    const [val, setVal] = useState(initial);
+    return (
+      <VarInput
+        value={val}
+        onChange={(v) => {
+          setVal(v);
+          onChange(v);
+        }}
+        vars={["token", "userId", "userName"]}
+        varDetails={{}}
+      />
+    );
+  }
+  function setup(initial = "") {
+    const onChange = vi.fn();
+    const { container } = render(<Harness initial={initial} onChange={onChange} />);
+    const input = container.querySelector("input") as HTMLInputElement;
+    return { input, onChange };
+  }
+  function type(input: HTMLInputElement, v: string, caret = v.length) {
+    fireEvent.change(input, { target: { value: v, selectionStart: caret } });
+    input.selectionStart = caret;
+    input.selectionEnd = caret;
+  }
+
+  it("부분 이름으로 제안을 필터링한다", () => {
+    const { input } = setup();
+    type(input, "{{user");
+    expect(screen.getByText("{{userId}}")).toBeTruthy();
+    expect(screen.getByText("{{userName}}")).toBeTruthy();
+    expect(screen.queryByText("{{token}}")).toBeNull();
+  });
+
+  it("제안 클릭(mouseDown)으로 토큰을 삽입한다", () => {
+    const { input, onChange } = setup();
+    type(input, "{{to");
+    fireEvent.mouseDown(screen.getByText("{{token}}"));
+    expect(onChange).toHaveBeenLastCalledWith("{{token}}");
+  });
+
+  it("ArrowDown→Enter로 두 번째 항목을 삽입한다", () => {
+    const { input, onChange } = setup();
+    type(input, "{{user");
+    fireEvent.keyDown(input, { key: "ArrowDown" });
+    fireEvent.keyDown(input, { key: "Enter" });
+    expect(onChange).toHaveBeenLastCalledWith("{{userName}}");
+  });
+
+  it("ArrowUp은 첫 항목 위로 넘어가지 않는다", () => {
+    const { input, onChange } = setup();
+    type(input, "{{user");
+    fireEvent.keyDown(input, { key: "ArrowUp" });
+    fireEvent.keyDown(input, { key: "Tab" });
+    expect(onChange).toHaveBeenLastCalledWith("{{userId}}");
+  });
+
+  it("Escape로 제안 목록을 닫는다", () => {
+    const { input } = setup();
+    type(input, "{{us");
+    expect(screen.getByText("{{userId}}")).toBeTruthy();
+    fireEvent.keyDown(input, { key: "Escape" });
+    expect(screen.queryByText("{{userId}}")).toBeNull();
+  });
+
+  it("값 중간에 삽입해도 앞뒤 텍스트를 보존한다", () => {
+    const { input, onChange } = setup();
+    const v = "Bearer {{to and more";
+    const caret = "Bearer {{to".length;
+    type(input, v, caret);
+    fireEvent.mouseDown(screen.getByText("{{token}}"));
+    expect(onChange).toHaveBeenLastCalledWith("Bearer {{token}} and more");
   });
 });

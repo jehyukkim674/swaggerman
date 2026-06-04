@@ -1,10 +1,16 @@
 // @vitest-environment jsdom
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect, beforeEach, vi } from "vitest";
+
+const invokeMock = vi.fn();
+vi.mock("@tauri-apps/api/core", () => ({ invoke: (...a: unknown[]) => invokeMock(...a) }));
+
 import {
   eventToAccelerator,
   acceleratorToDisplay,
   loadShortcut,
   saveShortcut,
+  registerShortcut,
+  unregisterShortcut,
   DEFAULT_SHORTCUT,
 } from "./global-shortcut";
 
@@ -49,5 +55,29 @@ describe("loadShortcut / saveShortcut", () => {
   });
   it("저장된 적 없으면 기본 단축키", () => {
     expect(loadShortcut()).toBe(DEFAULT_SHORTCUT);
+  });
+});
+
+describe("registerShortcut / unregisterShortcut", () => {
+  beforeEach(() => invokeMock.mockReset());
+
+  it("accelerator가 있으면 register_global_shortcut 호출", async () => {
+    invokeMock.mockResolvedValue(undefined);
+    await registerShortcut("CmdOrCtrl+Shift+P");
+    expect(invokeMock).toHaveBeenCalledWith("register_global_shortcut", {
+      accelerator: "CmdOrCtrl+Shift+P",
+    });
+  });
+
+  it("빈 문자열이면 unregister_global_shortcut 호출", async () => {
+    invokeMock.mockResolvedValue(undefined);
+    await registerShortcut("");
+    expect(invokeMock).toHaveBeenCalledWith("unregister_global_shortcut");
+  });
+
+  it("unregisterShortcut는 unregister_global_shortcut 호출", async () => {
+    invokeMock.mockResolvedValue(undefined);
+    await unregisterShortcut();
+    expect(invokeMock).toHaveBeenCalledWith("unregister_global_shortcut");
   });
 });
