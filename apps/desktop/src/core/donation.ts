@@ -4,8 +4,8 @@ import { loadJSON, saveJSON } from "./storage";
 /** 카카오페이 송금 QR 페이지. 브라우저에서 열고 휴대폰으로 스캔하면 송금된다. */
 export const DONATION_URL = "https://qr.kakaopay.com/FcUzxPAhE";
 
-/** 배너를 닫아도 이 시간이 지나면 다시 표시한다. (30분) */
-export const REDISPLAY_INTERVAL_MS = 30 * 60 * 1000;
+/** 배너를 닫아도 이 시간이 지나면 다시 표시한다. (하루 — 후원 요청은 하루 한 번만) */
+export const REDISPLAY_INTERVAL_MS = 24 * 60 * 60 * 1000;
 
 const DISMISSED_AT_KEY = "swaggerman.donation.dismissedAt";
 

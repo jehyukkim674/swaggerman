@@ -12,14 +12,28 @@ describe("shouldShowDonationBanner", () => {
     expect(shouldShowDonationBanner(null, Date.now())).toBe(true);
   });
 
-  it("닫은 지 30분 미만이면 표시하지 않는다", () => {
+  it("닫은 지 재표시 간격 미만이면 표시하지 않는다", () => {
     const now = 1_000_000_000;
     expect(shouldShowDonationBanner(now - REDISPLAY_INTERVAL_MS + 1, now)).toBe(false);
   });
 
-  it("닫은 지 30분 이상이면 다시 표시한다", () => {
+  it("닫은 지 재표시 간격 이상이면 다시 표시한다", () => {
     const now = 1_000_000_000;
     expect(shouldShowDonationBanner(now - REDISPLAY_INTERVAL_MS, now)).toBe(true);
+  });
+
+  it("재표시 간격은 하루(24시간)다 — 후원 요청은 하루 한 번만 노출", () => {
+    expect(REDISPLAY_INTERVAL_MS).toBe(24 * 60 * 60 * 1000);
+  });
+
+  it("닫은 지 23시간 뒤에는 표시하지 않는다", () => {
+    const now = 2_000_000_000_000;
+    expect(shouldShowDonationBanner(now - 23 * 60 * 60 * 1000, now)).toBe(false);
+  });
+
+  it("닫은 지 24시간 뒤에는 다시 표시한다", () => {
+    const now = 2_000_000_000_000;
+    expect(shouldShowDonationBanner(now - 24 * 60 * 60 * 1000, now)).toBe(true);
   });
 });
 

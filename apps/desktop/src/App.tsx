@@ -1107,7 +1107,7 @@ export default function App() {
           </button>
           <button
             className="icon-btn donation-close"
-            title="닫기 (30분 뒤 다시 표시)"
+            title="닫기 (하루에 한 번만 표시)"
             onClick={dismissDonation}
           >
             <CloseCircleIcon size={16} />
