@@ -77,10 +77,15 @@ describe("CommandPalette", () => {
     expect(onSelectOperation).toHaveBeenCalledWith(OPS[0]);
   });
 
-  it("Escape 키가 onClose 호출", () => {
+  it("Escape 키가 onClose 호출 + 기본동작/전파를 차단(전체화면 해제 방지)", () => {
     const { onClose } = setup();
-    fireEvent.keyDown(screen.getByRole("textbox"), { key: "Escape" });
+    const input = screen.getByRole("textbox");
+    const ev = new KeyboardEvent("keydown", { key: "Escape", bubbles: true, cancelable: true });
+    const stopSpy = vi.spyOn(ev, "stopPropagation");
+    input.dispatchEvent(ev);
     expect(onClose).toHaveBeenCalled();
+    expect(ev.defaultPrevented).toBe(true);
+    expect(stopSpy).toHaveBeenCalled();
   });
 
   it("응답이 있으면 AI 설명/진단 항목을 노출한다", () => {

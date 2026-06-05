@@ -976,6 +976,11 @@ export default function App() {
   sendRef.current = send;
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
+      // Esc 기본 동작 차단: WKWebView가 Esc를 macOS로 넘겨 네이티브 전체화면이
+      // 해제되는 것을 막는다. 모달 닫기 등 JS 리스너는 preventDefault와 무관하게 동작한다.
+      if (e.key === "Escape") {
+        e.preventDefault();
+      }
       // ⌘/Ctrl + Enter: 전송
       if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
         e.preventDefault();

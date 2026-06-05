@@ -120,6 +120,10 @@ export function CommandPalette({
               e.preventDefault();
               choose(filtered[active]);
             } else if (e.key === "Escape") {
+              // 기본 동작을 막아 Esc가 WKWebView 밖(macOS)으로 전달돼
+              // 네이티브 전체화면이 해제되는 것을 방지한다. 팔레트만 닫는다.
+              e.preventDefault();
+              e.stopPropagation();
               onClose();
             }
           }}
