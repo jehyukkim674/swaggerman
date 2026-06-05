@@ -5,6 +5,7 @@ import { listen } from "@tauri-apps/api/event";
 import { loadShortcut, saveShortcut, registerShortcut } from "./core/global-shortcut";
 import "./App.css";
 import { loadSpec as loadSpecFromUrl } from "./core/spec-loader";
+import { saveSpecCache, loadSpecCache } from "./core/spec-cache";
 import { executeRequest } from "./core/http-client";
 import {
   buildRequest,
@@ -122,6 +123,8 @@ export default function App() {
   const [baseURL, setBaseURL] = useState("");
   const [loading, setLoading] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
+  // 네트워크/환경 오류로 로딩 실패 시 IndexedDB 캐시로 폴백 중임을 알리는 배너 상태
+  const [staleSpec, setStaleSpec] = useState<{ savedAt: number; error: string } | null>(null);
 
   const [selected, setSelected] = useState<ParsedOperation | null>(null);
   const [inputs, setInputs] = useState<RequestInputs | null>(null);
@@ -591,13 +594,32 @@ export default function App() {
     setSpecUrl(targetUrl);
     setLoading(true);
     setLoadError(null);
+    setStaleSpec(null);
     log.info("spec", `로딩 시작: ${targetUrl}`);
     try {
-      const parsed = await loadSpecFromUrl(targetUrl, netSettings.insecure);
-      log.info(
-        "spec",
-        `로딩 성공: "${parsed.info.title}" (오퍼레이션 ${parsed.operations.length}개)`,
-      );
+      let parsed: ParsedSpec;
+      try {
+        parsed = await loadSpecFromUrl(targetUrl, netSettings.insecure);
+        log.info(
+          "spec",
+          `로딩 성공: "${parsed.info.title}" (오퍼레이션 ${parsed.operations.length}개)`,
+        );
+        void saveSpecCache(targetUrl, parsed); // 성공 결과 캐시(실패는 모듈이 흡수)
+      } catch (e) {
+        // 로딩 실패: 같은 URL의 직전 성공 스펙이 캐시에 있으면 그것으로 폴백한다.
+        const msg = e instanceof Error ? e.message : String(e);
+        const cached = await loadSpecCache(targetUrl);
+        if (!cached) {
+          log.error("spec", `로딩 실패: ${msg}`);
+          setLoadError(msg);
+          setSpec(null);
+          return;
+        }
+        log.warn("spec", `로딩 실패(${msg}) → 캐시된 스펙으로 폴백`);
+        parsed = cached.spec;
+        setStaleSpec({ savedAt: cached.savedAt, error: msg });
+      }
+      // ---- 성공/캐시 폴백 공용 적용: 스펙과 URL별 상태를 복원 ----
       setSpec(parsed);
       setBaseURL(deriveBaseURL(targetUrl, parsed.servers));
       setActiveSpecUrl(targetUrl);
@@ -648,11 +670,6 @@ export default function App() {
         setInputs(null);
       }
       setResponse(null);
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : String(e);
-      log.error("spec", `로딩 실패: ${msg}`);
-      setLoadError(msg);
-      setSpec(null);
     } finally {
       setLoading(false);
     }
@@ -1092,6 +1109,29 @@ export default function App() {
             className="icon-btn donation-close"
             title="닫기 (30분 뒤 다시 표시)"
             onClick={dismissDonation}
+          >
+            <CloseCircleIcon size={16} />
+          </button>
+        </div>
+      )}
+      {staleSpec && (
+        <div className="stale-banner">
+          <span>
+            ⚠️ 네트워크 오류로 마지막으로 불러온 스펙(
+            {new Date(staleSpec.savedAt).toLocaleString()})을 표시 중입니다.
+          </span>
+          <button
+            className="btn small primary"
+            disabled={loading}
+            onClick={() => loadSpec(activeSpecUrl || specUrl)}
+            title="현재 스펙 URL을 다시 불러옵니다"
+          >
+            다시 시도
+          </button>
+          <button
+            className="icon-btn"
+            title="배너 닫기 (캐시 스펙은 계속 표시)"
+            onClick={() => setStaleSpec(null)}
           >
             <CloseCircleIcon size={16} />
           </button>

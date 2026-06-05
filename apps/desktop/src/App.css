@@ -1570,6 +1570,28 @@ mark.hl.active {
   color: #ffe14d;
 }
 
+/* 오프라인 폴백 배너 — 로딩 실패로 캐시된(과거) 스펙을 표시 중임을 경고색으로 알림 */
+.stale-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 12px;
+  background: #d2992222;
+  border-bottom: 1px solid #d29922;
+  font-size: 12px;
+  color: #e3b341;
+}
+.stale-banner span {
+  font-weight: 600;
+}
+.stale-banner .icon-btn {
+  margin-left: auto;
+  color: #e3b341;
+}
+.stale-banner .icon-btn:hover {
+  color: #f2cc60;
+}
+
 /* 후원 QR 모달 — 링크가 모바일 전용이라 QR을 보여주고 휴대폰으로 스캔하게 한다 */
 .donation-modal {
   width: 360px;
