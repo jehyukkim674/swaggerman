@@ -48,6 +48,16 @@ describe("dismissedAt 영속화", () => {
     saveDonationDismissedAt(12345);
     expect(loadDonationDismissedAt()).toBe(12345);
   });
+
+  it("표시 시각을 기록하면 24시간 내 재실행/리로드에는 다시 표시하지 않는다 (하루 한 번)", () => {
+    const shownAt = 2_000_000_000_000;
+    expect(shouldShowDonationBanner(loadDonationDismissedAt(), shownAt)).toBe(true); // 첫 표시
+    saveDonationDismissedAt(shownAt); // 표시되는 순간 시각 기록(App이 하는 일)
+    // 같은 날(12시간 뒤) 재실행 → 닫지 않았어도 표시 안 함
+    expect(shouldShowDonationBanner(loadDonationDismissedAt(), shownAt + 12 * 3600_000)).toBe(false);
+    // 하루 지난 뒤 → 다시 표시
+    expect(shouldShowDonationBanner(loadDonationDismissedAt(), shownAt + 25 * 3600_000)).toBe(true);
+  });
 });
 
 describe("DONATION_URL", () => {

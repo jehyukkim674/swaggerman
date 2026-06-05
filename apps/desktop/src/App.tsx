@@ -551,16 +551,17 @@ export default function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // 후원 배너: 닫은 지 30분 지나면 다시 표시 (1분 간격 체크)
+  // 후원 배너: 하루에 한 번만 표시. 닫지 않아도, 표시되는 순간 그 시각을 기록해
+  // 24시간 내 재실행·리로드 때는 다시 뜨지 않게 한다.
   const [showDonation, setShowDonation] = useState(() =>
     shouldShowDonationBanner(loadDonationDismissedAt(), Date.now()),
   );
   const [donationOpen, setDonationOpen] = useState(false);
   useEffect(() => {
-    const t = setInterval(() => {
-      setShowDonation(shouldShowDonationBanner(loadDonationDismissedAt(), Date.now()));
-    }, 60_000);
-    return () => clearInterval(t);
+    // 표시 대상이면 '표시 시각'을 한 번 기록 → 다음 리로드/실행 때 24시간 내 재표시 방지
+    if (shouldShowDonationBanner(loadDonationDismissedAt(), Date.now())) {
+      saveDonationDismissedAt(Date.now());
+    }
   }, []);
   function dismissDonation() {
     saveDonationDismissedAt(Date.now());
