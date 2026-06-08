@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi } from "vitest";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { ProjectsModal, type ProjectEntry } from "./ProjectsModal";
 
 const PROJECTS: ProjectEntry[] = [
@@ -16,6 +16,8 @@ function setup(over: Partial<Parameters<typeof ProjectsModal>[0]> = {}) {
     onLoad: vi.fn(),
     onDelete: vi.fn(),
     onAdd: vi.fn(),
+    onImportFile: vi.fn().mockResolvedValue(""),
+    onReimportFile: vi.fn().mockResolvedValue(""),
     onClose: vi.fn(),
     ...over,
   };
@@ -75,5 +77,23 @@ describe("ProjectsModal", () => {
     fireEvent.change(urlInput, { target: { value: "https://c.com/api-docs" } });
     fireEvent.keyDown(urlInput, { key: "Enter" });
     expect(onAdd).toHaveBeenCalledWith("C", "https://c.com/api-docs");
+  });
+
+  it("'파일에서 가져오기' 클릭 시 onImportFile 호출 후 메시지 표시", async () => {
+    const onImportFile = vi.fn().mockResolvedValue("'api.yaml'을(를) 가져왔습니다.");
+    setup({ onImportFile });
+    fireEvent.click(screen.getByText("파일에서 가져오기"));
+    await waitFor(() => expect(onImportFile).toHaveBeenCalled());
+    expect(screen.getByText(/가져왔습니다/)).toBeTruthy();
+  });
+
+  it("파일 프로젝트 행은 파일명을 읽기전용 표시 + '다시 가져오기' 버튼, URL 입력 없음", () => {
+    setup({
+      projects: [{ url: "swaggerman:file:abc", title: "내 파일 API", fileName: "petstore.yaml" }],
+      activeUrl: "swaggerman:file:abc",
+    });
+    expect(screen.getByText(/petstore\.yaml/)).toBeTruthy();
+    expect(screen.getByText("다시 가져오기")).toBeTruthy();
+    expect(screen.queryByDisplayValue("swaggerman:file:abc")).toBeNull();
   });
 });

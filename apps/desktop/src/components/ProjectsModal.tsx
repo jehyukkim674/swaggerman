@@ -1,10 +1,12 @@
 import { useState } from "react";
 import { CloseCircleIcon, TrashIcon } from "./icons";
 import { useEscToClose } from "./useEscToClose";
+import { isFileProject } from "../core/imported-spec-store";
 
 export interface ProjectEntry {
   url: string;
   title: string;
+  fileName?: string;
 }
 
 interface Props {
@@ -18,16 +20,39 @@ interface Props {
   onDelete: (url: string) => void;
   /** 새 프로젝트 추가 후 로드. */
   onAdd: (title: string, url: string) => void;
+  /** 파일에서 새 프로젝트 가져오기(성공 메시지 반환, 취소 시 ""). */
+  onImportFile: () => Promise<string>;
+  /** 파일 프로젝트 스냅샷을 새 파일로 갱신(성공 메시지 반환, 취소 시 ""). */
+  onReimportFile: (url: string) => Promise<string>;
   onClose: () => void;
 }
 
 /** 프로젝트(이름 + 스펙 URL) 목록 관리: 추가 · 인라인 수정 · 삭제 · 열기. */
-export function ProjectsModal({ projects, activeUrl, onUpdate, onLoad, onDelete, onAdd, onClose }: Props) {
+export function ProjectsModal({ projects, activeUrl, onUpdate, onLoad, onDelete, onAdd, onImportFile, onReimportFile, onClose }: Props) {
   // ESC 키로 닫기
   useEscToClose(onClose);
 
   const [newTitle, setNewTitle] = useState("");
   const [newUrl, setNewUrl] = useState("");
+  const [msg, setMsg] = useState("");
+
+  const runImport = async () => {
+    try {
+      const m = await onImportFile();
+      if (m) setMsg(m);
+    } catch (e) {
+      setMsg(`가져오기 실패: ${e instanceof Error ? e.message : String(e)}`);
+    }
+  };
+
+  const runReimport = async (url: string) => {
+    try {
+      const m = await onReimportFile(url);
+      if (m) setMsg(m);
+    } catch (e) {
+      setMsg(`다시 가져오기 실패: ${e instanceof Error ? e.message : String(e)}`);
+    }
+  };
 
   const patch = (index: number, p: Partial<ProjectEntry>) =>
     onUpdate(projects.map((it, i) => (i === index ? { ...it, ...p } : it)));
@@ -51,39 +76,63 @@ export function ProjectsModal({ projects, activeUrl, onUpdate, onLoad, onDelete,
         <div className="modal-body">
           {projects.length === 0 && <div className="hint">저장된 프로젝트가 없습니다. 아래에서 추가하세요.</div>}
 
-          {projects.map((p, i) => (
-            <div className={p.url === activeUrl ? "proj-row active" : "proj-row"} key={p.url + i}>
-              <input
-                className="proj-name"
-                value={p.title}
-                onChange={(e) => patch(i, { title: e.target.value })}
-                placeholder="이름"
-                spellCheck={false}
-                title="프로젝트 이름"
-              />
-              <input
-                className="proj-url"
-                value={p.url}
-                onChange={(e) => patch(i, { url: e.target.value })}
-                placeholder="스펙 URL"
-                spellCheck={false}
-                title="OpenAPI 스펙 URL"
-              />
-              <button className="btn small" onClick={() => onLoad(p.url)} title="이 스펙을 불러오기">
-                열기
-              </button>
-              <button
-                className="btn small icon danger"
-                onClick={() => onDelete(p.url)}
-                title="삭제(히스토리·즐겨찾기 포함)"
-              >
-                <TrashIcon />
-              </button>
-            </div>
-          ))}
+          {projects.map((p, i) => {
+            const file = isFileProject(p.url);
+            return (
+              <div className={p.url === activeUrl ? "proj-row active" : "proj-row"} key={p.url + i}>
+                <input
+                  className="proj-name"
+                  value={p.title}
+                  onChange={(e) => patch(i, { title: e.target.value })}
+                  placeholder="이름"
+                  spellCheck={false}
+                  title="프로젝트 이름"
+                />
+                {file ? (
+                  <span className="proj-file" title="가져온 파일">
+                    📄 {p.fileName || "(파일)"}
+                  </span>
+                ) : (
+                  <input
+                    className="proj-url"
+                    value={p.url}
+                    onChange={(e) => patch(i, { url: e.target.value })}
+                    placeholder="스펙 URL"
+                    spellCheck={false}
+                    title="OpenAPI 스펙 URL"
+                  />
+                )}
+                <button className="btn small" onClick={() => onLoad(p.url)} title="이 스펙을 불러오기">
+                  열기
+                </button>
+                {file && (
+                  <button
+                    className="btn small"
+                    onClick={() => runReimport(p.url)}
+                    title="파일에서 다시 가져오기(히스토리 보존)"
+                  >
+                    다시 가져오기
+                  </button>
+                )}
+                <button
+                  className="btn small icon danger"
+                  onClick={() => onDelete(p.url)}
+                  title="삭제(히스토리·즐겨찾기 포함)"
+                >
+                  <TrashIcon />
+                </button>
+              </div>
+            );
+          })}
 
           <div className="proj-add">
             <div className="field-label">새 프로젝트 추가</div>
+            <div className="proj-import-row">
+              <button className="btn small" onClick={runImport} title="OpenAPI 스펙 파일(JSON/YAML)에서 가져오기">
+                파일에서 가져오기
+              </button>
+              {msg && <span className="hint">{msg}</span>}
+            </div>
             <div className="proj-row">
               <input
                 className="proj-name"

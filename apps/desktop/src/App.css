@@ -2496,6 +2496,21 @@ details[open] > summary::before {
 .proj-name { width: 160px; flex-shrink: 0; }
 .proj-url { flex: 1; min-width: 0; }
 .proj-add { margin-top: 12px; border-top: 1px solid var(--border); padding-top: 10px; }
+.proj-file {
+  flex: 1;
+  min-width: 0;
+  color: var(--muted, #888);
+  font-size: 13px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.proj-import-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin: 6px 0 10px;
+}
 
 /* 히스토리 비교 모달 */
 .compare-modal {
