@@ -604,6 +604,7 @@ export default function App() {
   }
 
   async function loadSpec(targetUrl: string = specUrl) {
+    if (!targetUrl.trim()) return; // 빈 입력(특히 파일 프로젝트 활성 시 빈 URL 입력란) 무시
     setSpecUrl(isFileProject(targetUrl) ? "" : targetUrl);
     setLoading(true);
     setLoadError(null);
@@ -666,6 +667,8 @@ export default function App() {
       setActiveSpecUrl(targetUrl);
       saveJSON("swaggerman.lastSpecUrl", targetUrl);
       // 프로젝트 목록에 upsert(최근 것을 맨 앞으로). 기존 사용자 지정 이름/fileName은 보존.
+      // 주의: 파일 프로젝트의 fileName은 여기서 명시하지 않고 `...existing`로만 유지된다
+      // (import가 prepend로 먼저 등록). 이 두 곳의 의존성을 깨지 말 것.
       setProjects((prev) => {
         const existing = prev.find((p) => p.url === targetUrl);
         return [
@@ -837,16 +840,26 @@ export default function App() {
     loadSpec(u); // title은 위에서 등록돼 loadSpec이 보존
   }
 
-  async function importProjectFromFile(): Promise<string> {
+  /** 파일 다이얼로그로 스펙 파일을 골라 읽는다. 취소 시 null. */
+  async function pickAndReadSpecFile(
+    dialogTitle: string,
+  ): Promise<{ content: string; fileName: string } | null> {
     const path = await open({
       multiple: false,
-      title: "OpenAPI 스펙 파일 가져오기",
+      title: dialogTitle,
       filters: [{ name: "OpenAPI (JSON/YAML)", extensions: ["json", "yaml", "yml"] }],
     });
-    if (typeof path !== "string") return ""; // 취소
+    if (typeof path !== "string") return null; // 취소
     const content = await readTextFile(path);
-    const parsed = parseSpecText(content); // 검증 + title 추출(실패 시 throw → 모달이 표시)
     const fileName = path.split(/[\\/]/).pop() || path;
+    return { content, fileName };
+  }
+
+  async function importProjectFromFile(): Promise<string> {
+    const picked = await pickAndReadSpecFile("OpenAPI 스펙 파일 가져오기");
+    if (!picked) return "";
+    const { content, fileName } = picked;
+    const parsed = parseSpecText(content); // 검증 + title 추출(실패 시 throw → 모달이 표시)
     const url = `${FILE_PROJECT_PREFIX}${newId()}`;
     await saveImportedSpec({ url, fileName, content, importedAt: Date.now() });
     setProjects((prev) => [
@@ -858,15 +871,10 @@ export default function App() {
   }
 
   async function reimportProjectFromFile(url: string): Promise<string> {
-    const path = await open({
-      multiple: false,
-      title: "파일에서 다시 가져오기",
-      filters: [{ name: "OpenAPI (JSON/YAML)", extensions: ["json", "yaml", "yml"] }],
-    });
-    if (typeof path !== "string") return ""; // 취소
-    const content = await readTextFile(path);
+    const picked = await pickAndReadSpecFile("파일에서 다시 가져오기");
+    if (!picked) return "";
+    const { content, fileName } = picked;
     parseSpecText(content); // 검증만(실패 시 throw)
-    const fileName = path.split(/[\\/]/).pop() || path;
     await saveImportedSpec({ url, fileName, content, importedAt: Date.now() });
     setProjects((prev) => prev.map((p) => (p.url === url ? { ...p, fileName } : p)));
     if (activeSpecUrl === url) await loadSpec(url);
