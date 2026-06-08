@@ -35,22 +35,31 @@ export function ProjectsModal({ projects, activeUrl, onUpdate, onLoad, onDelete,
   const [newTitle, setNewTitle] = useState("");
   const [newUrl, setNewUrl] = useState("");
   const [msg, setMsg] = useState("");
+  const [busy, setBusy] = useState(false);
 
   const runImport = async () => {
+    setMsg("");
+    setBusy(true);
     try {
       const m = await onImportFile();
       if (m) setMsg(m);
     } catch (e) {
       setMsg(`가져오기 실패: ${e instanceof Error ? e.message : String(e)}`);
+    } finally {
+      setBusy(false);
     }
   };
 
   const runReimport = async (url: string) => {
+    setMsg("");
+    setBusy(true);
     try {
       const m = await onReimportFile(url);
       if (m) setMsg(m);
     } catch (e) {
       setMsg(`다시 가져오기 실패: ${e instanceof Error ? e.message : String(e)}`);
+    } finally {
+      setBusy(false);
     }
   };
 
@@ -79,7 +88,7 @@ export function ProjectsModal({ projects, activeUrl, onUpdate, onLoad, onDelete,
           {projects.map((p, i) => {
             const file = isFileProject(p.url);
             return (
-              <div className={p.url === activeUrl ? "proj-row active" : "proj-row"} key={p.url + i}>
+              <div className={p.url === activeUrl ? "proj-row active" : "proj-row"} key={p.url}>
                 <input
                   className="proj-name"
                   value={p.title}
@@ -90,7 +99,7 @@ export function ProjectsModal({ projects, activeUrl, onUpdate, onLoad, onDelete,
                 />
                 {file ? (
                   <span className="proj-file" title="가져온 파일">
-                    📄 {p.fileName || "(파일)"}
+                    <span aria-hidden="true">📄</span> {p.fileName || "(파일)"}
                   </span>
                 ) : (
                   <input
@@ -110,6 +119,7 @@ export function ProjectsModal({ projects, activeUrl, onUpdate, onLoad, onDelete,
                     className="btn small"
                     onClick={() => runReimport(p.url)}
                     title="파일에서 다시 가져오기(히스토리 보존)"
+                    disabled={busy}
                   >
                     다시 가져오기
                   </button>
@@ -128,7 +138,7 @@ export function ProjectsModal({ projects, activeUrl, onUpdate, onLoad, onDelete,
           <div className="proj-add">
             <div className="field-label">새 프로젝트 추가</div>
             <div className="proj-import-row">
-              <button className="btn small" onClick={runImport} title="OpenAPI 스펙 파일(JSON/YAML)에서 가져오기">
+              <button className="btn small" onClick={runImport} title="OpenAPI 스펙 파일(JSON/YAML)에서 가져오기" disabled={busy}>
                 파일에서 가져오기
               </button>
               {msg && <span className="hint">{msg}</span>}

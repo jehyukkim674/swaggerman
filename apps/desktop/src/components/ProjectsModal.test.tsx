@@ -87,6 +87,17 @@ describe("ProjectsModal", () => {
     expect(screen.getByText(/가져왔습니다/)).toBeTruthy();
   });
 
+  it("'다시 가져오기' 클릭 시 onReimportFile에 해당 url 전달", async () => {
+    const onReimportFile = vi.fn().mockResolvedValue("'v2.yaml'(으)로 갱신했습니다.");
+    setup({
+      projects: [{ url: "swaggerman:file:abc", title: "x", fileName: "a.yaml" }],
+      activeUrl: "swaggerman:file:abc",
+      onReimportFile,
+    });
+    fireEvent.click(screen.getByText("다시 가져오기"));
+    await waitFor(() => expect(onReimportFile).toHaveBeenCalledWith("swaggerman:file:abc"));
+  });
+
   it("파일 프로젝트 행은 파일명을 읽기전용 표시 + '다시 가져오기' 버튼, URL 입력 없음", () => {
     setup({
       projects: [{ url: "swaggerman:file:abc", title: "내 파일 API", fileName: "petstore.yaml" }],
