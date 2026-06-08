@@ -47,4 +47,14 @@ describe("imported-spec-store", () => {
     expect(isFileProject(`${FILE_PROJECT_PREFIX}x`)).toBe(true);
     expect(isFileProject("https://a.com/api-docs")).toBe(false);
   });
+
+  it("저장 실패 시(직렬화 불가) reject 한다", async () => {
+    const bad = {
+      url: `${FILE_PROJECT_PREFIX}boom`,
+      fileName: "x",
+      content: (() => {}) as unknown as string, // 함수는 structured clone 불가 → put 거부
+      importedAt: 1,
+    };
+    await expect(saveImportedSpec(bad)).rejects.toBeTruthy();
+  });
 });
