@@ -1,0 +1,167 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Bookstore (가져오기 샘플 · JSON)",
+    "version": "2.1.0",
+    "description": "파일 import 테스트용 JSON 샘플 스펙입니다."
+  },
+  "servers": [
+    { "url": "https://bookstore.example.com/v2", "description": "샘플 서버" }
+  ],
+  "tags": [
+    { "name": "books", "description": "도서" },
+    { "name": "authors", "description": "저자" }
+  ],
+  "paths": {
+    "/books": {
+      "get": {
+        "tags": ["books"],
+        "summary": "도서 목록",
+        "operationId": "listBooks",
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "description": "제목 검색어",
+            "required": false,
+            "schema": { "type": "string" }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": { "type": "integer", "default": 1 }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "도서 배열",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": { "$ref": "#/components/schemas/Book" }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": ["books"],
+        "summary": "도서 등록",
+        "operationId": "createBook",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/NewBook" }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "생성됨",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Book" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/books/{bookId}": {
+      "get": {
+        "tags": ["books"],
+        "summary": "도서 단건 조회",
+        "operationId": "getBook",
+        "parameters": [
+          {
+            "name": "bookId",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "단건",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Book" }
+              }
+            }
+          },
+          "404": { "description": "없음" }
+        }
+      },
+      "delete": {
+        "tags": ["books"],
+        "summary": "도서 삭제",
+        "operationId": "deleteBook",
+        "parameters": [
+          {
+            "name": "bookId",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": { "204": { "description": "삭제됨" } }
+      }
+    },
+    "/authors/{authorId}/books": {
+      "get": {
+        "tags": ["authors"],
+        "summary": "저자의 도서 목록",
+        "operationId": "listAuthorBooks",
+        "parameters": [
+          {
+            "name": "authorId",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "도서 배열",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": { "$ref": "#/components/schemas/Book" }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Book": {
+        "type": "object",
+        "required": ["id", "title"],
+        "properties": {
+          "id": { "type": "string" },
+          "title": { "type": "string", "example": "이펙티브 타입스크립트" },
+          "author": { "type": "string" },
+          "price": { "type": "number", "format": "float" },
+          "tags": { "type": "array", "items": { "type": "string" } }
+        }
+      },
+      "NewBook": {
+        "type": "object",
+        "required": ["title"],
+        "properties": {
+          "title": { "type": "string" },
+          "author": { "type": "string" },
+          "price": { "type": "number" }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,157 @@
+openapi: 3.0.3
+info:
+  title: Petstore (가져오기 샘플)
+  version: 1.0.0
+  description: 파일 import 테스트용 YAML 샘플 스펙입니다.
+servers:
+  - url: https://petstore.example.com/api/v1
+    description: 샘플 서버(절대 URL → baseURL 자동 설정 확인용)
+tags:
+  - name: pets
+    description: 반려동물 관리
+  - name: store
+    description: 주문/재고
+paths:
+  /pets:
+    get:
+      tags: [pets]
+      summary: 반려동물 목록 조회
+      operationId: listPets
+      parameters:
+        - name: limit
+          in: query
+          description: 최대 개수
+          required: false
+          schema:
+            type: integer
+            format: int32
+            default: 20
+        - name: tag
+          in: query
+          description: 태그로 필터
+          required: false
+          schema:
+            type: string
+      responses:
+        "200":
+          description: 반려동물 배열
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Pet"
+        default:
+          description: 에러
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+    post:
+      tags: [pets]
+      summary: 반려동물 등록
+      operationId: createPet
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/NewPet"
+      responses:
+        "201":
+          description: 생성됨
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Pet"
+  /pets/{petId}:
+    get:
+      tags: [pets]
+      summary: 반려동물 단건 조회
+      operationId: getPetById
+      parameters:
+        - name: petId
+          in: path
+          required: true
+          description: 반려동물 ID
+          schema:
+            type: integer
+            format: int64
+      responses:
+        "200":
+          description: 단건
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Pet"
+        "404":
+          description: 없음
+    delete:
+      tags: [pets]
+      summary: 반려동물 삭제
+      operationId: deletePet
+      parameters:
+        - name: petId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        "204":
+          description: 삭제됨
+  /store/orders:
+    post:
+      tags: [store]
+      summary: 주문 생성
+      operationId: placeOrder
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                petId:
+                  type: integer
+                  format: int64
+                quantity:
+                  type: integer
+              required: [petId, quantity]
+      responses:
+        "200":
+          description: 주문 완료
+components:
+  schemas:
+    Pet:
+      type: object
+      required: [id, name]
+      properties:
+        id:
+          type: integer
+          format: int64
+        name:
+          type: string
+          example: 멍멍이
+        tag:
+          type: string
+        status:
+          type: string
+          enum: [available, pending, sold]
+    NewPet:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+        tag:
+          type: string
+    Error:
+      type: object
+      required: [code, message]
+      properties:
+        code:
+          type: integer
+          format: int32
+        message:
+          type: string
