@@ -6,6 +6,14 @@ import { loadShortcut, saveShortcut, registerShortcut } from "./core/global-shor
 import "./App.css";
 import { loadSpec as loadSpecFromUrl } from "./core/spec-loader";
 import { saveSpecCache, loadSpecCache } from "./core/spec-cache";
+import { parseSpecText } from "./core/openapi-parser";
+import {
+  FILE_PROJECT_PREFIX,
+  isFileProject,
+  saveImportedSpec,
+  loadImportedSpec,
+  deleteImportedSpec,
+} from "./core/imported-spec-store";
 import { executeRequest } from "./core/http-client";
 import {
   buildRequest,
@@ -13,6 +21,7 @@ import {
   captureSample,
   defaultInputs,
   deriveBaseURL,
+  pickFileBaseURL,
   restoreInputs,
   type RequestInputs,
   type RequestParam,
@@ -78,8 +87,8 @@ import { ShareModal } from "./components/ShareModal";
 import { PermissionMatrixModal } from "./components/PermissionMatrixModal";
 import { PerfModal } from "./components/PerfModal";
 import { GuideModal } from "./components/GuideModal";
-import { save } from "@tauri-apps/plugin-dialog";
-import { writeTextFile } from "./core/fs";
+import { save, open } from "@tauri-apps/plugin-dialog";
+import { readTextFile, writeTextFile } from "./core/fs";
 import type { MatrixCell } from "./core/permission-matrix";
 import { AiPanel } from "./components/AiPanel";
 import { getProvider } from "./core/ai/provider";
@@ -101,6 +110,7 @@ const DEFAULT_SPEC_URL = "http://localhost:8000/v3/api-docs";
 interface Project {
   url: string;
   title: string;
+  fileName?: string;
 }
 
 export interface EnvVar {
@@ -115,9 +125,10 @@ export interface Env {
 }
 
 export default function App() {
-  const [specUrl, setSpecUrl] = useState(() =>
-    loadJSON("swaggerman.lastSpecUrl", DEFAULT_SPEC_URL),
-  );
+  const [specUrl, setSpecUrl] = useState(() => {
+    const last = loadJSON("swaggerman.lastSpecUrl", DEFAULT_SPEC_URL);
+    return isFileProject(last) ? "" : last;
+  });
   const [activeSpecUrl, setActiveSpecUrl] = useState("");
   const [spec, setSpec] = useState<ParsedSpec | null>(null);
   const [baseURL, setBaseURL] = useState("");
@@ -525,9 +536,10 @@ export default function App() {
     if (activeSpecUrl) saveJSON(`swaggerman.auth.${activeSpecUrl}`, authValues);
   }, [authValues, activeSpecUrl]);
 
-  // 시작 시 마지막으로 사용한 spec 자동 로드
+  // 시작 시 마지막으로 사용한 spec 자동 로드(파일 프로젝트면 합성 키로 스냅샷 로드)
   useEffect(() => {
-    if (specUrl) loadSpec(specUrl);
+    const last = loadJSON("swaggerman.lastSpecUrl", DEFAULT_SPEC_URL);
+    if (last) loadSpec(last);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -592,45 +604,76 @@ export default function App() {
   }
 
   async function loadSpec(targetUrl: string = specUrl) {
-    setSpecUrl(targetUrl);
+    setSpecUrl(isFileProject(targetUrl) ? "" : targetUrl);
     setLoading(true);
     setLoadError(null);
     setStaleSpec(null);
     log.info("spec", `로딩 시작: ${targetUrl}`);
     try {
       let parsed: ParsedSpec;
-      try {
-        parsed = await loadSpecFromUrl(targetUrl, netSettings.insecure);
-        log.info(
-          "spec",
-          `로딩 성공: "${parsed.info.title}" (오퍼레이션 ${parsed.operations.length}개)`,
-        );
-        void saveSpecCache(targetUrl, parsed); // 성공 결과 캐시(실패는 모듈이 흡수)
-      } catch (e) {
-        // 로딩 실패: 같은 URL의 직전 성공 스펙이 캐시에 있으면 그것으로 폴백한다.
-        const msg = e instanceof Error ? e.message : String(e);
-        const cached = await loadSpecCache(targetUrl);
-        if (!cached) {
-          log.error("spec", `로딩 실패: ${msg}`);
-          setLoadError(msg);
+      if (isFileProject(targetUrl)) {
+        // 파일 프로젝트: 네트워크/캐시폴백 없이 IndexedDB 스냅샷에서 읽어 재파싱.
+        const rec = await loadImportedSpec(targetUrl);
+        if (!rec) {
+          log.error("spec", "가져온 스펙 스냅샷을 찾을 수 없음");
+          setLoadError("가져온 스펙을 찾을 수 없습니다. 다시 가져오세요.");
           setSpec(null);
           return;
         }
-        log.warn("spec", `로딩 실패(${msg}) → 캐시된 스펙으로 폴백`);
-        parsed = cached.spec;
-        setStaleSpec({ savedAt: cached.savedAt, error: msg });
+        try {
+          parsed = parseSpecText(rec.content);
+        } catch (e) {
+          const msg = e instanceof Error ? e.message : String(e);
+          log.error("spec", `가져온 스펙 파싱 실패: ${msg}`);
+          setLoadError(`스펙 파싱 실패: ${msg}`);
+          setSpec(null);
+          return;
+        }
+        log.info(
+          "spec",
+          `파일 스펙 로드: "${parsed.info.title}" (오퍼레이션 ${parsed.operations.length}개)`,
+        );
+      } else {
+        try {
+          parsed = await loadSpecFromUrl(targetUrl, netSettings.insecure);
+          log.info(
+            "spec",
+            `로딩 성공: "${parsed.info.title}" (오퍼레이션 ${parsed.operations.length}개)`,
+          );
+          void saveSpecCache(targetUrl, parsed); // 성공 결과 캐시(실패는 모듈이 흡수)
+        } catch (e) {
+          // 로딩 실패: 같은 URL의 직전 성공 스펙이 캐시에 있으면 그것으로 폴백한다.
+          const msg = e instanceof Error ? e.message : String(e);
+          const cached = await loadSpecCache(targetUrl);
+          if (!cached) {
+            log.error("spec", `로딩 실패: ${msg}`);
+            setLoadError(msg);
+            setSpec(null);
+            return;
+          }
+          log.warn("spec", `로딩 실패(${msg}) → 캐시된 스펙으로 폴백`);
+          parsed = cached.spec;
+          setStaleSpec({ savedAt: cached.savedAt, error: msg });
+        }
       }
       // ---- 성공/캐시 폴백 공용 적용: 스펙과 URL별 상태를 복원 ----
       setSpec(parsed);
-      setBaseURL(deriveBaseURL(targetUrl, parsed.servers));
+      setBaseURL(
+        isFileProject(targetUrl)
+          ? pickFileBaseURL(parsed.servers)
+          : deriveBaseURL(targetUrl, parsed.servers),
+      );
       setActiveSpecUrl(targetUrl);
       saveJSON("swaggerman.lastSpecUrl", targetUrl);
-      // 프로젝트 목록에 upsert(최근 것을 맨 앞으로). 기존 프로젝트의 사용자 지정
-      // 이름이 있으면 보존하고, 신규일 때만 스펙 title을 사용한다.
+      // 프로젝트 목록에 upsert(최근 것을 맨 앞으로). 기존 사용자 지정 이름/fileName은 보존.
       setProjects((prev) => {
         const existing = prev.find((p) => p.url === targetUrl);
         return [
-          { url: targetUrl, title: existing?.title || parsed.info.title || targetUrl },
+          {
+            ...existing,
+            url: targetUrl,
+            title: existing?.title || parsed.info.title || existing?.fileName || targetUrl,
+          },
           ...prev.filter((p) => p.url !== targetUrl),
         ];
       });
@@ -654,7 +697,7 @@ export default function App() {
       setGlobalHeaders(loadJSON(`swaggerman.headers.${targetUrl}`, [] as RequestParam[]));
       setSnapshots(loadSnapshots(targetUrl));
       opCacheRef.current.clear();
-      // 마지막 위치·요청 정보 복원: 저장된 입력값 로드 + 마지막으로 보던 오퍼레이션 자동 선택
+      // 마지막 위치·요청 정보 복원
       const savedIns = loadJSON(
         `swaggerman.inputs.${targetUrl}`,
         {} as Record<string, RequestInputs>,
@@ -683,6 +726,7 @@ export default function App() {
     localStorage.removeItem(`swaggerman.auth.${url}`);
     localStorage.removeItem(`swaggerman.inputs.${url}`);
     localStorage.removeItem(`swaggerman.lastOp.${url}`);
+    if (isFileProject(url)) void deleteImportedSpec(url);
   }
 
   // 프로젝트 관리 모달(목록 추가/수정/삭제)
@@ -791,6 +835,42 @@ export default function App() {
     setProjects((prev) => [{ url: u, title: title.trim() || u }, ...prev.filter((p) => p.url !== u)]);
     setProjectsOpen(false);
     loadSpec(u); // title은 위에서 등록돼 loadSpec이 보존
+  }
+
+  async function importProjectFromFile(): Promise<string> {
+    const path = await open({
+      multiple: false,
+      title: "OpenAPI 스펙 파일 가져오기",
+      filters: [{ name: "OpenAPI (JSON/YAML)", extensions: ["json", "yaml", "yml"] }],
+    });
+    if (typeof path !== "string") return ""; // 취소
+    const content = await readTextFile(path);
+    const parsed = parseSpecText(content); // 검증 + title 추출(실패 시 throw → 모달이 표시)
+    const fileName = path.split(/[\\/]/).pop() || path;
+    const url = `${FILE_PROJECT_PREFIX}${newId()}`;
+    await saveImportedSpec({ url, fileName, content, importedAt: Date.now() });
+    setProjects((prev) => [
+      { url, title: parsed.info.title || fileName, fileName },
+      ...prev.filter((p) => p.url !== url),
+    ]);
+    await loadSpec(url); // 모달은 닫지 않음 — 성공 메시지를 보여주고 사용자가 닫는다
+    return `'${fileName}'을(를) 가져왔습니다.`;
+  }
+
+  async function reimportProjectFromFile(url: string): Promise<string> {
+    const path = await open({
+      multiple: false,
+      title: "파일에서 다시 가져오기",
+      filters: [{ name: "OpenAPI (JSON/YAML)", extensions: ["json", "yaml", "yml"] }],
+    });
+    if (typeof path !== "string") return ""; // 취소
+    const content = await readTextFile(path);
+    parseSpecText(content); // 검증만(실패 시 throw)
+    const fileName = path.split(/[\\/]/).pop() || path;
+    await saveImportedSpec({ url, fileName, content, importedAt: Date.now() });
+    setProjects((prev) => prev.map((p) => (p.url === url ? { ...p, fileName } : p)));
+    if (activeSpecUrl === url) await loadSpec(url);
+    return `'${fileName}'(으)로 갱신했습니다.`;
   }
 
   // 현재 오퍼레이션의 라이브 상태를 캐시에 저장
@@ -1567,6 +1647,8 @@ export default function App() {
           }}
           onDelete={removeProject}
           onAdd={addProject}
+          onImportFile={importProjectFromFile}
+          onReimportFile={reimportProjectFromFile}
           onClose={() => setProjectsOpen(false)}
         />
       )}
