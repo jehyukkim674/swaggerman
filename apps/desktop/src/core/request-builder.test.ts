@@ -5,6 +5,7 @@ import {
   defaultBody,
   defaultInputs,
   deriveBaseURL,
+  pickFileBaseURL,
   restoreInputs,
   captureSample,
   applySample,
@@ -405,5 +406,16 @@ describe("요청 샘플 (captureSample / applySample)", () => {
     expect(applied.body).toBe('{"old":true}');
     expect(applied.queryParams).toEqual(inputs.queryParams);
     expect(applied.headers).toEqual(inputs.headers);
+  });
+});
+
+describe("pickFileBaseURL", () => {
+  it("servers 중 첫 절대(http/https) URL을 반환", () => {
+    expect(pickFileBaseURL(["/v1", "https://api.x.com"])).toBe("https://api.x.com");
+    expect(pickFileBaseURL(["http://a.com", "https://b.com"])).toBe("http://a.com");
+  });
+  it("절대 서버가 없으면 빈 문자열", () => {
+    expect(pickFileBaseURL([])).toBe("");
+    expect(pickFileBaseURL(["/rel", "{var}/api"])).toBe("");
   });
 });

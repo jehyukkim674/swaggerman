@@ -263,3 +263,8 @@ export function deriveBaseURL(specURL: string, specServers: string[]): string {
     return specURL;
   }
 }
+
+/** 파일 프로젝트용 baseURL: servers 중 첫 절대(http/https) URL, 없으면 "". */
+export function pickFileBaseURL(specServers: string[]): string {
+  return specServers.find((s) => /^https?:\/\//.test(s)) ?? "";
+}
