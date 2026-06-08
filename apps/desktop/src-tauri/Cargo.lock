@@ -838,7 +838,7 @@ dependencies = [
 
 [[package]]
 name = "desktop"
-version = "0.4.7"
+version = "0.4.8"
 dependencies = [
  "axum",
  "reqwest 0.12.28",
