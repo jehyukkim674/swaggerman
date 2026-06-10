@@ -17,7 +17,7 @@ interface Props {
   /** 녹화를 Mock으로 변환 요청(App이 매칭·저장). 성공 메시지/실패는 App이 결정 → 결과 문자열 반환 */
   onSendToMock: (record: ProxyRecord) => string;
   /** 녹화 전체를 Mock으로 일괄 저장(App이 매칭·저장). 결과 메시지 반환 */
-  onSendAllToMock: (records: ProxyRecord[]) => string;
+  onSendAllToMock: (records: ProxyRecord[], title: string) => string;
   onClose: () => void;
 }
 
@@ -41,6 +41,8 @@ export function ProxyModal({ defaultTarget, net, onSendToMock, onSendAllToMock, 
   // 공용
   const [error, setError] = useState<string | null>(null);
   const [sendMsg, setSendMsg] = useState<string | null>(null);
+  const [bulkTitle, setBulkTitle] = useState("");
+  const [bulkOpen, setBulkOpen] = useState(false);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const capPollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -193,9 +195,21 @@ export function ProxyModal({ defaultTarget, net, onSendToMock, onSendAllToMock, 
             )}
             {shownRecords.length > 0 && (
               <div className="proxy-bulk-row">
-                <button className="btn small" onClick={() => setSendMsg(onSendAllToMock(shownRecords))}>
-                  전체 Mock으로
-                </button>
+                {!bulkOpen ? (
+                  <button className="btn small" onClick={() => { setBulkOpen(true); setBulkTitle(""); }}>
+                    전체 Mock으로
+                  </button>
+                ) : (
+                  <>
+                    <input className="proxy-bulk-title" value={bulkTitle} autoFocus
+                      placeholder="프리셋 제목" onChange={(e) => setBulkTitle(e.target.value)} />
+                    <button className="btn small primary" disabled={!bulkTitle.trim()}
+                      onClick={() => { setSendMsg(onSendAllToMock(shownRecords, bulkTitle.trim())); setBulkOpen(false); }}>
+                      저장
+                    </button>
+                    <button className="btn small" onClick={() => setBulkOpen(false)}>취소</button>
+                  </>
+                )}
               </div>
             )}
             {[...shownRecords].reverse().map((r, i) => (

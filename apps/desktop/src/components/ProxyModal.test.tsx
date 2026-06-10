@@ -141,7 +141,7 @@ describe("ProxyModal 추가 동작", () => {
     expect(screen.getByText("Mock에 저장됨")).toBeTruthy();
   });
 
-  it("'전체 Mock으로' 클릭 시 녹화 전체를 넘기고 결과 메시지를 표시한다", async () => {
+  it("'전체 Mock으로' 클릭 시 제목 입력 후 저장하면 records와 title을 넘기고 결과를 표시한다", async () => {
     const recs: ProxyRecord[] = [
       { atMs: 1, method: "GET", path: "/pet", status: 200, responseBody: "[]" },
       { atMs: 2, method: "POST", path: "/pet", status: 201, responseBody: "{}" },
@@ -163,8 +163,51 @@ describe("ProxyModal 추가 동작", () => {
     fireEvent.click(screen.getByRole("button", { name: "시작" }));
     const btn = await screen.findByRole("button", { name: "전체 Mock으로" });
     fireEvent.click(btn);
-    expect(onSendAll).toHaveBeenCalledWith(recs);
+    const input = await screen.findByPlaceholderText("프리셋 제목");
+    fireEvent.change(input, { target: { value: "bulk-set" } });
+    fireEvent.click(screen.getByRole("button", { name: "저장" }));
+    expect(onSendAll).toHaveBeenCalledWith(recs, "bulk-set");
     expect(screen.getByText("Mock 저장 2건")).toBeTruthy();
+  });
+});
+
+describe("ProxyModal 전체 Mock으로 제목", () => {
+  it("'전체 Mock으로' 클릭 시 제목 입력이 뜨고, 제목 저장 시 records와 title을 넘긴다", async () => {
+    const recs: ProxyRecord[] = [
+      { atMs: 1, method: "GET", path: "/pet", status: 200, responseBody: "[]" },
+    ];
+    invokeMock.mockImplementation(async (cmd: unknown) => {
+      if (cmd === "proxy_start") return 9091;
+      if (cmd === "proxy_recordings") return recs;
+      return undefined;
+    });
+    const onSendAll = vi.fn(() => "프리셋 'smoke' 저장 1건");
+    render(
+      <ProxyModal defaultTarget="https://api.example.com"
+        onSendToMock={vi.fn()} onSendAllToMock={onSendAll} onClose={vi.fn()} />,
+    );
+    fireEvent.click(screen.getByRole("button", { name: "시작" }));
+    fireEvent.click(await screen.findByRole("button", { name: "전체 Mock으로" }));
+    // 제목 입력 노출
+    const input = await screen.findByPlaceholderText("프리셋 제목");
+    fireEvent.change(input, { target: { value: "smoke" } });
+    fireEvent.click(screen.getByRole("button", { name: "저장" }));
+    expect(onSendAll).toHaveBeenCalledWith(recs, "smoke");
+    expect(screen.getByText("프리셋 'smoke' 저장 1건")).toBeTruthy();
+  });
+
+  it("제목이 비면 저장 버튼이 비활성", async () => {
+    const recs: ProxyRecord[] = [{ atMs: 1, method: "GET", path: "/pet", status: 200, responseBody: "[]" }];
+    invokeMock.mockImplementation(async (cmd: unknown) => {
+      if (cmd === "proxy_start") return 9091;
+      if (cmd === "proxy_recordings") return recs;
+      return undefined;
+    });
+    render(<ProxyModal defaultTarget="https://api.example.com"
+      onSendToMock={vi.fn()} onSendAllToMock={vi.fn(() => "")} onClose={vi.fn()} />);
+    fireEvent.click(screen.getByRole("button", { name: "시작" }));
+    fireEvent.click(await screen.findByRole("button", { name: "전체 Mock으로" }));
+    expect((screen.getByRole("button", { name: "저장" }) as HTMLButtonElement).disabled).toBe(true);
   });
 });
 
