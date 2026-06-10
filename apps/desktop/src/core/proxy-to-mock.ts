@@ -2,6 +2,7 @@
 // 프록시 녹화 → 경로 매칭 operation + Mock 변환.
 import type { ParsedOperation, ParsedSpec } from "./types";
 import type { ProxyRecord } from "./proxy-client";
+import type { MockServerConfig } from "./mock-config";
 
 /** operation path 템플릿(/pet/{petId})과 실제 경로(/pet/42)를 매칭. {x}는 와일드카드. */
 function pathMatches(template: string, actual: string): boolean {
@@ -40,4 +41,42 @@ export function recordingToMock(spec: ParsedSpec, record: ProxyRecord): MockTarg
   }
   if (Array.isArray(parsed)) return { opId: op.id, dataset: parsed };
   return { opId: op.id, body: parsed };
+}
+
+export interface BulkMockResult {
+  targets: MockTarget[]; // opId 중복 제거됨(나중 녹화 = 최신이 이김)
+  unmatched: number;     // 스펙에 매칭 안 된 녹화 수
+  failed: number;        // error가 있는 녹화 수(변환 제외)
+}
+
+/** 녹화 전체를 Mock 대상으로 변환. records는 시간순이므로 같은 operation은 최신이 이긴다. */
+export function recordingsToMocks(spec: ParsedSpec, records: ProxyRecord[]): BulkMockResult {
+  const byOp = new Map<string, MockTarget>();
+  let unmatched = 0;
+  let failed = 0;
+  for (const record of records) {
+    if (record.error) {
+      failed += 1;
+      continue;
+    }
+    const target = recordingToMock(spec, record);
+    if (!target) {
+      unmatched += 1;
+      continue;
+    }
+    byOp.set(target.opId, target);
+  }
+  return { targets: [...byOp.values()], unmatched, failed };
+}
+
+/** 변환 결과를 MockServerConfig에 반영(enabled, source="manual", dataset/body). */
+export function applyMockTargets(cfg: MockServerConfig, targets: MockTarget[]): void {
+  for (const t of targets) {
+    const op = cfg.operations.find((o) => o.opId === t.opId);
+    if (!op) continue;
+    op.enabled = true;
+    op.source = "manual";
+    op.dataset = t.dataset;
+    op.body = t.body;
+  }
 }

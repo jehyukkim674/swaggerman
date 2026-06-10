@@ -1,6 +1,7 @@
 // src/core/proxy-to-mock.test.ts
 import { describe, it, expect } from "vitest";
-import { matchOperation, recordingToMock } from "./proxy-to-mock";
+import { matchOperation, recordingToMock, recordingsToMocks, applyMockTargets } from "./proxy-to-mock";
+import { defaultMockConfig } from "./mock-config";
 import type { ParsedSpec, ParsedOperation } from "./types";
 import type { ProxyRecord } from "./proxy-client";
 
@@ -49,5 +50,53 @@ describe("recordingToMock", () => {
   it("JSON 아닌 응답은 body 문자열로", () => {
     const r = recordingToMock(spec, rec({ responseBody: "plain text" }));
     expect(r?.body).toBe("plain text");
+  });
+});
+
+describe("recordingsToMocks", () => {
+  it("녹화 전체를 변환하고 같은 operation은 최신 녹화가 이긴다", () => {
+    const result = recordingsToMocks(spec, [
+      rec({ atMs: 1, responseBody: '[{"id":1}]' }),
+      rec({ atMs: 2, method: "POST", path: "/pet", responseBody: '{"ok":true}' }),
+      rec({ atMs: 3, responseBody: '[{"id":2}]' }), // 같은 GET /pet/findByStatus → 이게 이김
+    ]);
+    expect(result.targets).toHaveLength(2);
+    const list = result.targets.find((t) => t.opId === "GET /pet/findByStatus");
+    expect(list?.dataset).toEqual([{ id: 2 }]);
+    expect(result.unmatched).toBe(0);
+    expect(result.failed).toBe(0);
+  });
+
+  it("매칭 안 되는 녹화와 실패 녹화는 제외하고 센다", () => {
+    const result = recordingsToMocks(spec, [
+      rec({ path: "/nope" }),
+      rec({ error: "포워딩 실패", responseBody: "" }),
+      rec({ responseBody: "[]" }),
+    ]);
+    expect(result.targets).toHaveLength(1);
+    expect(result.unmatched).toBe(1);
+    expect(result.failed).toBe(1);
+  });
+});
+
+describe("applyMockTargets", () => {
+  it("대상 operation에 enabled·manual·dataset/body를 설정한다", () => {
+    const cfg = defaultMockConfig(spec);
+    cfg.operations[0].enabled = false;
+    applyMockTargets(cfg, [
+      { opId: "GET /pet/findByStatus", dataset: [{ id: 1 }] },
+      { opId: "POST /pet", body: { ok: true } },
+    ]);
+    const list = cfg.operations.find((o) => o.opId === "GET /pet/findByStatus")!;
+    expect(list.enabled).toBe(true);
+    expect(list.source).toBe("manual");
+    expect(list.dataset).toEqual([{ id: 1 }]);
+    const post = cfg.operations.find((o) => o.opId === "POST /pet")!;
+    expect(post.body).toEqual({ ok: true });
+  });
+
+  it("없는 opId는 무시한다", () => {
+    const cfg = defaultMockConfig(spec);
+    expect(() => applyMockTargets(cfg, [{ opId: "ghost" }])).not.toThrow();
   });
 });
