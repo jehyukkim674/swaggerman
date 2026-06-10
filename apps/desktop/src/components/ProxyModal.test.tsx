@@ -13,6 +13,8 @@ beforeEach(() => {
   invokeMock.mockImplementation(async (cmd: unknown) => {
     if (cmd === "proxy_start") return 9091;
     if (cmd === "proxy_recordings") return [] as ProxyRecord[];
+    if (cmd === "capture_status") return false;
+    if (cmd === "capture_recordings") return [];
     return undefined;
   });
 });
@@ -163,5 +165,76 @@ describe("ProxyModal 추가 동작", () => {
     fireEvent.click(btn);
     expect(onSendAll).toHaveBeenCalledWith(recs);
     expect(screen.getByText("Mock 저장 2건")).toBeTruthy();
+  });
+});
+
+describe("ProxyModal 브라우저 모드", () => {
+  it("브라우저 탭 클릭 시 시작 URL 입력과 시작 버튼을 표시한다", async () => {
+    renderModal();
+    fireEvent.click(screen.getByRole("button", { name: "브라우저" }));
+    expect(screen.getByPlaceholderText("https://service.example.com")).toBeTruthy();
+    expect(screen.getByRole("button", { name: "시작" })).toBeTruthy();
+  });
+
+  it("브라우저 모드 시작 시 capture_start를 호출하고 녹화를 폴링한다", async () => {
+    const recs: ProxyRecord[] = [
+      { atMs: 1, method: "GET", path: "/api/pets", status: 200, responseBody: "[]" },
+    ];
+    invokeMock.mockImplementation(async (cmd: unknown) => {
+      if (cmd === "capture_recordings") return recs;
+      if (cmd === "capture_status") return true;
+      return undefined;
+    });
+    const onSend = renderModal();
+    fireEvent.click(screen.getByRole("button", { name: "브라우저" }));
+    fireEvent.click(screen.getByRole("button", { name: "시작" }));
+    await waitFor(() =>
+      expect(invokeMock).toHaveBeenCalledWith("capture_start", expect.objectContaining({ startUrl: "https://api.example.com" })),
+    );
+    const btn = await screen.findByRole("button", { name: "Mock으로" });
+    fireEvent.click(btn);
+    expect(onSend).toHaveBeenCalledWith(expect.objectContaining({ path: "/api/pets" }));
+  });
+
+  it("브라우저 모드 중지 시 capture_stop을 호출한다", async () => {
+    invokeMock.mockImplementation(async (cmd: unknown) => {
+      if (cmd === "capture_status") return true;
+      if (cmd === "capture_recordings") return [];
+      return undefined;
+    });
+    renderModal();
+    fireEvent.click(screen.getByRole("button", { name: "브라우저" }));
+    fireEvent.click(screen.getByRole("button", { name: "시작" }));
+    const stop = await screen.findByRole("button", { name: "중지" });
+    fireEvent.click(stop);
+    await waitFor(() => expect(invokeMock).toHaveBeenCalledWith("capture_stop"));
+  });
+
+  it("Chrome 미발견 등 시작 실패 메시지를 표시한다", async () => {
+    invokeMock.mockImplementation(async (cmd: unknown) => {
+      if (cmd === "capture_start") throw new Error("Chrome을 찾을 수 없습니다");
+      if (cmd === "capture_status") return false;
+      if (cmd === "capture_recordings") return [];
+      return undefined;
+    });
+    renderModal();
+    fireEvent.click(screen.getByRole("button", { name: "브라우저" }));
+    fireEvent.click(screen.getByRole("button", { name: "시작" }));
+    expect(await screen.findByText(/Chrome을 찾을 수 없습니다/)).toBeTruthy();
+  });
+
+  it("status가 false로 바뀌면(창 닫힘) 실행 표시가 사라진다", async () => {
+    let status = true;
+    invokeMock.mockImplementation(async (cmd: unknown) => {
+      if (cmd === "capture_status") return status;
+      if (cmd === "capture_recordings") return [];
+      return undefined;
+    });
+    renderModal();
+    fireEvent.click(screen.getByRole("button", { name: "브라우저" }));
+    fireEvent.click(screen.getByRole("button", { name: "시작" }));
+    await screen.findByRole("button", { name: "중지" });
+    status = false; // 사용자가 Chrome 창을 닫음
+    expect(await screen.findByRole("button", { name: "시작" }, { timeout: 3000 })).toBeTruthy();
   });
 });

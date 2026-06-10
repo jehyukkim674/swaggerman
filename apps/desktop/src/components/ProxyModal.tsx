@@ -1,7 +1,10 @@
 // src/components/ProxyModal.tsx
-// 프록시 녹화 모달: 타깃으로 포워딩하며 녹화, 녹화 항목을 Mock으로 보낸다.
+// 프록시/브라우저 녹화 모달.
+// - 프록시: 타깃으로 포워딩하며 녹화 (OAuth 리다이렉트가 있는 서비스는 우회됨)
+// - 브라우저: 전용 Chrome을 CDP로 띄워 XHR/Fetch를 녹화 (Okta 등 로그인 흐름 대응)
 import { useEffect, useRef, useState } from "react";
 import { startProxy, stopProxy, getRecordings, type ProxyRecord } from "../core/proxy-client";
+import { startCapture, stopCapture, getCaptureRecordings, getCaptureStatus } from "../core/capture-client";
 import { methodColor } from "./method";
 import { CloseCircleIcon, CopyIcon } from "./icons";
 import { useEscToClose } from "./useEscToClose";
@@ -19,24 +22,38 @@ interface Props {
 }
 
 const DEFAULT_PORT = 9091;
+type Mode = "proxy" | "browser";
 
 export function ProxyModal({ defaultTarget, net, onSendToMock, onSendAllToMock, onClose }: Props) {
   useEscToClose(onClose);
+  const [mode, setMode] = useState<Mode>("proxy");
+  // 프록시 모드 상태
   const [target, setTarget] = useState(defaultTarget);
   const [port, setPort] = useState(DEFAULT_PORT);
   const [running, setRunning] = useState(false);
   const [boundPort, setBoundPort] = useState(0);
   const [records, setRecords] = useState<ProxyRecord[]>([]);
+  // 브라우저 모드 상태
+  const [startUrl, setStartUrl] = useState(defaultTarget);
+  const [capRunning, setCapRunning] = useState(false);
+  const [capRecords, setCapRecords] = useState<ProxyRecord[]>([]);
+  // 공용
   const [error, setError] = useState<string | null>(null);
   const [sendMsg, setSendMsg] = useState<string | null>(null);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const capPollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // 마운트 시 캡처 상태 재동기화(모달을 닫았다 열어도 Chrome이 떠있을 수 있음) + 보존된 녹화 로드
+  useEffect(() => {
+    getCaptureStatus().then((s) => setCapRunning(!!s)).catch(() => {});
+    getCaptureRecordings().then((r) => setCapRecords(r ?? [])).catch(() => {});
+  }, []);
 
   useEffect(() => {
     if (!running) {
       if (pollRef.current) clearInterval(pollRef.current);
       return;
     }
-    // 즉시 1회 조회 후 1초 간격 폴링
     getRecordings().then(setRecords).catch(() => {});
     pollRef.current = setInterval(() => {
       getRecordings().then(setRecords).catch(() => {});
@@ -45,6 +62,22 @@ export function ProxyModal({ defaultTarget, net, onSendToMock, onSendAllToMock, 
       if (pollRef.current) clearInterval(pollRef.current);
     };
   }, [running]);
+
+  useEffect(() => {
+    if (!capRunning) {
+      if (capPollRef.current) clearInterval(capPollRef.current);
+      return;
+    }
+    getCaptureRecordings().then((r) => setCapRecords(r ?? [])).catch(() => {});
+    capPollRef.current = setInterval(() => {
+      getCaptureRecordings().then((r) => setCapRecords(r ?? [])).catch(() => {});
+      // 사용자가 Chrome 창을 직접 닫으면 백엔드가 자동 중지 → UI 반영
+      getCaptureStatus().then((s) => { if (!s) setCapRunning(false); }).catch(() => {});
+    }, 1000);
+    return () => {
+      if (capPollRef.current) clearInterval(capPollRef.current);
+    };
+  }, [capRunning]);
 
   const toggle = async () => {
     setError(null);
@@ -63,48 +96,97 @@ export function ProxyModal({ defaultTarget, net, onSendToMock, onSendAllToMock, 
     }
   };
 
+  const toggleCapture = async () => {
+    setError(null);
+    if (capRunning) {
+      await stopCapture().catch(() => {});
+      setCapRunning(false);
+      return;
+    }
+    try {
+      await startCapture(startUrl);
+      setCapRunning(true);
+    } catch (e) {
+      setError(`시작 실패: ${e instanceof Error ? e.message : String(e)}`);
+    }
+  };
+
   const baseUrl = `http://localhost:${boundPort}`;
+  const isBrowser = mode === "browser";
+  const shownRecords = isBrowser ? capRecords : records;
+  const activeRunning = isBrowser ? capRunning : running;
 
   return (
     <div className="modal-overlay" onMouseDown={onClose}>
       <div className="modal proxy-modal" onMouseDown={(e) => e.stopPropagation()}>
         <div className="modal-head">
-          <h3>프록시 녹화{running && <span className="proxy-running"> 실행 중 — {baseUrl}</span>}</h3>
+          <h3>
+            {isBrowser ? "브라우저 녹화" : "프록시 녹화"}
+            {activeRunning && <span className="proxy-running"> 실행 중{!isBrowser && ` — ${baseUrl}`}</span>}
+          </h3>
           <button className="icon-btn" onClick={onClose} title="닫기"><CloseCircleIcon size={18} /></button>
         </div>
         <div className="modal-body proxy-body">
-          <div className="proxy-control">
-            <label className="config-field">
-              <span className="config-label">타깃 Base URL</span>
-              <input value={target} disabled={running} onChange={(e) => setTarget(e.target.value)}
-                placeholder="https://api.example.com" spellCheck={false} style={{ minWidth: 280 }} />
-            </label>
-            <label className="config-field">
-              <span className="config-label">포트</span>
-              <input type="number" value={port} disabled={running}
-                onChange={(e) => setPort(Number(e.target.value) || DEFAULT_PORT)} style={{ width: 80 }} />
-            </label>
-            <button className={running ? "btn small" : "btn small primary"} disabled={!target.trim()} onClick={toggle}>
-              {running ? "중지" : "시작"}
-            </button>
-            {running && (
-              <button className="btn small" title="Base URL 복사" onClick={() => navigator.clipboard.writeText(baseUrl).catch(() => {})}>
-                <CopyIcon size={13} /> {baseUrl}
-              </button>
-            )}
+          <div className="proxy-mode-tabs">
+            <button className={!isBrowser ? "btn small primary" : "btn small"} onClick={() => setMode("proxy")}>프록시</button>
+            <button className={isBrowser ? "btn small primary" : "btn small"} onClick={() => setMode("browser")}>브라우저</button>
           </div>
+          {!isBrowser && (
+            <div className="proxy-control">
+              <label className="config-field">
+                <span className="config-label">타깃 Base URL</span>
+                <input value={target} disabled={running} onChange={(e) => setTarget(e.target.value)}
+                  placeholder="https://api.example.com" spellCheck={false} style={{ minWidth: 280 }} />
+              </label>
+              <label className="config-field">
+                <span className="config-label">포트</span>
+                <input type="number" value={port} disabled={running}
+                  onChange={(e) => setPort(Number(e.target.value) || DEFAULT_PORT)} style={{ width: 80 }} />
+              </label>
+              <button className={running ? "btn small" : "btn small primary"} disabled={!target.trim()} onClick={toggle}>
+                {running ? "중지" : "시작"}
+              </button>
+              {running && (
+                <button className="btn small" title="Base URL 복사" onClick={() => navigator.clipboard.writeText(baseUrl).catch(() => {})}>
+                  <CopyIcon size={13} /> {baseUrl}
+                </button>
+              )}
+            </div>
+          )}
+          {isBrowser && (
+            <div className="proxy-control">
+              <label className="config-field">
+                <span className="config-label">시작 URL</span>
+                <input value={startUrl} disabled={capRunning} onChange={(e) => setStartUrl(e.target.value)}
+                  placeholder="https://service.example.com" spellCheck={false} style={{ minWidth: 280 }} />
+              </label>
+              <button className={capRunning ? "btn small" : "btn small primary"} disabled={!startUrl.trim()} onClick={toggleCapture}>
+                {capRunning ? "중지" : "시작"}
+              </button>
+            </div>
+          )}
           {error && <div className="error-box">{error}</div>}
           {sendMsg && <div className="proxy-sendmsg">{sendMsg}</div>}
           <div className="proxy-records">
-            {records.length === 0 && <div className="hint">{running ? `${baseUrl} 로 호출하면 여기에 녹화됩니다` : "시작 후 프록시로 호출하세요"}</div>}
-            {records.length > 0 && (
+            {shownRecords.length === 0 && (
+              <div className="hint">
+                {isBrowser
+                  ? capRunning
+                    ? "Chrome 창에서 서비스를 사용하면 API 호출(XHR/fetch)이 여기에 녹화됩니다"
+                    : "시작하면 전용 Chrome이 열립니다 (로그인 세션은 다음 녹화에 재사용)"
+                  : running
+                    ? `${baseUrl} 로 호출하면 여기에 녹화됩니다`
+                    : "시작 후 프록시로 호출하세요"}
+              </div>
+            )}
+            {shownRecords.length > 0 && (
               <div className="proxy-bulk-row">
-                <button className="btn small" onClick={() => setSendMsg(onSendAllToMock(records))}>
+                <button className="btn small" onClick={() => setSendMsg(onSendAllToMock(shownRecords))}>
                   전체 Mock으로
                 </button>
               </div>
             )}
-            {[...records].reverse().map((r, i) => (
+            {[...shownRecords].reverse().map((r, i) => (
               <div className="proxy-rec-row" key={`${r.atMs}-${i}`}>
                 <span className="method" style={{ color: methodColor(r.method) }}>{r.method}</span>
                 <span className="proxy-rec-path">{r.path}</span>
