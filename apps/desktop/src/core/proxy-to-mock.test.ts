@@ -1,9 +1,22 @@
 // src/core/proxy-to-mock.test.ts
 import { describe, it, expect } from "vitest";
-import { matchOperation, recordingToMock, recordingsToMocks, applyMockTargets } from "./proxy-to-mock";
+import { matchOperation, recordingToMock, recordingsToMocks, applyMockTargets, stripBasePath } from "./proxy-to-mock";
 import { defaultMockConfig } from "./mock-config";
 import type { ParsedSpec, ParsedOperation } from "./types";
 import type { ProxyRecord } from "./proxy-client";
+
+/** 최소 스펙 픽스처 생성. ops는 { id, method, path } 배열. */
+function makeSpec(ops: { id: string; method: string; path: string }[]): ParsedSpec {
+  const operations: ParsedOperation[] = ops.map((o) => ({
+    id: o.id,
+    method: o.method,
+    path: o.path,
+    tags: [],
+    parameters: [],
+    responses: [],
+  }));
+  return { info: { title: "t", version: "1" }, operations, securitySchemes: [] } as unknown as ParsedSpec;
+}
 
 const ops: ParsedOperation[] = [
   { id: "GET /pet/findByStatus", method: "GET", path: "/pet/findByStatus", tags: [], parameters: [], responses: [] },
@@ -98,5 +111,35 @@ describe("applyMockTargets", () => {
   it("없는 opId는 무시한다", () => {
     const cfg = defaultMockConfig(spec);
     expect(() => applyMockTargets(cfg, [{ opId: "ghost" }])).not.toThrow();
+  });
+});
+
+describe("stripBasePath", () => {
+  it("baseUrl의 path 접두사를 제거한다", () => {
+    expect(stripBasePath("/api/v1/pets/42", "https://host.com/api/v1")).toBe("/pets/42");
+    expect(stripBasePath("/api/v1", "https://host.com/api/v1")).toBe("/");
+  });
+
+  it("접두사가 아니면 원본 그대로", () => {
+    expect(stripBasePath("/other/pets", "https://host.com/api/v1")).toBe("/other/pets");
+    expect(stripBasePath("/api/v1extra/x", "https://host.com/api/v1")).toBe("/api/v1extra/x");
+  });
+
+  it("baseUrl에 경로가 없거나 URL이 아니면 원본 그대로", () => {
+    expect(stripBasePath("/pets", "https://host.com")).toBe("/pets");
+    expect(stripBasePath("/pets", "not a url")).toBe("/pets");
+  });
+});
+
+describe("recordingToMock baseUrl 폴백", () => {
+  it("절대 경로 녹화도 baseUrl 접두사를 떼고 매칭한다", () => {
+    // 기존 테스트와 동일한 방식의 spec 픽스처: GET /pets operation 1개
+    const spec = makeSpec([{ id: "getPets", method: "get", path: "/pets" }]);
+    const record: ProxyRecord = {
+      atMs: 1, method: "GET", path: "/api/v1/pets?limit=2", status: 200, responseBody: "[]",
+    };
+    expect(recordingToMock(spec, record)).toBeNull(); // baseUrl 없으면 종전대로 실패
+    const target = recordingToMock(spec, record, "https://host.com/api/v1");
+    expect(target?.opId).toBe("getPets");
   });
 });

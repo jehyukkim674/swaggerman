@@ -28,10 +28,28 @@ export interface MockTarget {
   body?: unknown;
 }
 
+/** baseUrl의 path 접두사를 제거. 브라우저 캡처 녹화는 실제 호스트의 절대 경로라
+ *  스펙 매칭 전에 보정이 필요하다. 접두사가 아니거나 baseUrl이 URL이 아니면 원본 그대로. */
+export function stripBasePath(path: string, baseUrl: string): string {
+  let prefix: string;
+  try {
+    prefix = new URL(baseUrl).pathname;
+  } catch {
+    return path;
+  }
+  prefix = prefix.replace(/\/+$/, "");
+  if (!prefix) return path;
+  if (path === prefix) return "/";
+  if (path.startsWith(prefix + "/") || path.startsWith(prefix + "?")) return path.slice(prefix.length);
+  return path;
+}
+
 /** 녹화를 매칭 operation의 Mock 대상으로 변환. 응답이 JSON 배열이면 dataset, 객체면 body,
- *  그 외(JSON 아님)면 원문 문자열을 body로. 매칭 operation 없으면 null. */
-export function recordingToMock(spec: ParsedSpec, record: ProxyRecord): MockTarget | null {
-  const op = matchOperation(spec, record.method, record.path);
+ *  그 외(JSON 아님)면 원문 문자열을 body로. 매칭 operation 없으면 null.
+ *  baseUrl을 주면 원본 path 매칭 실패 시 base path 접두사를 떼고 재시도(브라우저 캡처용). */
+export function recordingToMock(spec: ParsedSpec, record: ProxyRecord, baseUrl?: string): MockTarget | null {
+  let op = matchOperation(spec, record.method, record.path);
+  if (!op && baseUrl) op = matchOperation(spec, record.method, stripBasePath(record.path, baseUrl));
   if (!op) return null;
   let parsed: unknown;
   try {
@@ -50,7 +68,7 @@ export interface BulkMockResult {
 }
 
 /** 녹화 전체를 Mock 대상으로 변환. records는 시간순이므로 같은 operation은 최신이 이긴다. */
-export function recordingsToMocks(spec: ParsedSpec, records: ProxyRecord[]): BulkMockResult {
+export function recordingsToMocks(spec: ParsedSpec, records: ProxyRecord[], baseUrl?: string): BulkMockResult {
   const byOp = new Map<string, MockTarget>();
   let unmatched = 0;
   let failed = 0;
@@ -59,7 +77,7 @@ export function recordingsToMocks(spec: ParsedSpec, records: ProxyRecord[]): Bul
       failed += 1;
       continue;
     }
-    const target = recordingToMock(spec, record);
+    const target = recordingToMock(spec, record, baseUrl);
     if (!target) {
       unmatched += 1;
       continue;
