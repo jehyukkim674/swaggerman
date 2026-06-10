@@ -31,23 +31,41 @@ export function RunnerModal({ collections, onRun, onClose }: Props) {
   const [colId, setColId] = useState(collections[0]?.id ?? "");
   const [running, setRunning] = useState(false);
   const [rows, setRows] = useState<Record<string, RowState>>({});
+  const [iterations, setIterations] = useState(1);
+  // 누적 통과/전체 — 반복 실행 시 행(rows)은 최신 결과만 보여서 별도 집계
+  const [summary, setSummary] = useState<{ passed: number; total: number } | null>(null);
 
   const col = collections.find((c) => c.id === colId);
 
   const run = async () => {
-    if (!col) return;
+    if (!col || running) return;
     setRunning(true);
     setRows({});
-    for (const req of col.requests) {
-      setRows((p) => ({ ...p, [req.id]: { running: true } }));
-      const result = await onRun(req);
-      setRows((p) => ({ ...p, [req.id]: { ...result, running: false, done: true } }));
+    setSummary(null);
+    let passed = 0;
+    let total = 0;
+    try {
+      const n = Math.max(1, Math.floor(iterations) || 1);
+      for (let i = 0; i < n; i++) {
+        for (const req of col.requests) {
+          setRows((p) => ({ ...p, [req.id]: { running: true } }));
+          let result: RunResult;
+          try {
+            result = await onRun(req);
+          } catch (e) {
+            // 한 요청의 실패가 나머지 실행을 막지 않도록 행 단위로 흡수
+            result = { status: 0, ok: false, durationMs: 0, error: String(e) };
+          }
+          total += 1;
+          if (result.ok) passed += 1;
+          setRows((p) => ({ ...p, [req.id]: { ...result, running: false, done: true } }));
+          setSummary({ passed, total });
+        }
+      }
+    } finally {
+      setRunning(false);
     }
-    setRunning(false);
   };
-
-  const results = col?.requests.map((r) => rows[r.id]).filter((s) => s?.done) ?? [];
-  const passed = results.filter((s) => s?.ok).length;
 
   return (
     <div className="modal-overlay" onMouseDown={onClose}>
@@ -78,6 +96,17 @@ export function RunnerModal({ collections, onRun, onClose }: Props) {
                 hint: `${c.requests.length}개`,
               }))}
             />
+            <input
+              className="kv-input"
+              type="number"
+              min={1}
+              value={iterations}
+              onChange={(e) => setIterations(Number(e.target.value))}
+              disabled={running}
+              title="반복 횟수 — 컬렉션 전체를 N회 연속 실행"
+              aria-label="반복 횟수"
+              style={{ width: 56, flex: "0 0 auto" }}
+            />
             <button
               className="btn small primary"
               onClick={run}
@@ -85,11 +114,11 @@ export function RunnerModal({ collections, onRun, onClose }: Props) {
             >
               {running ? "실행 중…" : "실행"}
             </button>
-            {results.length > 0 && (
+            {summary && (
               <span
-                className={passed === results.length ? "test-badge pass" : "test-badge fail"}
+                className={summary.passed === summary.total ? "test-badge pass" : "test-badge fail"}
               >
-                {passed}/{results.length} 통과
+                {summary.passed}/{summary.total} 통과
               </span>
             )}
           </div>

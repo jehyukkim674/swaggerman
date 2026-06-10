@@ -55,6 +55,32 @@ describe("RunnerModal", () => {
     await waitFor(() => expect(screen.getByText("오류")).toBeTruthy());
   });
 
+  it("onRun이 reject돼도 다음 요청을 계속 실행하고 재실행 가능", async () => {
+    const onRun = vi
+      .fn<() => Promise<RunResult>>()
+      .mockRejectedValueOnce(new Error("변환 실패"))
+      .mockResolvedValueOnce({ status: 200, ok: true, durationMs: 5 });
+    render(<RunnerModal collections={COLLECTIONS} onRun={onRun} onClose={vi.fn()} />);
+    fireEvent.click(screen.getByText("실행"));
+    await waitFor(() => expect(screen.getByText("1/2 통과")).toBeTruthy());
+    expect(onRun).toHaveBeenCalledTimes(2);
+    expect(screen.getByText("오류")).toBeTruthy();
+    // running이 풀려 실행 버튼이 다시 활성화(재실행 가능)
+    const runBtn = screen.getByText("실행") as HTMLButtonElement;
+    expect(runBtn.disabled).toBe(false);
+  });
+
+  it("반복 횟수만큼 컬렉션 전체를 N회 실행", async () => {
+    const onRun = vi
+      .fn<() => Promise<RunResult>>()
+      .mockResolvedValue({ status: 200, ok: true, durationMs: 3 });
+    render(<RunnerModal collections={COLLECTIONS} onRun={onRun} onClose={vi.fn()} />);
+    fireEvent.change(screen.getByLabelText("반복 횟수"), { target: { value: "3" } });
+    fireEvent.click(screen.getByText("실행"));
+    await waitFor(() => expect(screen.getByText("6/6 통과")).toBeTruthy());
+    expect(onRun).toHaveBeenCalledTimes(6); // 요청 2개 × 3회
+  });
+
   it("닫기 버튼이 onClose 호출", () => {
     const onClose = vi.fn();
     render(<RunnerModal collections={COLLECTIONS} onRun={vi.fn()} onClose={onClose} />);

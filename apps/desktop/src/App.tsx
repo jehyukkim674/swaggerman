@@ -220,13 +220,15 @@ export default function App() {
   // 새 창 열기 확인 다이얼로그 (실수 클릭으로 창이 늘어나는 것 방지)
   const [newWindowConfirm, setNewWindowConfirm] = useState(false);
 
-  // 컬렉션 러너: 저장 요청 1건 실행 → 결과 반환
+  // 컬렉션 러너: 저장 요청 1건 실행 → 결과 반환.
+  // 요청 변환(savedToRequest/buildRequest)도 try 안에 둬서 어떤 실패든 결과로 반환한다
+  // — 여기서 reject되면 러너 루프가 중단돼 다음 요청이 실행되지 않는다.
   async function runSaved(s: SavedRequest): Promise<RunResult> {
-    const { operation, inputs: ins, baseURL: b } = savedToRequest(s);
-    const securityHeaders = computeSecurityHeaders(spec?.securitySchemes ?? [], authValues);
-    const request = buildRequest(b, operation, ins, securityHeaders, globalHeaders, activeVars);
     const t0 = Date.now();
     try {
+      const { operation, inputs: ins, baseURL: b } = savedToRequest(s);
+      const securityHeaders = computeSecurityHeaders(spec?.securitySchemes ?? [], authValues);
+      const request = buildRequest(b, operation, ins, securityHeaders, globalHeaders, activeVars);
       const res = await executeRequest(request, netSettings);
       return {
         status: res.statusCode,

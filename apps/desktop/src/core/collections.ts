@@ -95,6 +95,8 @@ export function savedToRequest(s: SavedRequest): {
   } catch {
     /* 상대 URL 등은 그대로 path로 */
   }
+  // 옛 버전/외부 import 데이터는 headers·body가 없을 수 있어 방어적으로 처리
+  const body = s.body ?? "";
   const operation: ParsedOperation = {
     id: `saved:${s.id}`,
     method: (s.method as ParsedOperation["method"]) ?? "GET",
@@ -102,15 +104,15 @@ export function savedToRequest(s: SavedRequest): {
     tags: ["저장됨"],
     summary: s.name,
     parameters: [],
-    requestBody: s.body ? { required: false, contentType: "application/json" } : undefined,
+    requestBody: body ? { required: false, contentType: "application/json" } : undefined,
     responses: [],
   };
   const inputs: RequestInputs = {
     pathParams: {},
     queryParams,
-    headers: s.headers.map((h) => ({ key: h.key, value: h.value, enabled: true })),
-    body: s.body,
-    bodyMode: s.body ? "raw" : "none",
+    headers: (s.headers ?? []).map((h) => ({ key: h.key, value: h.value, enabled: true })),
+    body,
+    bodyMode: body ? "raw" : "none",
     form: [],
   };
   return { operation, inputs, baseURL };
