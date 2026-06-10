@@ -152,11 +152,11 @@ describe("recordingToMock baseUrl 폴백", () => {
   });
 });
 
-describe("saveRecordingsToMock (전체저장 = 활성 적용 + 프리셋)", () => {
+describe("saveRecordingsToMock (전체저장 = 프리셋으로 저장)", () => {
   const url = "https://api.test/openapi.json";
   beforeEach(() => localStorage.clear());
 
-  it("녹화를 활성 Mock 설정에 적용하고(목록에 바로 보임) 제목 프리셋으로도 저장한다", () => {
+  it("녹화를 제목 프리셋으로 저장하고 활성 설정은 건드리지 않는다", () => {
     const spec = makeSpec([{ id: "GET /pets", method: "GET", path: "/pets" }]);
     const records: ProxyRecord[] = [
       { atMs: 1, method: "GET", path: "/pets", status: 200, responseBody: '[{"id":1}]' },
@@ -164,21 +164,22 @@ describe("saveRecordingsToMock (전체저장 = 활성 적용 + 프리셋)", () =
     const res = saveRecordingsToMock(spec, records, "https://api.test", url, "스모크");
     expect(res).toEqual({ saved: 1, unmatched: 0, failed: 0 });
 
-    // 활성 설정에 반영 — Mock 서버 모달 목록(=활성 config)에서 바로 보인다
-    const cfg = loadMockConfig(url, spec);
-    const op = cfg.operations.find((o) => o.opId === "GET /pets")!;
-    expect(op.enabled).toBe(true);
-    expect(op.source).toBe("manual");
-    expect(op.dataset).toEqual([{ id: 1 }]);
-
-    // 제목 프리셋으로도 보관
+    // 프리셋에는 녹화 매칭분이 반영된다(Mock에서 선택해 적용)
     const presets = loadPresets(url);
     expect(presets).toHaveLength(1);
     expect(presets[0].title).toBe("스모크");
-    expect(presets[0].operations.find((o) => o.opId === "GET /pets")?.enabled).toBe(true);
+    const presetOp = presets[0].operations.find((o) => o.opId === "GET /pets")!;
+    expect(presetOp.enabled).toBe(true);
+    expect(presetOp.source).toBe("manual");
+    expect(presetOp.dataset).toEqual([{ id: 1 }]);
+
+    // 활성 설정은 변경되지 않는다(저장된 활성 config 없음 → 다음 로드 시 기본값)
+    expect(localStorage.getItem(`swaggerman.mock.${url}`)).toBeNull();
+    const op = loadMockConfig(url, spec).operations.find((o) => o.opId === "GET /pets")!;
+    expect(op.source).toBe("schema"); // 활성은 기본값 그대로
   });
 
-  it("매칭 0건이면 활성 설정·프리셋 둘 다 변경하지 않는다", () => {
+  it("매칭 0건이면 프리셋을 만들지 않는다", () => {
     const spec = makeSpec([{ id: "GET /pets", method: "GET", path: "/pets" }]);
     const records: ProxyRecord[] = [
       { atMs: 1, method: "GET", path: "/unknown", status: 200, responseBody: "[]" },
@@ -187,9 +188,6 @@ describe("saveRecordingsToMock (전체저장 = 활성 적용 + 프리셋)", () =
     expect(res.saved).toBe(0);
     expect(res.unmatched).toBe(1);
     expect(loadPresets(url)).toHaveLength(0);
-    // 활성 설정도 기본값 그대로(해당 op 비활성 아님 — 기본 enabled지만 source는 schema)
-    const op = loadMockConfig(url, spec).operations.find((o) => o.opId === "GET /pets")!;
-    expect(op.source).toBe("schema");
   });
 
   it("실패 녹화·미매칭 건수를 결과에 함께 반환한다", () => {

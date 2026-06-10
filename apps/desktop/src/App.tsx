@@ -270,14 +270,14 @@ export default function App() {
     return `Mock 저장됨: ${target.opId}`;
   }
 
-  // 프록시 녹화 전체를 활성 Mock 설정에 적용(=Mock 서버 목록에 바로 반영)하고
-  // 같은 내용을 제목 붙인 프리셋으로도 저장한다.
+  // 프록시 녹화 전체를 제목 붙인 Mock 프리셋으로 저장한다.
+  // (활성 설정은 건드리지 않음 → Mock 서버 모달의 프리셋 드롭다운에서 선택해 적용)
   function sendAllRecordingsToMock(records: ProxyRecord[], title: string): string {
     if (!spec) return "스펙이 로드되지 않았습니다";
     const url = activeSpecUrl || specUrl;
     const { saved, unmatched, failed } = saveRecordingsToMock(spec, records, baseURL, url, title);
     if (saved === 0) return "저장할 녹화가 없습니다(스펙에 없는 경로거나 실패한 녹화)";
-    const parts = [`Mock 적용 + 프리셋 '${title}' 저장 ${saved}건`];
+    const parts = [`프리셋 '${title}' 저장 ${saved}건 — Mock 서버에서 프리셋을 선택해 적용하세요`];
     if (unmatched > 0) parts.push(`스펙에 없는 경로 ${unmatched}건 제외`);
     if (failed > 0) parts.push(`실패 녹화 ${failed}건 제외`);
     return parts.join(", ");
