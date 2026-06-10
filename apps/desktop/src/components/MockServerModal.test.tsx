@@ -496,3 +496,46 @@ describe("MockServerModal 상세 패널", () => {
     expect(writeText).toHaveBeenCalledWith("http://localhost:9090");
   });
 });
+
+// ── MockServerModal 프리셋 바 ──────────────────────────────
+describe("MockServerModal 프리셋", () => {
+  const SPEC_URL = "https://api.example.com/openapi.json";
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    localStorage.clear();
+    mockStartMockServer.mockResolvedValue(9090);
+    mockStopMockServer.mockResolvedValue(undefined);
+    mockGetMockStatus.mockResolvedValue({ running: false, port: 9090, logs: [] });
+  });
+
+  function renderModal() {
+    const spec = makeSpec([{ id: "GET /users", method: "GET", path: "/users" }]);
+    return render(
+      <MockServerModal spec={spec} specUrl={SPEC_URL} history={[]} onClose={() => {}} />,
+    );
+  }
+
+  it("'현재 설정 저장'으로 제목을 넣으면 드롭다운에 프리셋이 나타난다", async () => {
+    renderModal();
+    fireEvent.click(screen.getByRole("button", { name: "현재 설정 저장" }));
+    const input = await screen.findByPlaceholderText("프리셋 제목");
+    fireEvent.change(input, { target: { value: "기본세트" } });
+    fireEvent.click(screen.getByRole("button", { name: "저장" }));
+    // 드롭다운(select)에 옵션으로 노출
+    expect(await screen.findByRole("option", { name: /기본세트/ })).toBeTruthy();
+  });
+
+  it("프리셋 선택 시 confirm 후 설정에 적용한다", async () => {
+    const confirmSpy = vi.spyOn(window, "confirm").mockReturnValue(true);
+    renderModal();
+    fireEvent.click(screen.getByRole("button", { name: "현재 설정 저장" }));
+    fireEvent.change(await screen.findByPlaceholderText("프리셋 제목"), { target: { value: "세트A" } });
+    fireEvent.click(screen.getByRole("button", { name: "저장" }));
+    const select = await screen.findByRole("combobox");
+    const option = await screen.findByRole("option", { name: /세트A/ }) as HTMLOptionElement;
+    fireEvent.change(select, { target: { value: option.value } });
+    expect(confirmSpy).toHaveBeenCalled();
+    confirmSpy.mockRestore();
+  });
+});

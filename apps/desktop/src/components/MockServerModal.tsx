@@ -4,11 +4,16 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { ParsedSpec } from "../core/types";
 import type { HistoryItem } from "../core/history";
-import type { MockOperationConfig, MockServerConfig } from "../core/mock-config";
+import type { MockOperationConfig, MockServerConfig, MockPreset } from "../core/mock-config";
 import {
   buildMockRoutes,
   loadMockConfig,
   saveMockConfig,
+  loadPresets,
+  savePreset,
+  deletePreset,
+  renamePreset,
+  applyPresetToConfig,
 } from "../core/mock-config";
 import { generateDataset } from "../core/mock-generator";
 import {
@@ -21,7 +26,7 @@ import { buildMockDatasetPrompt, parseMockDatasetResponse, MOCK_DATASET_SYSTEM }
 import { getProvider } from "../core/ai/provider";
 import { COMPLETE_MODEL } from "../core/ai/models";
 import { methodColor, statusColor } from "./method";
-import { CloseCircleIcon, CopyIcon } from "./icons";
+import { CloseCircleIcon, CopyIcon, TrashIcon, EditIcon } from "./icons";
 import { useEscToClose } from "./useEscToClose";
 import { Select } from "./Select";
 
@@ -75,6 +80,12 @@ export function MockServerModal({ spec, specUrl, history, onClose }: Props) {
   const [config, setConfig] = useState<MockServerConfig>(() =>
     loadMockConfig(specUrl, spec)
   );
+
+  // 프리셋
+  const [presets, setPresets] = useState<MockPreset[]>(() => loadPresets(specUrl));
+  const [selectedPresetId, setSelectedPresetId] = useState<string>("");
+  const [saveOpen, setSaveOpen] = useState(false);
+  const [presetTitle, setPresetTitle] = useState("");
 
   // 선택된 operation
   const [selectedOpId, setSelectedOpId] = useState<string | null>(
@@ -359,6 +370,46 @@ export function MockServerModal({ spec, specUrl, history, onClose }: Props) {
     navigator.clipboard.writeText(`http://localhost:${config.port}`).catch(() => {});
   }
 
+  // ─ 프리셋 핸들러 ─
+  const refreshPresets = () => setPresets(loadPresets(specUrl));
+
+  const handleSavePreset = () => {
+    const t = presetTitle.trim();
+    if (!t) return;
+    savePreset(specUrl, t, config.operations);
+    setSaveOpen(false);
+    setPresetTitle("");
+    refreshPresets();
+  };
+
+  const handleSelectPreset = (id: string) => {
+    if (!id) return;
+    const preset = presets.find((p) => p.id === id);
+    if (!preset) return;
+    if (!window.confirm(`현재 Mock 설정을 '${preset.title}' 프리셋으로 덮어씁니다. 계속할까요?`)) return;
+    setConfig((prev) => applyPresetToConfig(prev, preset));
+    setSelectedPresetId(id);
+  };
+
+  const handleDeletePreset = () => {
+    const preset = presets.find((p) => p.id === selectedPresetId);
+    if (!preset) return;
+    if (!window.confirm(`프리셋 '${preset.title}'을(를) 삭제할까요?`)) return;
+    deletePreset(specUrl, preset.id);
+    setSelectedPresetId("");
+    refreshPresets();
+  };
+
+  const handleRenamePreset = () => {
+    const preset = presets.find((p) => p.id === selectedPresetId);
+    if (!preset) return;
+    const next = window.prompt("새 제목", preset.title);
+    if (next && next.trim()) {
+      renamePreset(specUrl, preset.id, next.trim());
+      refreshPresets();
+    }
+  };
+
   return (
     <div className="modal-overlay" onMouseDown={onClose}>
       <div
@@ -410,6 +461,39 @@ export function MockServerModal({ spec, specUrl, history, onClose }: Props) {
           )}
           {serverError && (
             <span className="mock-error-inline">{serverError}</span>
+          )}
+        </div>
+
+        {/* ── 프리셋 바 ── */}
+        <div className="mock-preset-bar">
+          {presets.length > 0 ? (
+            <select className="mock-preset-select" value={selectedPresetId}
+              onChange={(e) => handleSelectPreset(e.target.value)}>
+              <option value="">프리셋 불러오기…</option>
+              {presets.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.title} · {new Date(p.savedAt).toLocaleString()}
+                </option>
+              ))}
+            </select>
+          ) : (
+            <span className="hint">저장된 프리셋 없음</span>
+          )}
+          {selectedPresetId && (
+            <>
+              <button className="icon-btn" title="이름변경" onClick={handleRenamePreset}><EditIcon size={14} /></button>
+              <button className="icon-btn" title="삭제" onClick={handleDeletePreset}><TrashIcon size={14} /></button>
+            </>
+          )}
+          {!saveOpen ? (
+            <button className="btn small" onClick={() => { setSaveOpen(true); setPresetTitle(""); }}>현재 설정 저장</button>
+          ) : (
+            <>
+              <input className="mock-preset-title" value={presetTitle} autoFocus
+                placeholder="프리셋 제목" onChange={(e) => setPresetTitle(e.target.value)} />
+              <button className="btn small primary" disabled={!presetTitle.trim()} onClick={handleSavePreset}>저장</button>
+              <button className="btn small" onClick={() => setSaveOpen(false)}>취소</button>
+            </>
           )}
         </div>
 

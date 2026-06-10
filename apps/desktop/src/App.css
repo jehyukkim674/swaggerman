@@ -2783,6 +2783,13 @@ tr.cmp-changed td { background: #d2992214; }
   flex-shrink: 0;
 }
 
+.mock-preset-bar { display: flex; align-items: center; gap: 8px; padding: 6px 12px; flex-wrap: wrap; border-bottom: 1px solid var(--border); background: var(--bg-3); flex-shrink: 0; }
+.mock-preset-select, .mock-preset-title, .proxy-bulk-title {
+  background: var(--input-bg, #0d1117); color: inherit;
+  border: 1px solid var(--border, #30363d); border-radius: 6px; padding: 4px 8px; font-size: 13px;
+}
+.mock-preset-select { min-width: 200px; }
+
 .mock-port-label {
   font-size: 11px;
   font-weight: 600;
