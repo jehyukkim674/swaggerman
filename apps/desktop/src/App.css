@@ -3279,6 +3279,7 @@ tr.cmp-changed td { background: #d2992214; }
 .proxy-rec-row { display: flex; align-items: center; gap: 8px; padding: 4px 8px; font-size: 12px; border-bottom: 1px solid var(--border); }
 .proxy-rec-path { font-family: ui-monospace, monospace; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .proxy-rec-status { font-family: ui-monospace, monospace; font-weight: 700; }
+.proxy-bulk-row { display: flex; justify-content: flex-end; margin-bottom: 6px; }
 
 /* API 성능 추이 모달 */
 .modal.perf-modal { width: 680px; max-width: 94vw; max-height: 82vh; }

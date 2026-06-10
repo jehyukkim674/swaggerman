@@ -80,7 +80,7 @@ import { CompareModal } from "./components/CompareModal";
 import { DonationModal } from "./components/DonationModal";
 import { MockServerModal } from "./components/MockServerModal";
 import { ProxyModal } from "./components/ProxyModal";
-import { recordingToMock } from "./core/proxy-to-mock";
+import { recordingToMock, recordingsToMocks, applyMockTargets } from "./core/proxy-to-mock";
 import type { ProxyRecord } from "./core/proxy-client";
 import { loadMockConfig, saveMockConfig } from "./core/mock-config";
 import { ShareModal } from "./components/ShareModal";
@@ -270,15 +270,24 @@ export default function App() {
     if (!target) return `스펙에 없는 경로입니다: ${record.method} ${record.path}`;
     const url = activeSpecUrl || specUrl;
     const cfg = loadMockConfig(url, spec);
-    const op = cfg.operations.find((o) => o.opId === target.opId);
-    if (op) {
-      op.enabled = true;
-      op.source = "manual";
-      op.dataset = target.dataset;
-      op.body = target.body;
-    }
+    applyMockTargets(cfg, [target]);
     saveMockConfig(url, cfg);
     return `Mock 저장됨: ${target.opId}`;
+  }
+
+  // 프록시 녹화 전체를 Mock으로 일괄 저장. 같은 operation은 최신 녹화가 이긴다.
+  function sendAllRecordingsToMock(records: ProxyRecord[]): string {
+    if (!spec) return "스펙이 로드되지 않았습니다";
+    const { targets, unmatched, failed } = recordingsToMocks(spec, records);
+    if (targets.length === 0) return "저장할 녹화가 없습니다(스펙에 없는 경로거나 실패한 녹화)";
+    const url = activeSpecUrl || specUrl;
+    const cfg = loadMockConfig(url, spec);
+    applyMockTargets(cfg, targets);
+    saveMockConfig(url, cfg);
+    const parts = [`Mock 저장 ${targets.length}건`];
+    if (unmatched > 0) parts.push(`스펙에 없는 경로 ${unmatched}건 제외`);
+    if (failed > 0) parts.push(`실패 녹화 ${failed}건 제외`);
+    return parts.join(", ");
   }
 
   // 컬렉션(저장 요청) — 전역 저장
@@ -1723,6 +1732,7 @@ export default function App() {
         <ProxyModal
           defaultTarget={baseURL}
           onSendToMock={sendRecordingToMock}
+          onSendAllToMock={sendAllRecordingsToMock}
           onClose={() => setProxyOpen(false)}
         />
       )}

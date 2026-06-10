@@ -10,12 +10,14 @@ interface Props {
   defaultTarget: string;
   /** 녹화를 Mock으로 변환 요청(App이 매칭·저장). 성공 메시지/실패는 App이 결정 → 결과 문자열 반환 */
   onSendToMock: (record: ProxyRecord) => string;
+  /** 녹화 전체를 Mock으로 일괄 저장(App이 매칭·저장). 결과 메시지 반환 */
+  onSendAllToMock: (records: ProxyRecord[]) => string;
   onClose: () => void;
 }
 
 const DEFAULT_PORT = 9091;
 
-export function ProxyModal({ defaultTarget, onSendToMock, onClose }: Props) {
+export function ProxyModal({ defaultTarget, onSendToMock, onSendAllToMock, onClose }: Props) {
   useEscToClose(onClose);
   const [target, setTarget] = useState(defaultTarget);
   const [port, setPort] = useState(DEFAULT_PORT);
@@ -92,6 +94,13 @@ export function ProxyModal({ defaultTarget, onSendToMock, onClose }: Props) {
           {sendMsg && <div className="proxy-sendmsg">{sendMsg}</div>}
           <div className="proxy-records">
             {records.length === 0 && <div className="hint">{running ? `${baseUrl} 로 호출하면 여기에 녹화됩니다` : "시작 후 프록시로 호출하세요"}</div>}
+            {records.length > 0 && (
+              <div className="proxy-bulk-row">
+                <button className="btn small" onClick={() => setSendMsg(onSendAllToMock(records))}>
+                  전체 Mock으로
+                </button>
+              </div>
+            )}
             {[...records].reverse().map((r, i) => (
               <div className="proxy-rec-row" key={`${r.atMs}-${i}`}>
                 <span className="method" style={{ color: methodColor(r.method) }}>{r.method}</span>
