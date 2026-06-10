@@ -1782,6 +1782,8 @@ mark.hl.active {
 .saved-folder {
   color: var(--muted);
 }
+.saved-edit { gap: 6px; }
+.saved-edit-url { flex: 1; min-width: 200px; }
 
 /* 스펙 인지: 요청 경고 / 응답 스키마 검증 */
 .req-warn {

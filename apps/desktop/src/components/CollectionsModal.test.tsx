@@ -164,3 +164,35 @@ describe("CollectionsModal", () => {
     await waitFor(() => expect(screen.getByText(/내보내기 실패/)).toBeTruthy());
   });
 });
+
+describe("인라인 편집", () => {
+  it("✏️ 수정 클릭 시 인라인 폼이 열리고 저장하면 onChange에 반영된다(헤더·바디·id 보존)", () => {
+    const { onChange } = setup();
+    fireEvent.click(screen.getByTitle("수정"));
+    fireEvent.change(screen.getByDisplayValue("https://x/users"), { target: { value: "https://y/users" } });
+    fireEvent.change(screen.getByDisplayValue("유저 조회"), { target: { value: "유저 목록" } });
+    fireEvent.click(screen.getByRole("button", { name: "저장" }));
+    const updated = vi.mocked(onChange).mock.calls[0][0] as Collection[];
+    const r = updated[0].requests[0];
+    expect(r.id).toBe("r1");
+    expect(r.url).toBe("https://y/users");
+    expect(r.name).toBe("유저 목록");
+    expect(r.headers).toEqual([]);
+    expect(r.body).toBe("");
+  });
+
+  it("URL을 비우면 저장 버튼이 비활성화된다", () => {
+    setup();
+    fireEvent.click(screen.getByTitle("수정"));
+    fireEvent.change(screen.getByDisplayValue("https://x/users"), { target: { value: "" } });
+    expect((screen.getByRole("button", { name: "저장" }) as HTMLButtonElement).disabled).toBe(true);
+  });
+
+  it("취소하면 편집 폼이 닫히고 변경되지 않는다", () => {
+    const { onChange } = setup();
+    fireEvent.click(screen.getByTitle("수정"));
+    fireEvent.click(screen.getByRole("button", { name: "취소" }));
+    expect(onChange).not.toHaveBeenCalled();
+    expect(screen.getByText("유저 조회")).toBeTruthy();
+  });
+});

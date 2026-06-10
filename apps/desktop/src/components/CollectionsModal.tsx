@@ -10,7 +10,8 @@ import {
 } from "../core/collections";
 import { newId } from "../core/history";
 import { methodColor } from "./method";
-import { CloseCircleIcon, TrashIcon } from "./icons";
+import { CloseCircleIcon, TrashIcon, EditIcon } from "./icons";
+import { HTTP_METHODS } from "../core/types";
 import { useEscToClose } from "./useEscToClose";
 import { Select } from "./Select";
 
@@ -37,6 +38,33 @@ export function CollectionsModal({ collections, onChange, current, onLoad, onClo
   const [targetId, setTargetId] = useState(collections[0]?.id ?? "__new__");
   const [newColName, setNewColName] = useState("");
   const [msg, setMsg] = useState<string | null>(null);
+
+  // 인라인 편집(한 번에 한 행): 이름·메서드·URL만. 헤더/바디는 불러오기→덮어쓰기로 수정.
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [draft, setDraft] = useState({ name: "", method: "GET", url: "" });
+
+  const startEdit = (r: SavedRequest) => {
+    setEditingId(r.id);
+    setDraft({ name: r.name, method: r.method, url: r.url });
+  };
+
+  const saveEdit = (colId: string, reqId: string) => {
+    onChange(
+      collections.map((c) =>
+        c.id === colId
+          ? {
+              ...c,
+              requests: c.requests.map((r) =>
+                r.id === reqId
+                  ? { ...r, name: draft.name.trim() || draft.url.trim(), method: draft.method, url: draft.url.trim() }
+                  : r,
+              ),
+            }
+          : c,
+      ),
+    );
+    setEditingId(null);
+  };
 
   // 기본 요청 이름: URL 경로(없으면 호스트/원문) — "GET 요청"만 쌓여 구분 안 되는 문제 방지
   const defaultName = (() => {
@@ -191,33 +219,62 @@ export function CollectionsModal({ collections, onChange, current, onLoad, onClo
                   <TrashIcon />
                 </button>
               </div>
-              {col.requests.map((r) => (
-                <div className="saved-row" key={r.id}>
-                  <span className="method-mini" style={{ color: methodColor(r.method) }}>
-                    {r.method}
-                  </span>
-                  <span className="saved-name" title={r.url}>
-                    {r.folder ? <span className="saved-folder">{r.folder}/</span> : null}
-                    {r.name}
-                  </span>
-                  <button
-                    className="btn small"
-                    onClick={() => {
-                      onLoad(r);
-                      onClose();
-                    }}
-                  >
-                    불러오기
-                  </button>
-                  <button
-                    className="icon-btn"
-                    onClick={() => removeRequest(col.id, r.id)}
-                    title="삭제"
-                  >
-                    <CloseCircleIcon size={15} />
-                  </button>
-                </div>
-              ))}
+              {col.requests.map((r) =>
+                editingId === r.id ? (
+                  <div className="saved-row saved-edit" key={r.id}>
+                    <Select
+                      value={draft.method}
+                      onChange={(m) => setDraft((d) => ({ ...d, method: m }))}
+                      options={HTTP_METHODS.map((m) => ({ value: m, label: m }))}
+                    />
+                    <input
+                      className="kv-input"
+                      value={draft.name}
+                      onChange={(e) => setDraft((d) => ({ ...d, name: e.target.value }))}
+                      placeholder="요청 이름"
+                      spellCheck={false}
+                    />
+                    <input
+                      className="kv-input saved-edit-url"
+                      value={draft.url}
+                      onChange={(e) => setDraft((d) => ({ ...d, url: e.target.value }))}
+                      placeholder="https://api.example.com/path"
+                      spellCheck={false}
+                    />
+                    <button className="btn small primary" disabled={!draft.url.trim()} onClick={() => saveEdit(col.id, r.id)}>
+                      저장
+                    </button>
+                    <button className="btn small" onClick={() => setEditingId(null)}>
+                      취소
+                    </button>
+                  </div>
+                ) : (
+                  <div className="saved-row" key={r.id}>
+                    <span className="method-mini" style={{ color: methodColor(r.method) }}>
+                      {r.method}
+                    </span>
+                    <span className="saved-name" title={r.url}>
+                      {r.folder ? <span className="saved-folder">{r.folder}/</span> : null}
+                      {r.name}
+                    </span>
+                    <button
+                      className="btn small"
+                      onClick={() => {
+                        onLoad(r);
+                        onClose();
+                      }}
+                    >
+                      불러오기
+                    </button>
+                    <button className="icon-btn" title="수정" onClick={() => startEdit(r)}>
+                      <EditIcon size={14} />
+                    </button>
+                    <button className="icon-btn" onClick={() => removeRequest(col.id, r.id)} title="삭제">
+                      <CloseCircleIcon size={15} />
+                    </button>
+                  </div>
+                ),
+              )}
             </div>
           ))}
         </div>
