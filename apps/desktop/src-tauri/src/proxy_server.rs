@@ -127,9 +127,28 @@ struct ProxyState {
     bound_port: u16,
 }
 
-/// Origin이 있으면 echo + credentials 허용(쿠키 포함 요청), 없으면 "*".
+/// CORS credentials echo를 허용할 Origin인지 — localhost 계열만.
+/// (임의 사이트가 녹화 중인 프록시로 쿠키 포함 요청을 보내 읽는 것을 차단)
+fn is_local_origin(origin: &axum::http::HeaderValue) -> bool {
+    let Ok(s) = origin.to_str() else { return false };
+    let rest = match s.split_once("://") {
+        Some((_, r)) => r,
+        None => return false,
+    };
+    let host = if rest.starts_with('[') {
+        match rest.find(']') {
+            Some(i) => &rest[..=i],
+            None => return false,
+        }
+    } else {
+        rest.split(':').next().unwrap_or("")
+    };
+    matches!(host.to_ascii_lowercase().as_str(), "localhost" | "127.0.0.1" | "[::1]")
+}
+
+/// localhost 계열 Origin이면 echo + credentials, 그 외/없음은 `*`(credentials 없음 → 브라우저가 쿠키 요청 차단).
 fn cors_headers(resp: &mut axum::http::HeaderMap, origin: Option<&axum::http::HeaderValue>) {
-    match origin {
+    match origin.filter(|o| is_local_origin(o)) {
         Some(o) => {
             resp.insert("Access-Control-Allow-Origin", o.clone());
             resp.insert("Access-Control-Allow-Credentials", "true".parse().unwrap());
@@ -169,7 +188,8 @@ async fn forward_handler(
 ) -> axum::response::Response {
     let origin = headers.get("origin").cloned();
 
-    // OPTIONS preflight: 요청한 헤더를 echo(없으면 *)
+    // OPTIONS preflight: 요청한 헤더·메서드를 echo(없으면 *)
+    // credentials 모드에서 '*'는 와일드카드가 아닌 리터럴이므로 메서드도 echo해야 한다.
     if method == Method::OPTIONS {
         let mut resp = (axum::http::StatusCode::NO_CONTENT).into_response();
         let allow_headers = headers
@@ -178,6 +198,11 @@ async fn forward_handler(
             .unwrap_or_else(|| "*".parse().unwrap());
         cors_headers(resp.headers_mut(), origin.as_ref());
         resp.headers_mut().insert("Access-Control-Allow-Headers", allow_headers);
+        let allow_methods = headers
+            .get("access-control-request-method")
+            .cloned()
+            .unwrap_or_else(|| "*".parse().unwrap());
+        resp.headers_mut().insert("Access-Control-Allow-Methods", allow_methods);
         return resp;
     }
 
@@ -545,6 +570,48 @@ mod tests {
             "Origin이 있으면 echo"
         );
         assert_eq!(resp.headers().get("access-control-allow-credentials").unwrap(), "true");
+    }
+
+    /// credentials 모드에서 Allow-Methods '*'는 리터럴이므로 요청 메서드를 echo해야 한다.
+    #[tokio::test]
+    async fn preflight_echoes_requested_method_for_credentials() {
+        let proxy_listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let proxy_port = proxy_listener.local_addr().unwrap().port();
+        let state = ProxyState {
+            target: Arc::new("http://127.0.0.1:1".into()), // OPTIONS는 포워딩 전 반환되므로 무관
+            client: build_forward_client(false, None, 30_000).unwrap(),
+            bound_port: proxy_port,
+        };
+        let proxy_app = Router::new().fallback(forward_handler).with_state(state);
+        tokio::spawn(async move {
+            axum::serve(proxy_listener, proxy_app).await.unwrap();
+        });
+        tokio::time::sleep(std::time::Duration::from_millis(50)).await;
+
+        let client = reqwest::Client::new();
+        let resp = client
+            .request(reqwest::Method::OPTIONS, format!("http://127.0.0.1:{proxy_port}/api/x"))
+            .header("Origin", "http://localhost:5173")
+            .header("Access-Control-Request-Method", "PUT")
+            .header("Access-Control-Request-Headers", "content-type")
+            .send()
+            .await
+            .unwrap();
+        assert_eq!(resp.status().as_u16(), 204);
+        assert_eq!(resp.headers().get("access-control-allow-methods").unwrap(), "PUT");
+        assert_eq!(resp.headers().get("access-control-allow-headers").unwrap(), "content-type");
+        assert_eq!(resp.headers().get("access-control-allow-credentials").unwrap(), "true");
+    }
+
+    #[test]
+    fn local_origin_allowlist() {
+        let hv = |s: &str| s.parse::<axum::http::HeaderValue>().unwrap();
+        assert!(is_local_origin(&hv("http://localhost:5173")));
+        assert!(is_local_origin(&hv("http://127.0.0.1:3000")));
+        assert!(is_local_origin(&hv("http://[::1]:8080")));
+        assert!(!is_local_origin(&hv("https://evil.example")));
+        assert!(!is_local_origin(&hv("https://localhost.evil.example")));
+        assert!(!is_local_origin(&hv("null")));
     }
 
     /// 절대 URL Location이 타깃 접두사면 프록시 주소로 재작성되는지 확인.
