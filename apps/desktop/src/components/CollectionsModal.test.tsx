@@ -24,7 +24,7 @@ const COLLECTIONS: Collection[] = [
     id: "c1",
     name: "내 컬렉션",
     requests: [
-      { id: "r1", name: "유저 조회", method: "GET", url: "https://x/users", headers: [], body: "" },
+      { id: "r1", name: "유저 조회", method: "GET", url: "https://x/users", headers: [{ key: "X-Token", value: "t1" }], body: '{"q":1}', folder: "유저" },
     ],
   },
 ];
@@ -177,8 +177,9 @@ describe("인라인 편집", () => {
     expect(r.id).toBe("r1");
     expect(r.url).toBe("https://y/users");
     expect(r.name).toBe("유저 목록");
-    expect(r.headers).toEqual([]);
-    expect(r.body).toBe("");
+    expect(r.headers).toEqual([{ key: "X-Token", value: "t1" }]);
+    expect(r.body).toBe('{"q":1}');
+    expect(r.folder).toBe("유저");
   });
 
   it("URL을 비우면 저장 버튼이 비활성화된다", () => {
@@ -209,6 +210,7 @@ describe("불러온 요청에 덮어쓰기", () => {
     expect(r.url).toBe("https://x/users");
     expect(r.headers).toEqual([{ key: "A", value: "1" }]); // enabled 헤더만 저장
     expect(r.body).toBe('{"a":1}');
+    expect(r.folder).toBe("유저");
   });
 
   it("loadedSavedId가 컬렉션에 없으면 덮어쓰기 버튼을 숨긴다", () => {
