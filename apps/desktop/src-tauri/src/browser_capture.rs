@@ -218,6 +218,50 @@ fn decode_body(result: &Value) -> String {
     }
 }
 
+use std::sync::{Mutex, OnceLock};
+
+use futures_util::{SinkExt, StreamExt};
+use tokio_tungstenite::tungstenite::Message;
+
+static CAPTURE_RECORDINGS: OnceLock<Mutex<Vec<ProxyRecord>>> = OnceLock::new();
+fn capture_recordings_store() -> &'static Mutex<Vec<ProxyRecord>> {
+    CAPTURE_RECORDINGS.get_or_init(|| Mutex::new(Vec::new()))
+}
+
+/// 녹화 추가(최근 100개 유지 — proxy_server와 동일 정책).
+fn push_capture_record(rec: ProxyRecord) {
+    let mut recs = capture_recordings_store().lock().unwrap();
+    recs.push(rec);
+    let overflow = recs.len().saturating_sub(100);
+    if overflow > 0 {
+        recs.drain(0..overflow);
+    }
+}
+
+/// CDP WS에 붙어 Network.enable 후 이벤트를 녹화로 변환한다. WS가 닫히면(브라우저 종료) 반환.
+pub async fn run_ws_session(ws_url: &str) -> Result<(), String> {
+    let (mut ws, _) = tokio_tungstenite::connect_async(ws_url)
+        .await
+        .map_err(|e| format!("CDP 연결 실패: {e}"))?;
+    ws.send(Message::Text(r#"{"id":1,"method":"Network.enable"}"#.into()))
+        .await
+        .map_err(|e| format!("Network.enable 실패: {e}"))?;
+    let mut tracker = CaptureTracker::new();
+    while let Some(msg) = ws.next().await {
+        let Ok(Message::Text(text)) = msg else { continue };
+        let out = tracker.on_message(&text);
+        for cmd in out.commands {
+            if ws.send(Message::Text(cmd.into())).await.is_err() {
+                return Ok(()); // 전송 실패 = 연결 종료
+            }
+        }
+        for rec in out.records {
+            push_capture_record(rec);
+        }
+    }
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -370,5 +414,47 @@ mod tests {
             let out = t.on_message(msg);
             assert!(out.commands.is_empty() && out.records.is_empty());
         }
+    }
+
+    /// 가짜 CDP WS 서버에 붙여 XHR 흐름 종단 검증. 실제 Chrome은 CI에서 띄우지 않는다.
+    #[tokio::test]
+    async fn ws_session_records_xhr_via_fake_cdp() {
+        use futures_util::{SinkExt, StreamExt};
+        use tokio_tungstenite::tungstenite::Message;
+
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap();
+        tokio::spawn(async move {
+            let (stream, _) = listener.accept().await.unwrap();
+            let mut ws = tokio_tungstenite::accept_async(stream).await.unwrap();
+            // 클라이언트의 Network.enable 수신 → ack
+            let _ = ws.next().await;
+            let _ = ws.send(Message::Text(r#"{"id":1,"result":{}}"#.into())).await;
+            // 스크립트된 XHR 이벤트 3종
+            for ev in [
+                r#"{"method":"Network.requestWillBeSent","params":{"requestId":"r1","type":"XHR","request":{"method":"GET","url":"https://real-host.example.com/api/pets?limit=2"}}}"#,
+                r#"{"method":"Network.responseReceived","params":{"requestId":"r1","response":{"status":200}}}"#,
+                r#"{"method":"Network.loadingFinished","params":{"requestId":"r1"}}"#,
+            ] {
+                let _ = ws.send(Message::Text(ev.into())).await;
+            }
+            // getResponseBody 커맨드 수신 → 본문 응답 후 종료
+            if let Some(Ok(Message::Text(t))) = ws.next().await {
+                let v: serde_json::Value = serde_json::from_str(&t).unwrap();
+                assert_eq!(v["method"], "Network.getResponseBody");
+                let resp = serde_json::json!({"id": v["id"], "result": {"body": "[{\"id\":1}]", "base64Encoded": false}});
+                let _ = ws.send(Message::Text(resp.to_string().into())).await;
+            }
+            let _ = ws.close(None).await;
+        });
+
+        capture_recordings_store().lock().unwrap().clear();
+        run_ws_session(&format!("ws://{addr}")).await.unwrap();
+        let recs = capture_recordings_store().lock().unwrap().clone();
+        assert_eq!(recs.len(), 1);
+        assert_eq!(recs[0].method, "GET");
+        assert_eq!(recs[0].path, "/api/pets?limit=2");
+        assert_eq!(recs[0].status, 200);
+        assert_eq!(recs[0].response_body, "[{\"id\":1}]");
     }
 }
