@@ -166,11 +166,6 @@ export default function App() {
     if (activeSpecUrl) saveJSON(`swaggerman.activeEnv.${activeSpecUrl}`, activeEnvName);
   }, [activeEnvName, activeSpecUrl]);
 
-  // 사용자가 바꾼 baseURL을 프로젝트별로 저장(리로드/프로젝트 전환 시 복원). 빈 값은 저장하지 않는다.
-  useEffect(() => {
-    if (activeSpecUrl && baseURL) saveJSON(`swaggerman.baseURL.${activeSpecUrl}`, baseURL);
-  }, [baseURL, activeSpecUrl]);
-
   // 요청 체이닝으로 추출된 런타임 변수(응답에서 뽑은 값). 환경 변수보다 우선.
   const [chainVars, setChainVars] = useState<Record<string, string>>({});
 
@@ -745,6 +740,15 @@ export default function App() {
     localStorage.removeItem(`swaggerman.baseURL.${url}`);
     setBaseURL(isFileProject(url) ? pickFileBaseURL(spec.servers) : deriveBaseURL(url, spec.servers));
     setActiveEnvName("");
+  }
+
+  // 사용자가 명시적으로 바꾼 baseURL만 영속화한다.
+  // (컬렉션 불러오기·curl 가져오기 등 일시 변경은 저장하지 않음 — dev 작업 중 prod 요청을
+  //  불러왔다고 프로젝트 baseURL이 영구 전환되는 footgun 방지)
+  function applyUserBaseURL(value: string) {
+    setBaseURL(value);
+    const url = activeSpecUrl || specUrl;
+    if (url && value) saveJSON(`swaggerman.baseURL.${url}`, value);
   }
 
   function removeProject(url: string) {
@@ -1413,7 +1417,7 @@ export default function App() {
               className="base-url"
               value={baseURL}
               onChange={(e) => {
-                setBaseURL(e.target.value);
+                applyUserBaseURL(e.target.value);
                 // 수동 입력 = 사용자 지정 → 활성 환경 해제
                 setActiveEnvName("");
               }}
@@ -1431,7 +1435,7 @@ export default function App() {
               onChange={(name) => {
                 setActiveEnvName(name);
                 const env = envs.find((x) => x.name === name);
-                if (env) setBaseURL(env.baseURL);
+                if (env) applyUserBaseURL(env.baseURL);
               }}
               title="환경(Base URL) 전환"
               options={[
@@ -1656,7 +1660,7 @@ export default function App() {
           envs={envs}
           currentBaseURL={baseURL}
           onChange={setEnvs}
-          onApply={setBaseURL}
+          onApply={applyUserBaseURL}
           onClose={() => setEnvModalOpen(false)}
         />
       )}
