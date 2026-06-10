@@ -8,8 +8,13 @@ import {
   loadMockConfig,
   saveMockConfig,
   buildMockRoutes,
+  loadPresets,
+  savePreset,
+  deletePreset,
+  renamePreset,
+  applyPresetToConfig,
 } from "./mock-config";
-import type { MockServerConfig } from "./mock-config";
+import type { MockServerConfig, MockOperationConfig } from "./mock-config";
 import type { ParsedOperation, ParsedSpec } from "./types";
 
 // ────────────────────────────────────────────────
@@ -486,5 +491,69 @@ describe("buildMockRoutes — enabled=false", () => {
 
     expect(routes).toHaveLength(1);
     expect(routes[0].path).toBe("/items");
+  });
+});
+
+// ────────────────────────────────────────────────
+// 테스트 8: Mock 프리셋 CRUD + applyPresetToConfig
+// ────────────────────────────────────────────────
+
+describe("Mock 프리셋", () => {
+  beforeEach(() => localStorage.clear());
+  const url = "https://api.test/spec.json";
+
+  function ops(): MockOperationConfig[] {
+    return [
+      { opId: "GET /items", enabled: true, source: "manual", status: 200, delayMs: 0, itemCount: 20, seed: 1, dataset: [{ id: 1 }] },
+      { opId: "GET /pets", enabled: false, source: "schema", status: 200, delayMs: 0, itemCount: 20, seed: 1 },
+    ];
+  }
+
+  it("loadPresets는 없으면 빈 배열", () => {
+    expect(loadPresets(url)).toEqual([]);
+  });
+
+  it("savePreset은 id·savedAt을 부여하고 맨 앞에 추가한다", () => {
+    const a = savePreset(url, "첫째", ops());
+    const b = savePreset(url, "둘째", ops());
+    expect(a.id).toBeTruthy();
+    expect(a.savedAt).toBeGreaterThan(0);
+    expect(a.title).toBe("첫째");
+    const list = loadPresets(url);
+    expect(list.map((p) => p.title)).toEqual(["둘째", "첫째"]); // 최신 우선
+    expect(list[1].id).toBe(a.id);
+    expect(b.operations).toHaveLength(2);
+  });
+
+  it("deletePreset은 해당 id만 제거한다", () => {
+    const a = savePreset(url, "a", ops());
+    const b = savePreset(url, "b", ops());
+    deletePreset(url, a.id);
+    expect(loadPresets(url).map((p) => p.id)).toEqual([b.id]);
+  });
+
+  it("renamePreset은 제목만 바꾼다", () => {
+    const a = savePreset(url, "old", ops());
+    renamePreset(url, a.id, "new");
+    expect(loadPresets(url)[0].title).toBe("new");
+    expect(loadPresets(url)[0].id).toBe(a.id);
+  });
+
+  it("applyPresetToConfig는 config에 있는 opId만 프리셋 값으로 교체하고 port·미존재는 유지한다", () => {
+    const spec = makeSpec([makeOp({ id: "GET /items" }), makeOp({ id: "GET /pets", path: "/pets" })]);
+    const config: MockServerConfig = { port: 9099, operations: defaultMockConfig(spec).operations };
+    const preset = savePreset(url, "p", [
+      { opId: "GET /items", enabled: false, source: "manual", status: 404, delayMs: 5, itemCount: 3, seed: 2, body: { x: 1 } },
+      { opId: "GET /gone", enabled: true, source: "manual", status: 200, delayMs: 0, itemCount: 20, seed: 1 }, // 스펙에 없음 → 무시
+    ]);
+    const out = applyPresetToConfig(config, preset);
+    expect(out.port).toBe(9099); // port 유지
+    const items = out.operations.find((o) => o.opId === "GET /items")!;
+    expect(items.status).toBe(404); // 프리셋 값 반영
+    expect(items.body).toEqual({ x: 1 });
+    const pets = out.operations.find((o) => o.opId === "GET /pets")!;
+    expect(pets.enabled).toBe(true); // 프리셋에 없으니 config 기존값 유지
+    expect(out.operations.some((o) => o.opId === "GET /gone")).toBe(false); // 미존재 opId 무시
+    expect(config.operations.find((o) => o.opId === "GET /items")!.status).toBe(200); // 원본 불변
   });
 });

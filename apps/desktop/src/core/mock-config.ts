@@ -31,6 +31,14 @@ export interface MockServerConfig {
   operations: MockOperationConfig[];
 }
 
+/** 이름 붙인 Mock 설정 스냅샷 */
+export interface MockPreset {
+  id: string;
+  title: string;
+  savedAt: number;
+  operations: MockOperationConfig[];
+}
+
 /** Rust mock_start로 보내는 라우트 — Rust serde camelCase와 일치해야 함 */
 export interface MockRoute {
   method: string;
@@ -51,6 +59,9 @@ export const DEFAULT_MOCK_PORT = 9090;
 
 /** localStorage 키 접두사 */
 const STORAGE_KEY_PREFIX = "swaggerman.mock.";
+
+/** 프리셋 localStorage 키 접두사 */
+const PRESETS_KEY_PREFIX = "swaggerman.mock.presets.";
 
 // ────────────────────────────────────────────────
 // 내부 헬퍼
@@ -270,4 +281,52 @@ export function buildMockRoutes(spec: ParsedSpec, config: MockServerConfig): Moc
   }
 
   return routes;
+}
+
+// ────────────────────────────────────────────────
+// 프리셋 CRUD
+// ────────────────────────────────────────────────
+
+/** 스펙별 저장된 Mock 프리셋 목록(최신 우선). 없으면 빈 배열. */
+export function loadPresets(specUrl: string): MockPreset[] {
+  return loadJSON<MockPreset[]>(`${PRESETS_KEY_PREFIX}${specUrl}`, []);
+}
+
+/** 현재 operations를 제목 붙인 프리셋으로 저장(맨 앞에 추가). 생성된 프리셋 반환. */
+export function savePreset(specUrl: string, title: string, operations: MockOperationConfig[]): MockPreset {
+  const preset: MockPreset = {
+    id: crypto.randomUUID(),
+    title,
+    savedAt: Date.now(),
+    operations: structuredClone(operations),
+  };
+  const list = [preset, ...loadPresets(specUrl)];
+  saveJSON(`${PRESETS_KEY_PREFIX}${specUrl}`, list);
+  return preset;
+}
+
+/** 프리셋 삭제. */
+export function deletePreset(specUrl: string, id: string): void {
+  const list = loadPresets(specUrl).filter((p) => p.id !== id);
+  saveJSON(`${PRESETS_KEY_PREFIX}${specUrl}`, list);
+}
+
+/** 프리셋 제목 변경. */
+export function renamePreset(specUrl: string, id: string, title: string): void {
+  const list = loadPresets(specUrl).map((p) => (p.id === id ? { ...p, title } : p));
+  saveJSON(`${PRESETS_KEY_PREFIX}${specUrl}`, list);
+}
+
+/**
+ * 프리셋을 config에 적용한 새 config를 반환(불변).
+ * - port는 config 유지
+ * - operations: config에 있는 opId만 순회, 같은 opId가 프리셋에 있으면 프리셋 값으로 교체,
+ *   없으면 config 기존값 유지. 스펙(=config)에 없는 프리셋 opId는 무시.
+ */
+export function applyPresetToConfig(config: MockServerConfig, preset: MockPreset): MockServerConfig {
+  const presetMap = new Map(preset.operations.map((o) => [o.opId, o]));
+  return {
+    port: config.port,
+    operations: config.operations.map((o) => presetMap.get(o.opId) ?? o),
+  };
 }
