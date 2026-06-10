@@ -54,6 +54,33 @@ pub fn build_forward_url(target_base: &str, path: &str, query: Option<&str>) -> 
     }
 }
 
+/// Set-Cookie 값을 localhost 프록시용으로 재작성.
+/// Domain 제거(타깃 도메인 쿠키는 localhost 응답에서 거부됨),
+/// Secure 제거(http://localhost), SameSite=None 제거(None은 Secure 필수라 충돌).
+pub fn rewrite_set_cookie(value: &str) -> String {
+    value
+        .split(';')
+        .map(|s| s.trim())
+        .filter(|s| {
+            let lower = s.to_ascii_lowercase();
+            !(lower.starts_with("domain=") || lower == "secure" || lower == "samesite=none")
+        })
+        .collect::<Vec<_>>()
+        .join("; ")
+}
+
+/// Location이 타깃 base로 시작하면 프록시 주소로 재작성(내부 리다이렉트가 프록시를 벗어나지 않게).
+/// 상대 경로·다른 호스트는 그대로 둔다.
+pub fn rewrite_location(value: &str, target_base: &str, bound_port: u16) -> String {
+    let base = target_base.trim_end_matches('/');
+    match value.strip_prefix(base) {
+        Some(rest) if rest.is_empty() || rest.starts_with('/') || rest.starts_with('?') => {
+            format!("http://localhost:{bound_port}{rest}")
+        }
+        _ => value.to_string(),
+    }
+}
+
 /// 녹화 추가(최근 100개 유지).
 fn push_record(rec: ProxyRecord) {
     let mut recs = recordings().lock().unwrap();
@@ -271,6 +298,45 @@ mod tests {
         let recs = recordings().lock().unwrap();
         assert_eq!(recs.len(), 100);
         assert_eq!(recs.first().unwrap().path, "/p30"); // 앞 30개 드레인
+    }
+
+    #[test]
+    fn set_cookie_rewritten_for_localhost() {
+        // Domain(도메인 불일치 거부)·Secure(http localhost)·SameSite=None(Secure 필수) 제거
+        assert_eq!(
+            rewrite_set_cookie("sid=abc; Domain=.okta.com; Path=/; Secure; HttpOnly; SameSite=None"),
+            "sid=abc; Path=/; HttpOnly"
+        );
+        // 그 외 속성은 보존
+        assert_eq!(
+            rewrite_set_cookie("a=1; Path=/; SameSite=Lax; Max-Age=3600"),
+            "a=1; Path=/; SameSite=Lax; Max-Age=3600"
+        );
+    }
+
+    #[test]
+    fn location_rewritten_only_for_target_prefix() {
+        assert_eq!(
+            rewrite_location("https://api.test/login", "https://api.test", 9091),
+            "http://localhost:9091/login"
+        );
+        // base 끝 슬래시 정리 + 경로 없는 정확 일치
+        assert_eq!(
+            rewrite_location("https://api.test", "https://api.test/", 9091),
+            "http://localhost:9091"
+        );
+        // 다른 호스트(Okta 등)는 그대로
+        assert_eq!(
+            rewrite_location("https://acme.okta.com/authorize", "https://api.test", 9091),
+            "https://acme.okta.com/authorize"
+        );
+        // 접두사가 우연히 같은 다른 호스트는 재작성하지 않음
+        assert_eq!(
+            rewrite_location("https://api.test.evil.com/x", "https://api.test", 9091),
+            "https://api.test.evil.com/x"
+        );
+        // 상대 경로는 그대로
+        assert_eq!(rewrite_location("/relative", "https://api.test", 9091), "/relative");
     }
 
     /// 업스트림이 application/json을 반환하면 프록시 응답에도 content-type이 보존되는지 확인한다.
