@@ -240,7 +240,11 @@ pub fn run() {
             global_shortcut::unregister_global_shortcut,
             proxy_server::proxy_start,
             proxy_server::proxy_stop,
-            proxy_server::proxy_recordings
+            proxy_server::proxy_recordings,
+            browser_capture::capture_start,
+            browser_capture::capture_stop,
+            browser_capture::capture_recordings,
+            browser_capture::capture_status
         ])
         .build(tauri::generate_context!())
         .expect("error while building tauri application")
@@ -249,6 +253,7 @@ pub fn run() {
             if matches!(event, tauri::RunEvent::Exit) {
                 mock_server::stop_server_internal();
                 proxy_server::stop_proxy_internal();
+                browser_capture::stop_capture_internal();
             }
         });
 }

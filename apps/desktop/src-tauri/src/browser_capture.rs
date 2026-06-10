@@ -238,6 +238,126 @@ fn push_capture_record(rec: ProxyRecord) {
     }
 }
 
+use std::sync::atomic::{AtomicU64, Ordering};
+
+/// 실행 중 캡처: 자식 Chrome 프로세스 + 세션 id(오래된 WS 태스크가 새 세션을 끄지 않게).
+struct RunningCapture {
+    session: u64,
+    child: tokio::process::Child,
+}
+
+static CAPTURE_HANDLE: OnceLock<Mutex<Option<RunningCapture>>> = OnceLock::new();
+fn capture_handle() -> &'static Mutex<Option<RunningCapture>> {
+    CAPTURE_HANDLE.get_or_init(|| Mutex::new(None))
+}
+
+static SESSION_SEQ: AtomicU64 = AtomicU64::new(1);
+
+/// Chrome 종료 + 핸들 정리. WS 태스크는 연결이 끊기며 스스로 끝난다.
+pub(crate) fn stop_capture_internal() {
+    if let Some(mut running) = capture_handle().lock().unwrap().take() {
+        let _ = running.child.start_kill();
+    }
+}
+
+/// WS가 끊겼을 때(사용자가 Chrome 창을 닫음) 해당 세션이 아직 현재 세션이면 정리.
+fn stop_if_session(session: u64) {
+    let mut guard = capture_handle().lock().unwrap();
+    if guard.as_ref().map(|r| r.session) == Some(session) {
+        if let Some(mut running) = guard.take() {
+            let _ = running.child.start_kill();
+        }
+    }
+}
+
+#[tauri::command]
+pub async fn capture_start(start_url: String, app: tauri::AppHandle) -> Result<(), String> {
+    use tauri::Manager;
+    stop_capture_internal();
+    if start_url.trim().is_empty() {
+        return Err("시작 URL이 비어 있습니다".into());
+    }
+    let chrome = find_chrome().ok_or_else(|| {
+        format!(
+            "Chrome을 찾을 수 없습니다. 탐색한 경로:\n{}",
+            chrome_candidates()
+                .iter()
+                .map(|p| p.display().to_string())
+                .collect::<Vec<_>>()
+                .join("\n")
+        )
+    })?;
+    let profile = app
+        .path()
+        .app_data_dir()
+        .map_err(|e| e.to_string())?
+        .join("capture-profile");
+    let port = pick_free_port(9222, 9322)?;
+    let mut child = tokio::process::Command::new(&chrome)
+        .args(chrome_args(port, &profile.display().to_string(), &start_url))
+        .stdout(std::process::Stdio::null())
+        .stderr(std::process::Stdio::null())
+        .kill_on_drop(true)
+        .spawn()
+        .map_err(|e| format!("Chrome 기동 실패: {e}"))?;
+
+    // CDP 포트가 열릴 때까지 폴링(최대 10초)
+    let http = reqwest::Client::new();
+    let version_url = format!("http://127.0.0.1:{port}/json/version");
+    let mut up = false;
+    for _ in 0..20 {
+        tokio::time::sleep(std::time::Duration::from_millis(500)).await;
+        if http.get(&version_url).send().await.is_ok() {
+            up = true;
+            break;
+        }
+    }
+    if !up {
+        let _ = child.start_kill();
+        return Err("CDP 디버깅 포트가 10초 내에 열리지 않았습니다".into());
+    }
+    let list = http
+        .get(format!("http://127.0.0.1:{port}/json/list"))
+        .send()
+        .await
+        .map_err(|e| e.to_string())?
+        .text()
+        .await
+        .map_err(|e| e.to_string())?;
+    let Some(ws_url) = parse_page_ws_url(&list) else {
+        let _ = child.start_kill();
+        return Err("캡처할 페이지 탭을 찾지 못했습니다".into());
+    };
+
+    capture_recordings_store().lock().unwrap().clear();
+    let session = SESSION_SEQ.fetch_add(1, Ordering::SeqCst);
+    // 핸들을 먼저 저장한 뒤 태스크 기동(즉시 끊겨도 stop_if_session이 정리하도록)
+    *capture_handle().lock().unwrap() = Some(RunningCapture { session, child });
+    tokio::spawn(async move {
+        if let Err(e) = run_ws_session(&ws_url).await {
+            eprintln!("[browser_capture] {e}");
+        }
+        stop_if_session(session); // 브라우저 창이 닫히면 자동 중지
+    });
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn capture_stop() -> Result<(), String> {
+    stop_capture_internal();
+    Ok(())
+}
+
+#[tauri::command]
+pub fn capture_recordings() -> Vec<ProxyRecord> {
+    capture_recordings_store().lock().unwrap().clone()
+}
+
+#[tauri::command]
+pub fn capture_status() -> bool {
+    capture_handle().lock().unwrap().is_some()
+}
+
 /// CDP WS에 붙어 Network.enable 후 이벤트를 녹화로 변환한다. WS가 닫히면(브라우저 종료) 반환.
 pub async fn run_ws_session(ws_url: &str) -> Result<(), String> {
     let (mut ws, _) = tokio_tungstenite::connect_async(ws_url)
