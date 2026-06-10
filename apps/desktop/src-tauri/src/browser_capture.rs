@@ -52,10 +52,13 @@ fn find_chrome() -> Option<PathBuf> {
 }
 
 /// CDP 기동 인자. 전용 프로필로 일반 브라우저와 분리(프로필 유지 → Okta 로그인 세션 재사용).
+/// --remote-allow-origins=*: Chrome 111+가 Origin 불일치 시 DevTools WS 업그레이드를 거부하므로
+/// (connect_async는 Origin 헤더를 보내지 않지만 방어적으로) 허용해 둔다.
 pub fn chrome_args(port: u16, profile_dir: &str, start_url: &str) -> Vec<String> {
     vec![
         format!("--remote-debugging-port={port}"),
         format!("--user-data-dir={profile_dir}"),
+        "--remote-allow-origins=*".into(),
         "--no-first-run".into(),
         "--no-default-browser-check".into(),
         start_url.to_string(),
@@ -387,6 +390,7 @@ mod tests {
         let args = chrome_args(9222, "/tmp/profile", "https://svc.example.com");
         assert!(args.contains(&"--remote-debugging-port=9222".to_string()));
         assert!(args.contains(&"--user-data-dir=/tmp/profile".to_string()));
+        assert!(args.contains(&"--remote-allow-origins=*".to_string()));
         assert!(args.contains(&"--no-first-run".to_string()));
         assert_eq!(args.last().unwrap(), "https://svc.example.com");
     }

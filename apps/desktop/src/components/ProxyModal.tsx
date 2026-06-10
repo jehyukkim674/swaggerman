@@ -36,6 +36,7 @@ export function ProxyModal({ defaultTarget, net, onSendToMock, onSendAllToMock, 
   // 브라우저 모드 상태
   const [startUrl, setStartUrl] = useState(defaultTarget);
   const [capRunning, setCapRunning] = useState(false);
+  const [capStarting, setCapStarting] = useState(false);
   const [capRecords, setCapRecords] = useState<ProxyRecord[]>([]);
   // 공용
   const [error, setError] = useState<string | null>(null);
@@ -103,11 +104,16 @@ export function ProxyModal({ defaultTarget, net, onSendToMock, onSendAllToMock, 
       setCapRunning(false);
       return;
     }
+    // 시작은 CDP 포트가 열릴 때까지 최대 10초 대기 → 그동안 버튼을 잠가 더블클릭으로
+    // 두 번째 capture_start가 첫 Chrome을 부팅 중에 죽이는 것을 막는다.
+    setCapStarting(true);
     try {
       await startCapture(startUrl);
       setCapRunning(true);
     } catch (e) {
       setError(`시작 실패: ${e instanceof Error ? e.message : String(e)}`);
+    } finally {
+      setCapStarting(false);
     }
   };
 
@@ -163,11 +169,11 @@ export function ProxyModal({ defaultTarget, net, onSendToMock, onSendAllToMock, 
             <div className="proxy-control">
               <label className="config-field">
                 <span className="config-label">시작 URL</span>
-                <input value={startUrl} disabled={capRunning} onChange={(e) => setStartUrl(e.target.value)}
+                <input value={startUrl} disabled={capRunning || capStarting} onChange={(e) => setStartUrl(e.target.value)}
                   placeholder="https://service.example.com" spellCheck={false} style={{ minWidth: 280 }} />
               </label>
-              <button className={capRunning ? "btn small" : "btn small primary"} disabled={!startUrl.trim()} onClick={toggleCapture}>
-                {capRunning ? "중지" : "시작"}
+              <button className={capRunning ? "btn small" : "btn small primary"} disabled={!startUrl.trim() || capStarting} onClick={toggleCapture}>
+                {capStarting ? "시작 중…" : capRunning ? "중지" : "시작"}
               </button>
             </div>
           )}
