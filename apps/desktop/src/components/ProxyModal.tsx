@@ -111,6 +111,12 @@ export function ProxyModal({ defaultTarget, net, onSendToMock, onSendAllToMock, 
     }
   };
 
+  const switchMode = (m: Mode) => {
+    setMode(m);
+    setError(null);
+    setSendMsg(null);
+  };
+
   const baseUrl = `http://localhost:${boundPort}`;
   const isBrowser = mode === "browser";
   const shownRecords = isBrowser ? capRecords : records;
@@ -128,8 +134,8 @@ export function ProxyModal({ defaultTarget, net, onSendToMock, onSendAllToMock, 
         </div>
         <div className="modal-body proxy-body">
           <div className="proxy-mode-tabs">
-            <button className={!isBrowser ? "btn small primary" : "btn small"} onClick={() => setMode("proxy")}>프록시</button>
-            <button className={isBrowser ? "btn small primary" : "btn small"} onClick={() => setMode("browser")}>브라우저</button>
+            <button className={!isBrowser ? "btn small primary" : "btn small"} onClick={() => switchMode("proxy")}>프록시</button>
+            <button className={isBrowser ? "btn small primary" : "btn small"} onClick={() => switchMode("browser")}>브라우저</button>
           </div>
           {!isBrowser && (
             <div className="proxy-control">

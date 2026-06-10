@@ -223,6 +223,20 @@ describe("ProxyModal 브라우저 모드", () => {
     expect(await screen.findByText(/Chrome을 찾을 수 없습니다/)).toBeTruthy();
   });
 
+  it("프록시 에러 후 브라우저 탭 전환 시 에러 메시지가 사라진다", async () => {
+    invokeMock.mockImplementation(async (cmd: unknown) => {
+      if (cmd === "proxy_start") throw new Error("boom");
+      if (cmd === "capture_status") return false;
+      if (cmd === "capture_recordings") return [];
+      return undefined;
+    });
+    renderModal();
+    fireEvent.click(screen.getByRole("button", { name: "시작" }));
+    expect(await screen.findByText(/시작 실패/)).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "브라우저" }));
+    expect(screen.queryByText(/시작 실패/)).toBeNull();
+  });
+
   it("status가 false로 바뀌면(창 닫힘) 실행 표시가 사라진다", async () => {
     let status = true;
     invokeMock.mockImplementation(async (cmd: unknown) => {
