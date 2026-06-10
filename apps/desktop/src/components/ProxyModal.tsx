@@ -16,8 +16,8 @@ interface Props {
   net?: Partial<NetworkSettings>;
   /** 녹화를 Mock으로 변환 요청(App이 매칭·저장). 성공 메시지/실패는 App이 결정 → 결과 문자열 반환 */
   onSendToMock: (record: ProxyRecord) => string;
-  /** 녹화 전체를 Mock으로 일괄 저장(App이 매칭·저장). 결과 메시지 반환 */
-  onSendAllToMock: (records: ProxyRecord[], title: string) => string;
+  /** 녹화 전체를 Mock으로 일괄 저장(App이 매칭·저장, IndexedDB). 결과 메시지 반환(async) */
+  onSendAllToMock: (records: ProxyRecord[], title: string) => Promise<string>;
   onClose: () => void;
 }
 
@@ -205,7 +205,13 @@ export function ProxyModal({ defaultTarget, net, onSendToMock, onSendAllToMock, 
                     <input className="proxy-bulk-title" value={bulkTitle} autoFocus
                       placeholder="프리셋 제목" onChange={(e) => setBulkTitle(e.target.value)} />
                     <button className="btn small primary" disabled={!bulkTitle.trim()}
-                      onClick={() => { setSendMsg(onSendAllToMock(shownRecords, bulkTitle.trim())); setBulkOpen(false); }}>
+                      onClick={() => {
+                        const recs = shownRecords;
+                        const t = bulkTitle.trim();
+                        setBulkOpen(false);
+                        setSendMsg("저장 중…");
+                        onSendAllToMock(recs, t).then(setSendMsg).catch(() => setSendMsg("프리셋 저장 실패"));
+                      }}>
                       저장
                     </button>
                     <button className="btn small" onClick={() => setBulkOpen(false)}>취소</button>

@@ -1,8 +1,10 @@
 // src/core/proxy-to-mock.test.ts
 // @vitest-environment jsdom
-import { describe, it, expect, beforeEach } from "vitest";
-import { matchOperation, recordingToMock, recordingsToMocks, applyMockTargets, stripBasePath, saveRecordingsToMock } from "./proxy-to-mock";
-import { defaultMockConfig, loadMockConfig, loadPresets } from "./mock-config";
+import "fake-indexeddb/auto";
+import { describe, it, expect, beforeEach, vi } from "vitest";
+import { matchOperation, recordingToMock, recordingsToMocks, applyMockTargets, stripBasePath } from "./proxy-to-mock";
+import { defaultMockConfig } from "./mock-config";
+import { IDBFactory } from "fake-indexeddb";
 import type { ParsedSpec } from "./types";
 import type { ProxyRecord } from "./proxy-client";
 
@@ -152,20 +154,29 @@ describe("recordingToMock baseUrl 폴백", () => {
   });
 });
 
-describe("saveRecordingsToMock (전체저장 = 프리셋으로 저장)", () => {
+describe("saveRecordingsToMock (전체저장 = IndexedDB 프리셋으로 저장)", () => {
   const url = "https://api.test/openapi.json";
-  beforeEach(() => localStorage.clear());
+  // dbPromise 모듈 캐시 격리 — 매 테스트마다 새 IndexedDB + 모듈 재import
+  let mod: typeof import("./proxy-to-mock");
+  let storeMod: typeof import("./mock-presets-store");
+  beforeEach(async () => {
+    globalThis.indexedDB = new IDBFactory();
+    localStorage.clear();
+    vi.resetModules();
+    mod = await import("./proxy-to-mock");
+    storeMod = await import("./mock-presets-store");
+  });
 
-  it("녹화를 제목 프리셋으로 저장하고 활성 설정은 건드리지 않는다", () => {
+  it("녹화를 IndexedDB 프리셋으로 저장(persisted)하고 활성 설정은 건드리지 않는다", async () => {
     const spec = makeSpec([{ id: "GET /pets", method: "GET", path: "/pets" }]);
     const records: ProxyRecord[] = [
       { atMs: 1, method: "GET", path: "/pets", status: 200, responseBody: '[{"id":1}]' },
     ];
-    const res = saveRecordingsToMock(spec, records, "https://api.test", url, "스모크");
-    expect(res).toEqual({ saved: 1, unmatched: 0, failed: 0 });
+    const res = await mod.saveRecordingsToMock(spec, records, "https://api.test", url, "스모크");
+    expect(res).toEqual({ saved: 1, unmatched: 0, failed: 0, persisted: true });
 
-    // 프리셋에는 녹화 매칭분이 반영된다(Mock에서 선택해 적용)
-    const presets = loadPresets(url);
+    // 프리셋에 녹화 매칭분 반영(Mock에서 선택해 적용)
+    const presets = await storeMod.loadPresets(url);
     expect(presets).toHaveLength(1);
     expect(presets[0].title).toBe("스모크");
     const presetOp = presets[0].operations.find((o) => o.opId === "GET /pets")!;
@@ -173,31 +184,28 @@ describe("saveRecordingsToMock (전체저장 = 프리셋으로 저장)", () => {
     expect(presetOp.source).toBe("manual");
     expect(presetOp.dataset).toEqual([{ id: 1 }]);
 
-    // 활성 설정은 변경되지 않는다(저장된 활성 config 없음 → 다음 로드 시 기본값)
+    // 활성 설정(localStorage)은 변경하지 않는다
     expect(localStorage.getItem(`swaggerman.mock.${url}`)).toBeNull();
-    const op = loadMockConfig(url, spec).operations.find((o) => o.opId === "GET /pets")!;
-    expect(op.source).toBe("schema"); // 활성은 기본값 그대로
   });
 
-  it("매칭 0건이면 프리셋을 만들지 않는다", () => {
+  it("매칭 0건이면 프리셋을 만들지 않는다(persisted=false)", async () => {
     const spec = makeSpec([{ id: "GET /pets", method: "GET", path: "/pets" }]);
     const records: ProxyRecord[] = [
       { atMs: 1, method: "GET", path: "/unknown", status: 200, responseBody: "[]" },
     ];
-    const res = saveRecordingsToMock(spec, records, "https://api.test", url, "x");
-    expect(res.saved).toBe(0);
-    expect(res.unmatched).toBe(1);
-    expect(loadPresets(url)).toHaveLength(0);
+    const res = await mod.saveRecordingsToMock(spec, records, "https://api.test", url, "x");
+    expect(res).toEqual({ saved: 0, unmatched: 1, failed: 0, persisted: false });
+    expect(await storeMod.loadPresets(url)).toHaveLength(0);
   });
 
-  it("실패 녹화·미매칭 건수를 결과에 함께 반환한다", () => {
+  it("실패 녹화·미매칭 건수를 결과에 함께 반환한다", async () => {
     const spec = makeSpec([{ id: "GET /pets", method: "GET", path: "/pets" }]);
     const records: ProxyRecord[] = [
       { atMs: 1, method: "GET", path: "/pets", status: 200, responseBody: '[{"id":1}]' },
       { atMs: 2, method: "GET", path: "/nope", status: 404, responseBody: "" },
       { atMs: 3, method: "GET", path: "/pets", status: 500, responseBody: "", error: "boom" },
     ];
-    const res = saveRecordingsToMock(spec, records, "https://api.test", url, "t");
-    expect(res).toEqual({ saved: 1, unmatched: 1, failed: 1 });
+    const res = await mod.saveRecordingsToMock(spec, records, "https://api.test", url, "t");
+    expect(res).toEqual({ saved: 1, unmatched: 1, failed: 1, persisted: true });
   });
 });

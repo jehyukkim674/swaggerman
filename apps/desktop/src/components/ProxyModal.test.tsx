@@ -19,7 +19,7 @@ beforeEach(() => {
   });
 });
 
-function renderModal(onSendToMock = vi.fn(), onSendAllToMock = vi.fn(() => "")) {
+function renderModal(onSendToMock = vi.fn(), onSendAllToMock = vi.fn(async () => "")) {
   render(
     <ProxyModal
       defaultTarget="https://api.example.com"
@@ -68,7 +68,7 @@ describe("ProxyModal net prop", () => {
         defaultTarget="https://api.example.com"
         net={{ insecure: true, proxy: "http://proxy:8888", timeoutMs: 5000 }}
         onSendToMock={vi.fn()}
-        onSendAllToMock={vi.fn(() => "")}
+        onSendAllToMock={vi.fn(async () => "")}
         onClose={vi.fn()}
       />,
     );
@@ -84,7 +84,7 @@ describe("ProxyModal net prop", () => {
 
 describe("ProxyModal 추가 동작", () => {
   it("타깃이 비면 시작 버튼이 비활성", () => {
-    render(<ProxyModal defaultTarget="" onSendToMock={vi.fn()} onSendAllToMock={vi.fn(() => "")} onClose={vi.fn()} />);
+    render(<ProxyModal defaultTarget="" onSendToMock={vi.fn()} onSendAllToMock={vi.fn(async () => "")} onClose={vi.fn()} />);
     expect((screen.getByRole("button", { name: "시작" }) as HTMLButtonElement).disabled).toBe(true);
   });
 
@@ -151,7 +151,7 @@ describe("ProxyModal 추가 동작", () => {
       if (cmd === "proxy_recordings") return recs;
       return undefined;
     });
-    const onSendAll = vi.fn(() => "Mock 저장 2건");
+    const onSendAll = vi.fn(async () => "Mock 저장 2건");
     render(
       <ProxyModal
         defaultTarget="https://api.example.com"
@@ -167,7 +167,7 @@ describe("ProxyModal 추가 동작", () => {
     fireEvent.change(input, { target: { value: "bulk-set" } });
     fireEvent.click(screen.getByRole("button", { name: "저장" }));
     expect(onSendAll).toHaveBeenCalledWith(recs, "bulk-set");
-    expect(screen.getByText("Mock 저장 2건")).toBeTruthy();
+    expect(await screen.findByText("Mock 저장 2건")).toBeTruthy();
   });
 });
 
@@ -181,7 +181,7 @@ describe("ProxyModal 전체 Mock으로 제목", () => {
       if (cmd === "proxy_recordings") return recs;
       return undefined;
     });
-    const onSendAll = vi.fn(() => "프리셋 'smoke' 저장 1건");
+    const onSendAll = vi.fn(async () => "프리셋 'smoke' 저장 1건");
     render(
       <ProxyModal defaultTarget="https://api.example.com"
         onSendToMock={vi.fn()} onSendAllToMock={onSendAll} onClose={vi.fn()} />,
@@ -193,7 +193,7 @@ describe("ProxyModal 전체 Mock으로 제목", () => {
     fireEvent.change(input, { target: { value: "smoke" } });
     fireEvent.click(screen.getByRole("button", { name: "저장" }));
     expect(onSendAll).toHaveBeenCalledWith(recs, "smoke");
-    expect(screen.getByText("프리셋 'smoke' 저장 1건")).toBeTruthy();
+    expect(await screen.findByText("프리셋 'smoke' 저장 1건")).toBeTruthy();
   });
 
   it("제목이 비면 저장 버튼이 비활성", async () => {
@@ -204,7 +204,7 @@ describe("ProxyModal 전체 Mock으로 제목", () => {
       return undefined;
     });
     render(<ProxyModal defaultTarget="https://api.example.com"
-      onSendToMock={vi.fn()} onSendAllToMock={vi.fn(() => "")} onClose={vi.fn()} />);
+      onSendToMock={vi.fn()} onSendAllToMock={vi.fn(async () => "")} onClose={vi.fn()} />);
     fireEvent.click(screen.getByRole("button", { name: "시작" }));
     fireEvent.click(await screen.findByRole("button", { name: "전체 Mock으로" }));
     expect((screen.getByRole("button", { name: "저장" }) as HTMLButtonElement).disabled).toBe(true);
@@ -217,7 +217,7 @@ describe("ProxyModal 전체 Mock으로 제목", () => {
       if (cmd === "proxy_recordings") return recs;
       return undefined;
     });
-    const onSendAll = vi.fn(() => "");
+    const onSendAll = vi.fn(async () => "");
     render(<ProxyModal defaultTarget="https://api.example.com"
       onSendToMock={vi.fn()} onSendAllToMock={onSendAll} onClose={vi.fn()} />);
     fireEvent.click(screen.getByRole("button", { name: "시작" }));

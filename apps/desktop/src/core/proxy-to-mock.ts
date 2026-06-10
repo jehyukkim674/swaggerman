@@ -2,7 +2,8 @@
 // 프록시 녹화 → 경로 매칭 operation + Mock 변환.
 import type { ParsedOperation, ParsedSpec } from "./types";
 import type { ProxyRecord } from "./proxy-client";
-import { loadMockConfig, savePreset, type MockServerConfig } from "./mock-config";
+import { loadMockConfig, type MockServerConfig } from "./mock-config";
+import { savePreset } from "./mock-presets-store";
 
 /** operation path 템플릿(/pet/{petId})과 실제 경로(/pet/42)를 매칭. {x}는 와일드카드. */
 function pathMatches(template: string, actual: string): boolean {
@@ -100,31 +101,34 @@ export function applyMockTargets(cfg: MockServerConfig, targets: MockTarget[]): 
   }
 }
 
-/** saveRecordingsToMock 결과 — 저장된 건수와 제외 건수. */
+/** saveRecordingsToMock 결과 — 저장된 건수와 제외 건수, 실제 저장 성공 여부. */
 export interface SaveRecordingsResult {
   saved: number;     // Mock으로 저장된(매칭된) operation 수
   unmatched: number; // 스펙에 매칭 안 된 녹화 수
   failed: number;    // error가 있는 녹화 수
+  persisted: boolean; // 프리셋이 실제로 저장됐는지(false면 저장 실패 — 호출자가 에러 표시)
 }
 
 /**
- * 녹화 전체를 **제목 붙은 Mock 프리셋**으로 저장한다(현재 활성 설정은 건드리지 않음).
+ * 녹화 전체를 **제목 붙은 Mock 프리셋**으로 IndexedDB에 저장한다(현재 활성 설정은 건드리지 않음).
  * 저장된 프리셋은 Mock 서버 모달의 프리셋 드롭다운에서 골라 적용한다.
  * 프리셋 내용 = 현재 활성 설정 스냅샷 + 녹화 매칭분 적용.
- * 매칭된 녹화(saved>0)가 없으면 프리셋을 만들지 않는다.
+ * 매칭된 녹화(saved>0)가 없으면 프리셋을 만들지 않는다(persisted=false).
  */
-export function saveRecordingsToMock(
+export async function saveRecordingsToMock(
   spec: ParsedSpec,
   records: ProxyRecord[],
   baseUrl: string,
   specUrl: string,
   title: string,
-): SaveRecordingsResult {
+): Promise<SaveRecordingsResult> {
   const { targets, unmatched, failed } = recordingsToMocks(spec, records, baseUrl);
+  let persisted = false;
   if (targets.length > 0) {
     const config = loadMockConfig(specUrl, spec);
     applyMockTargets(config, targets);
-    savePreset(specUrl, title, config.operations);  // 프리셋으로 저장 → Mock에서 선택해 적용
+    const preset = await savePreset(specUrl, title, config.operations); // IndexedDB 저장
+    persisted = preset !== null;
   }
-  return { saved: targets.length, unmatched, failed };
+  return { saved: targets.length, unmatched, failed, persisted };
 }

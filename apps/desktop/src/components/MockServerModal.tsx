@@ -9,12 +9,9 @@ import {
   buildMockRoutes,
   loadMockConfig,
   saveMockConfig,
-  loadPresets,
-  savePreset,
-  deletePreset,
-  renamePreset,
   applyPresetToConfig,
 } from "../core/mock-config";
+import { loadPresets, savePreset, deletePreset, renamePreset } from "../core/mock-presets-store";
 import { generateDataset } from "../core/mock-generator";
 import {
   getMockStatus,
@@ -82,10 +79,17 @@ export function MockServerModal({ spec, specUrl, history, onClose }: Props) {
   );
 
   // 프리셋
-  const [presets, setPresets] = useState<MockPreset[]>(() => loadPresets(specUrl));
+  const [presets, setPresets] = useState<MockPreset[]>([]);
   const [selectedPresetId, setSelectedPresetId] = useState<string>("");
   const [saveOpen, setSaveOpen] = useState(false);
   const [presetTitle, setPresetTitle] = useState("");
+
+  // 프리셋은 IndexedDB(대용량)에 저장 → 마운트 시 비동기 로드
+  useEffect(() => {
+    let alive = true;
+    loadPresets(specUrl).then((p) => { if (alive) setPresets(p); }).catch(() => {});
+    return () => { alive = false; };
+  }, [specUrl]);
 
   // 선택된 operation
   const [selectedOpId, setSelectedOpId] = useState<string | null>(
@@ -370,16 +374,20 @@ export function MockServerModal({ spec, specUrl, history, onClose }: Props) {
     navigator.clipboard.writeText(`http://localhost:${config.port}`).catch(() => {});
   }
 
-  // ─ 프리셋 핸들러 ─
-  const refreshPresets = () => setPresets(loadPresets(specUrl));
+  // ─ 프리셋 핸들러 (IndexedDB — 모두 async) ─
+  const refreshPresets = async () => setPresets(await loadPresets(specUrl));
 
-  const handleSavePreset = () => {
+  const handleSavePreset = async () => {
     const t = presetTitle.trim();
     if (!t) return;
-    savePreset(specUrl, t, config.operations);
+    const saved = await savePreset(specUrl, t, config.operations);
     setSaveOpen(false);
     setPresetTitle("");
-    refreshPresets();
+    if (!saved) {
+      setPanelError("프리셋 저장 실패 — 저장소에 기록하지 못했습니다");
+      return;
+    }
+    await refreshPresets();
   };
 
   const handleSelectPreset = (id: string) => {
@@ -391,22 +399,22 @@ export function MockServerModal({ spec, specUrl, history, onClose }: Props) {
     setSelectedPresetId(id);
   };
 
-  const handleDeletePreset = () => {
+  const handleDeletePreset = async () => {
     const preset = presets.find((p) => p.id === selectedPresetId);
     if (!preset) return;
     if (!window.confirm(`프리셋 '${preset.title}'을(를) 삭제할까요?`)) return;
-    deletePreset(specUrl, preset.id);
+    await deletePreset(specUrl, preset.id);
     setSelectedPresetId("");
-    refreshPresets();
+    await refreshPresets();
   };
 
-  const handleRenamePreset = () => {
+  const handleRenamePreset = async () => {
     const preset = presets.find((p) => p.id === selectedPresetId);
     if (!preset) return;
     const next = window.prompt("새 제목", preset.title);
     if (next && next.trim()) {
-      renamePreset(specUrl, preset.id, next.trim());
-      refreshPresets();
+      await renamePreset(specUrl, preset.id, next.trim());
+      await refreshPresets();
     }
   };
 

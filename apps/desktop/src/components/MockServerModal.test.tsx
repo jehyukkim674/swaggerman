@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import "fake-indexeddb/auto";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, fireEvent, screen, act, waitFor } from "@testing-library/react";
 import type { ParsedSpec, ParsedOperation } from "../core/types";
@@ -499,11 +500,14 @@ describe("MockServerModal 상세 패널", () => {
 
 // ── MockServerModal 프리셋 바 ──────────────────────────────
 describe("MockServerModal 프리셋", () => {
-  const SPEC_URL = "https://api.example.com/openapi.json";
+  // 프리셋은 IndexedDB에 저장된다. 스토어가 DB 연결을 모듈 캐시하므로,
+  // 테스트 간 격리를 위해 매 테스트 고유 specUrl을 쓴다(프리셋이 섞이지 않음).
+  let SPEC_URL = "";
 
   beforeEach(() => {
     vi.clearAllMocks();
     localStorage.clear();
+    SPEC_URL = `https://api.example.com/${crypto.randomUUID()}.json`;
     mockStartMockServer.mockResolvedValue(9090);
     mockStopMockServer.mockResolvedValue(undefined);
     mockGetMockStatus.mockResolvedValue({ running: false, port: 9090, logs: [] });

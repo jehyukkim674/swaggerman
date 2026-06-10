@@ -60,9 +60,6 @@ export const DEFAULT_MOCK_PORT = 9090;
 /** localStorage 키 접두사 */
 const STORAGE_KEY_PREFIX = "swaggerman.mock.";
 
-/** 프리셋 localStorage 키 접두사 */
-const PRESETS_KEY_PREFIX = "swaggerman.mock.presets.";
-
 // ────────────────────────────────────────────────
 // 내부 헬퍼
 // ────────────────────────────────────────────────
@@ -284,38 +281,8 @@ export function buildMockRoutes(spec: ParsedSpec, config: MockServerConfig): Moc
 }
 
 // ────────────────────────────────────────────────
-// 프리셋 CRUD
+// 프리셋 적용 (CRUD는 mock-presets-store.ts — IndexedDB)
 // ────────────────────────────────────────────────
-
-/** 스펙별 저장된 Mock 프리셋 목록(최신 우선). 없으면 빈 배열. */
-export function loadPresets(specUrl: string): MockPreset[] {
-  return loadJSON<MockPreset[]>(`${PRESETS_KEY_PREFIX}${specUrl}`, []);
-}
-
-/** 현재 operations를 제목 붙인 프리셋으로 저장(맨 앞에 추가). 생성된 프리셋 반환. */
-export function savePreset(specUrl: string, title: string, operations: MockOperationConfig[]): MockPreset {
-  const preset: MockPreset = {
-    id: crypto.randomUUID(),
-    title,
-    savedAt: Date.now(),
-    operations: structuredClone(operations),
-  };
-  const list = [preset, ...loadPresets(specUrl)];
-  saveJSON(`${PRESETS_KEY_PREFIX}${specUrl}`, list);
-  return preset;
-}
-
-/** 프리셋 삭제. */
-export function deletePreset(specUrl: string, id: string): void {
-  const list = loadPresets(specUrl).filter((p) => p.id !== id);
-  saveJSON(`${PRESETS_KEY_PREFIX}${specUrl}`, list);
-}
-
-/** 프리셋 제목 변경. */
-export function renamePreset(specUrl: string, id: string, title: string): void {
-  const list = loadPresets(specUrl).map((p) => (p.id === id ? { ...p, title } : p));
-  saveJSON(`${PRESETS_KEY_PREFIX}${specUrl}`, list);
-}
 
 /**
  * 프리셋을 config에 적용한 새 config를 반환(불변).
