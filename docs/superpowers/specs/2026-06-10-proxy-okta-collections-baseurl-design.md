@@ -171,9 +171,12 @@ fn build_forward_client(insecure: bool, proxy: Option<&str>, timeout_ms: u64)
 
 **리다이렉트**: `Policy::none()` — 3xx를 그대로 클라이언트에 반환(녹화에도 3xx가 남는다).
 
-**CORS**: 요청에 `Origin` 헤더가 있으면 `Access-Control-Allow-Origin: <그 Origin>` +
-`Access-Control-Allow-Credentials: true` + `Vary: Origin`, 없으면 기존처럼 `*`.
-OPTIONS preflight는 `Access-Control-Request-Headers/Method`를 echo(없으면 `*`).
+**CORS**: 요청의 `Origin`이 **localhost 계열(localhost/127.0.0.1/[::1])일 때만** echo +
+`Access-Control-Allow-Credentials: true` + `Vary: Origin`, 그 외/없음은 `*`(credentials
+없음 → 브라우저가 쿠키 요청 차단). 임의 사이트가 녹화 중인 프록시로 쿠키 포함 요청을
+보내 읽는 로컬 프록시 공격면(webpack-dev-server CVE류)을 막는 결정.
+OPTIONS preflight는 `Access-Control-Request-Headers`와 **`-Method`를 모두 echo**(없으면
+`*`) — credentials 모드에서 `*`는 와일드카드가 아닌 리터럴이라 echo가 필수.
 
 ## 테스트 (TDD, 기존 패턴)
 
