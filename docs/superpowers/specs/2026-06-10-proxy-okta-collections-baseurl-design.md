@@ -96,16 +96,21 @@ export function applyMockTargets(cfg: MockServerConfig, targets: MockTarget[]): 
 
 ## C. baseURL 프로젝트별 저장/복원
 
-### 저장 — App (envs와 동일 패턴)
+### 저장 — App (최종 리뷰 반영: 명시적 변경만 영속화)
 
 ```ts
-useEffect(() => {
-  if (activeSpecUrl && baseURL) saveJSON(`swaggerman.baseURL.${activeSpecUrl}`, baseURL);
-}, [baseURL, activeSpecUrl]);
+// 사용자가 명시적으로 바꾼 baseURL만 영속화한다.
+function applyUserBaseURL(value: string) {
+  setBaseURL(value);
+  const url = activeSpecUrl || specUrl;
+  if (url && value) saveJSON(`swaggerman.baseURL.${url}`, value);
+}
 ```
 
-- `loadSpec` 공용 적용부에서 `setBaseURL`·`setActiveSpecUrl`이 같은 배치로 갱신되므로
-  옛 키에 잘못 저장되는 경합은 없다(React 18 자동 배칭).
+- 호출 경로 = Base URL 입력 onChange, 환경 Select 선택, 환경 모달 적용 — 세 곳만.
+- 컬렉션 불러오기·curl 가져오기(`importCurl`)의 `setBaseURL`은 **저장하지 않는다**
+  (dev 작업 중 prod 요청을 한 번 불러왔다고 프로젝트 baseURL이 영구 전환되는 footgun
+  방지 — 처음 설계했던 "모든 변경을 effect로 저장"은 최종 리뷰에서 이 이유로 기각).
 - 빈 값은 저장하지 않는다(입력을 비워도 마지막 비어 있지 않은 저장값이 유지된다 —
   스펙 계산값으로 돌아가려면 ↺ 리셋 버튼 사용).
 
