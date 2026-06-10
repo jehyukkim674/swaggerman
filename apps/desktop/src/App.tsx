@@ -1792,6 +1792,7 @@ export default function App() {
             const { operation, inputs: ins, baseURL: b } = savedToRequest(s);
             importCurl(operation, ins, b);
           }}
+          loadedSavedId={selected && selected.id.startsWith("saved:") ? selected.id.slice("saved:".length) : null}
           onClose={() => setCollectionsOpen(false)}
         />
       )}

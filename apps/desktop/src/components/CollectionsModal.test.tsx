@@ -196,3 +196,28 @@ describe("인라인 편집", () => {
     expect(screen.getByText("유저 조회")).toBeTruthy();
   });
 });
+
+describe("불러온 요청에 덮어쓰기", () => {
+  it("loadedSavedId가 있으면 덮어쓰기 버튼으로 해당 요청을 교체한다(이름 보존)", () => {
+    const { onChange } = setup({ current: CURRENT, loadedSavedId: "r1" });
+    fireEvent.click(screen.getByRole("button", { name: "불러온 요청에 덮어쓰기" }));
+    const updated = vi.mocked(onChange).mock.calls[0][0] as Collection[];
+    const r = updated[0].requests[0];
+    expect(r.id).toBe("r1");
+    expect(r.name).toBe("유저 조회"); // 이름 입력이 없으면 기존 이름 유지
+    expect(r.method).toBe("POST");
+    expect(r.url).toBe("https://x/users");
+    expect(r.headers).toEqual([{ key: "A", value: "1" }]); // enabled 헤더만 저장
+    expect(r.body).toBe('{"a":1}');
+  });
+
+  it("loadedSavedId가 컬렉션에 없으면 덮어쓰기 버튼을 숨긴다", () => {
+    setup({ current: CURRENT, loadedSavedId: "ghost" });
+    expect(screen.queryByRole("button", { name: "불러온 요청에 덮어쓰기" })).toBeNull();
+  });
+
+  it("loadedSavedId가 없으면 덮어쓰기 버튼이 없다", () => {
+    setup({ current: CURRENT });
+    expect(screen.queryByRole("button", { name: "불러온 요청에 덮어쓰기" })).toBeNull();
+  });
+});

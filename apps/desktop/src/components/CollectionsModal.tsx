@@ -28,9 +28,11 @@ interface Props {
   current: CurrentRequest | null;
   onLoad: (s: SavedRequest) => void;
   onClose: () => void;
+  /** 현재 편집 중인 요청이 컬렉션에서 불러온 것이면 그 SavedRequest id (App이 selected.id "saved:" 접두사에서 파생) */
+  loadedSavedId?: string | null;
 }
 
-export function CollectionsModal({ collections, onChange, current, onLoad, onClose }: Props) {
+export function CollectionsModal({ collections, onChange, current, onLoad, onClose, loadedSavedId }: Props) {
   // ESC 키로 닫기
   useEscToClose(onClose);
 
@@ -103,6 +105,39 @@ export function CollectionsModal({ collections, onChange, current, onLoad, onClo
     setSaveName("");
     setNewColName("");
     setMsg("현재 요청을 저장했습니다.");
+  };
+
+  // 불러온 요청 덮어쓰기: method/url/headers/body 교체, 이름은 입력 없으면 보존, id/folder 보존
+  const loadedCol = loadedSavedId
+    ? collections.find((c) => c.requests.some((r) => r.id === loadedSavedId))
+    : undefined;
+
+  const overwriteLoaded = () => {
+    if (!current || !loadedSavedId || !loadedCol) return;
+    let updatedName = "";
+    onChange(
+      collections.map((c) =>
+        c.id !== loadedCol.id
+          ? c
+          : {
+              ...c,
+              requests: c.requests.map((r) => {
+                if (r.id !== loadedSavedId) return r;
+                updatedName = saveName.trim() || r.name;
+                return {
+                  ...r,
+                  name: updatedName,
+                  method: current.method,
+                  url: current.url,
+                  headers: current.headers.filter((h) => h.enabled && h.key).map((h) => ({ key: h.key, value: h.value })),
+                  body: current.body,
+                };
+              }),
+            },
+      ),
+    );
+    setSaveName("");
+    setMsg(`『${updatedName}』에 덮어썼습니다.`);
   };
 
   const removeRequest = (colId: string, reqId: string) =>
@@ -199,6 +234,11 @@ export function CollectionsModal({ collections, onChange, current, onLoad, onClo
               <button className="btn small primary" onClick={saveCurrent}>
                 현재 요청 저장
               </button>
+              {loadedCol && (
+                <button className="btn small" onClick={overwriteLoaded} title="불러온 저장 요청을 현재 편집 내용으로 교체">
+                  불러온 요청에 덮어쓰기
+                </button>
+              )}
             </div>
           )}
 
