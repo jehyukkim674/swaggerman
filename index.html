@@ -186,6 +186,13 @@
   ul.nums li .n { position: absolute; left: 0; top: 3px; }
   ul.nums li strong { color: var(--text); }
 
+  .badge {
+    display: inline-block; font-size: .68em; font-weight: 700; vertical-align: middle;
+    color: var(--accent); border: 1px solid var(--accent); border-radius: 10px;
+    padding: 1px 8px; margin-left: 6px; letter-spacing: .02em;
+  }
+  p.hint { color: var(--muted); font-size: .92em; }
+
   /* Callout boxes */
   .note {
     border: 1px solid var(--border);
@@ -304,7 +311,7 @@
       <li><a href="#update">자동 업데이트</a></li>
       <li><a href="#shortcuts">단축키</a></li>
       <li><a href="#mock">Mock 서버</a></li>
-      <li><a href="#proxy">프록시 녹화 모드</a></li>
+      <li><a href="#proxy">녹화 모드 (프록시 · 브라우저)</a></li>
       <li><a href="#perf">API 성능 추이</a></li>
       <li><a href="#timetravel">API 시간여행</a></li>
       <li><a href="#automation">가이드 문서 · 플로우 빌더</a></li>
@@ -855,14 +862,29 @@ claude            # 최초 1회 로그인</code></pre>
 
   <!-- 17. 프록시 녹화 -->
   <section id="proxy">
-    <h2 class="sec">17. 프록시 녹화 모드</h2>
-    <p>실서버 앞에 <strong>로컬 프록시</strong>(<code>localhost:9091</code>)를 두고 트래픽을 투명 포워딩하면서 요청/응답을 자동 녹화합니다.
-      상단바 <strong>프록시</strong> 버튼으로 엽니다.</p>
+    <h2 class="sec">17. 녹화 모드 (프록시 · 브라우저)</h2>
+    <p>실제 API 호출을 녹화해 곧바로 <strong>Mock</strong>으로 저장합니다. 상단바 <strong>프록시</strong> 버튼으로 모달을 열고,
+      위쪽에서 <strong>프록시 / 브라우저</strong> 두 모드를 전환합니다.</p>
+
+    <h3>프록시 모드 — 앱이 중계하며 녹화</h3>
+    <p>실서버 앞에 <strong>로컬 프록시</strong>(<code>localhost:9091</code>)를 두고 트래픽을 투명 포워딩하면서 요청/응답을 자동 녹화합니다.</p>
     <ul class="nums">
-      <li><span class="n">1</span> <strong>타깃 Base URL · 포트</strong>를 지정하고 <strong>시작</strong> → 프론트 앱을 <code>localhost:9091</code>로 향하게 하면 실서버로 전달되며 녹화됩니다.</li>
+      <li><span class="n">1</span> <strong>타깃 Base URL · 포트</strong>를 지정하고 <strong>시작</strong> → 프론트 앱을 <code>localhost:9091</code>로 향하게 하면 실서버로 전달되며 녹화됩니다. 설정(⚙)의 <strong>SSL 검증 끄기·프록시·타임아웃</strong>이 포워딩에도 적용돼 사내망(사설 CA) https 타깃도 녹화됩니다.</li>
       <li><span class="n">2</span> <strong>실시간 녹화 목록</strong> — 메서드·경로·상태코드가 쌓입니다.</li>
-      <li><span class="n">3</span> <strong>Mock으로 보내기</strong> — 녹화 항목을 클릭하면 경로가 일치하는 API의 Mock 데이터로 저장됩니다. 실서버를 한 번 거치면 그대로 Mock이 됩니다.</li>
+      <li><span class="n">3</span> <strong>Mock으로 / 전체 Mock으로</strong> — 항목별로, 또는 목록 전체를 한 번에 Mock으로 저장합니다. 같은 API가 여러 번 녹화됐으면 <strong>최신 응답</strong>이 저장되고, 스펙에 없는 경로는 제외 건수로 알려줍니다.</li>
     </ul>
+
+    <h3>브라우저 모드 — Okta 등 로그인 흐름 녹화 <span class="badge">v0.4.11</span></h3>
+    <p><strong>Okta 같은 OAuth/SSO 로그인은 인증이 끝나면 브라우저가 실제 서비스 호스트로 리다이렉트되어 프록시를 벗어납니다.</strong>
+      그래서 프록시 모드로는 로그인 뒤 트래픽을 잡을 수 없습니다. <strong>브라우저 모드</strong>는 앱이 <strong>전용 Chrome 창</strong>을
+      띄워 그 브라우저 안의 API 호출(XHR/fetch)을 직접 녹화하므로, 로그인 중 호스트가 몇 번 바뀌어도 끝까지 따라가며 잡습니다.</p>
+    <ul class="nums">
+      <li><span class="n">1</span> 모달에서 <strong>브라우저</strong> 탭을 고르고 <strong>시작 URL</strong>(서비스 진입 주소)을 넣은 뒤 <strong>시작</strong>을 누릅니다.</li>
+      <li><span class="n">2</span> 뜬 <strong>전용 Chrome</strong>에서 평소처럼 로그인하고 서비스를 사용하면, 호출된 API가 목록에 실시간으로 쌓입니다. 저장은 프록시 모드와 동일하게 <strong>Mock으로 / 전체 Mock으로</strong>.</li>
+      <li><span class="n">3</span> 전용 프로필을 쓰므로 <strong>한 번 로그인하면 세션이 남아</strong> 다음 녹화 때 재로그인 없이 바로 잡힙니다.</li>
+    </ul>
+    <p class="hint">정적 리소스·문서 이동은 빼고 <strong>API 호출(XHR/fetch)만</strong> 녹화합니다. 현재(v1)는 <strong>첫 탭만</strong> 캡처하므로,
+      로그인이 <strong>별도 팝업창</strong>으로 뜨는 방식의 SSO는 지원하지 않습니다(대부분의 OIDC는 같은 탭 리다이렉트라 문제없습니다).</p>
   </section>
 
   <!-- 18. API 성능 추이 -->
