@@ -525,6 +525,13 @@ describe("Mock 프리셋", () => {
     expect(b.operations).toHaveLength(2);
   });
 
+  it("savePreset은 operations를 딥클론해 원본 변형이 프리셋을 오염시키지 않는다", () => {
+    const arr = ops();
+    savePreset(url, "x", arr);
+    arr[0].status = 999; // 저장 후 원본 변형
+    expect(loadPresets(url)[0].operations[0].status).toBe(200);
+  });
+
   it("deletePreset은 해당 id만 제거한다", () => {
     const a = savePreset(url, "a", ops());
     const b = savePreset(url, "b", ops());

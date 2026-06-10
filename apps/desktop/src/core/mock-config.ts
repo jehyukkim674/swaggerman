@@ -327,6 +327,11 @@ export function applyPresetToConfig(config: MockServerConfig, preset: MockPreset
   const presetMap = new Map(preset.operations.map((o) => [o.opId, o]));
   return {
     port: config.port,
-    operations: config.operations.map((o) => presetMap.get(o.opId) ?? o),
+    // 프리셋 op는 clone해서 넣는다 — 캐시된 presets 객체와 config가 같은 op 객체를 공유해
+    // 다운스트림 인플레이스 편집이 프리셋을 오염시키는 것을 막는다.
+    operations: config.operations.map((o) => {
+      const fromPreset = presetMap.get(o.opId);
+      return fromPreset ? structuredClone(fromPreset) : o;
+    }),
   };
 }
