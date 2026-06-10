@@ -80,9 +80,9 @@ import { CompareModal } from "./components/CompareModal";
 import { DonationModal } from "./components/DonationModal";
 import { MockServerModal } from "./components/MockServerModal";
 import { ProxyModal } from "./components/ProxyModal";
-import { recordingToMock, recordingsToMocks, applyMockTargets } from "./core/proxy-to-mock";
+import { recordingToMock, applyMockTargets, saveRecordingsToMock } from "./core/proxy-to-mock";
 import type { ProxyRecord } from "./core/proxy-client";
-import { loadMockConfig, saveMockConfig, savePreset } from "./core/mock-config";
+import { loadMockConfig, saveMockConfig } from "./core/mock-config";
 import { ShareModal } from "./components/ShareModal";
 import { PermissionMatrixModal } from "./components/PermissionMatrixModal";
 import { PerfModal } from "./components/PerfModal";
@@ -270,16 +270,14 @@ export default function App() {
     return `Mock 저장됨: ${target.opId}`;
   }
 
-  // 프록시 녹화 전체를 제목 붙인 새 Mock 프리셋으로 저장(활성 config는 건드리지 않음).
+  // 프록시 녹화 전체를 활성 Mock 설정에 적용(=Mock 서버 목록에 바로 반영)하고
+  // 같은 내용을 제목 붙인 프리셋으로도 저장한다.
   function sendAllRecordingsToMock(records: ProxyRecord[], title: string): string {
     if (!spec) return "스펙이 로드되지 않았습니다";
-    const { targets, unmatched, failed } = recordingsToMocks(spec, records, baseURL);
-    if (targets.length === 0) return "저장할 녹화가 없습니다(스펙에 없는 경로거나 실패한 녹화)";
     const url = activeSpecUrl || specUrl;
-    const base = loadMockConfig(url, spec);
-    applyMockTargets(base, targets);
-    savePreset(url, title, base.operations);
-    const parts = [`프리셋 '${title}' 저장 ${targets.length}건`];
+    const { saved, unmatched, failed } = saveRecordingsToMock(spec, records, baseURL, url, title);
+    if (saved === 0) return "저장할 녹화가 없습니다(스펙에 없는 경로거나 실패한 녹화)";
+    const parts = [`Mock 적용 + 프리셋 '${title}' 저장 ${saved}건`];
     if (unmatched > 0) parts.push(`스펙에 없는 경로 ${unmatched}건 제외`);
     if (failed > 0) parts.push(`실패 녹화 ${failed}건 제외`);
     return parts.join(", ");

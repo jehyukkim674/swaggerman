@@ -209,6 +209,25 @@ describe("ProxyModal 전체 Mock으로 제목", () => {
     fireEvent.click(await screen.findByRole("button", { name: "전체 Mock으로" }));
     expect((screen.getByRole("button", { name: "저장" }) as HTMLButtonElement).disabled).toBe(true);
   });
+
+  it("제목 입력 중 취소하면 '전체 Mock으로' 버튼으로 돌아간다", async () => {
+    const recs: ProxyRecord[] = [{ atMs: 1, method: "GET", path: "/pet", status: 200, responseBody: "[]" }];
+    invokeMock.mockImplementation(async (cmd: unknown) => {
+      if (cmd === "proxy_start") return 9091;
+      if (cmd === "proxy_recordings") return recs;
+      return undefined;
+    });
+    const onSendAll = vi.fn(() => "");
+    render(<ProxyModal defaultTarget="https://api.example.com"
+      onSendToMock={vi.fn()} onSendAllToMock={onSendAll} onClose={vi.fn()} />);
+    fireEvent.click(screen.getByRole("button", { name: "시작" }));
+    fireEvent.click(await screen.findByRole("button", { name: "전체 Mock으로" }));
+    fireEvent.change(screen.getByPlaceholderText("프리셋 제목"), { target: { value: "버릴제목" } });
+    fireEvent.click(screen.getByRole("button", { name: "취소" }));
+    expect(onSendAll).not.toHaveBeenCalled();
+    expect(await screen.findByRole("button", { name: "전체 Mock으로" })).toBeTruthy();
+    expect(screen.queryByPlaceholderText("프리셋 제목")).toBeNull();
+  });
 });
 
 describe("ProxyModal 브라우저 모드", () => {

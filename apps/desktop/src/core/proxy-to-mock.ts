@@ -2,7 +2,7 @@
 // 프록시 녹화 → 경로 매칭 operation + Mock 변환.
 import type { ParsedOperation, ParsedSpec } from "./types";
 import type { ProxyRecord } from "./proxy-client";
-import type { MockServerConfig } from "./mock-config";
+import { loadMockConfig, saveMockConfig, savePreset, type MockServerConfig } from "./mock-config";
 
 /** operation path 템플릿(/pet/{petId})과 실제 경로(/pet/42)를 매칭. {x}는 와일드카드. */
 function pathMatches(template: string, actual: string): boolean {
@@ -98,4 +98,33 @@ export function applyMockTargets(cfg: MockServerConfig, targets: MockTarget[]): 
     op.dataset = t.dataset;
     op.body = t.body;
   }
+}
+
+/** saveRecordingsToMock 결과 — 저장된 건수와 제외 건수. */
+export interface SaveRecordingsResult {
+  saved: number;     // Mock으로 저장된(매칭된) operation 수
+  unmatched: number; // 스펙에 매칭 안 된 녹화 수
+  failed: number;    // error가 있는 녹화 수
+}
+
+/**
+ * 녹화 전체를 **활성 Mock 설정에 적용**하고(=Mock 서버 모달 목록에 바로 반영),
+ * 같은 내용을 **제목 붙은 프리셋**으로도 저장한다.
+ * 매칭된 녹화(saved>0)가 없으면 활성 설정·프리셋 둘 다 건드리지 않는다.
+ */
+export function saveRecordingsToMock(
+  spec: ParsedSpec,
+  records: ProxyRecord[],
+  baseUrl: string,
+  specUrl: string,
+  title: string,
+): SaveRecordingsResult {
+  const { targets, unmatched, failed } = recordingsToMocks(spec, records, baseUrl);
+  if (targets.length > 0) {
+    const config = loadMockConfig(specUrl, spec);
+    applyMockTargets(config, targets);
+    saveMockConfig(specUrl, config);                // 활성 설정 → Mock 서버 목록에 바로 보임
+    savePreset(specUrl, title, config.operations);  // 제목 프리셋으로도 보관
+  }
+  return { saved: targets.length, unmatched, failed };
 }

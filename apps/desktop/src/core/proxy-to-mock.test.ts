@@ -1,7 +1,8 @@
 // src/core/proxy-to-mock.test.ts
-import { describe, it, expect } from "vitest";
-import { matchOperation, recordingToMock, recordingsToMocks, applyMockTargets, stripBasePath } from "./proxy-to-mock";
-import { defaultMockConfig } from "./mock-config";
+// @vitest-environment jsdom
+import { describe, it, expect, beforeEach } from "vitest";
+import { matchOperation, recordingToMock, recordingsToMocks, applyMockTargets, stripBasePath, saveRecordingsToMock } from "./proxy-to-mock";
+import { defaultMockConfig, loadMockConfig, loadPresets } from "./mock-config";
 import type { ParsedSpec } from "./types";
 import type { ProxyRecord } from "./proxy-client";
 
@@ -148,5 +149,57 @@ describe("recordingToMock baseUrl 폴백", () => {
     expect(recordingToMock(spec, record)).toBeNull(); // baseUrl 없으면 종전대로 실패
     const target = recordingToMock(spec, record, "https://host.com/api/v1");
     expect(target?.opId).toBe("getPets");
+  });
+});
+
+describe("saveRecordingsToMock (전체저장 = 활성 적용 + 프리셋)", () => {
+  const url = "https://api.test/openapi.json";
+  beforeEach(() => localStorage.clear());
+
+  it("녹화를 활성 Mock 설정에 적용하고(목록에 바로 보임) 제목 프리셋으로도 저장한다", () => {
+    const spec = makeSpec([{ id: "GET /pets", method: "GET", path: "/pets" }]);
+    const records: ProxyRecord[] = [
+      { atMs: 1, method: "GET", path: "/pets", status: 200, responseBody: '[{"id":1}]' },
+    ];
+    const res = saveRecordingsToMock(spec, records, "https://api.test", url, "스모크");
+    expect(res).toEqual({ saved: 1, unmatched: 0, failed: 0 });
+
+    // 활성 설정에 반영 — Mock 서버 모달 목록(=활성 config)에서 바로 보인다
+    const cfg = loadMockConfig(url, spec);
+    const op = cfg.operations.find((o) => o.opId === "GET /pets")!;
+    expect(op.enabled).toBe(true);
+    expect(op.source).toBe("manual");
+    expect(op.dataset).toEqual([{ id: 1 }]);
+
+    // 제목 프리셋으로도 보관
+    const presets = loadPresets(url);
+    expect(presets).toHaveLength(1);
+    expect(presets[0].title).toBe("스모크");
+    expect(presets[0].operations.find((o) => o.opId === "GET /pets")?.enabled).toBe(true);
+  });
+
+  it("매칭 0건이면 활성 설정·프리셋 둘 다 변경하지 않는다", () => {
+    const spec = makeSpec([{ id: "GET /pets", method: "GET", path: "/pets" }]);
+    const records: ProxyRecord[] = [
+      { atMs: 1, method: "GET", path: "/unknown", status: 200, responseBody: "[]" },
+    ];
+    const res = saveRecordingsToMock(spec, records, "https://api.test", url, "x");
+    expect(res.saved).toBe(0);
+    expect(res.unmatched).toBe(1);
+    expect(loadPresets(url)).toHaveLength(0);
+    // 활성 설정도 기본값 그대로(해당 op 비활성 아님 — 기본 enabled지만 source는 schema)
+    const op = loadMockConfig(url, spec).operations.find((o) => o.opId === "GET /pets")!;
+    expect(op.source).toBe("schema");
+  });
+
+  it("실패 녹화·미매칭 건수를 결과에 함께 반환한다", () => {
+    const spec = makeSpec([{ id: "GET /pets", method: "GET", path: "/pets" }]);
+    const records: ProxyRecord[] = [
+      { atMs: 1, method: "GET", path: "/pets", status: 200, responseBody: '[{"id":1}]' },
+      { atMs: 2, method: "GET", path: "/nope", status: 404, responseBody: "" },
+      { atMs: 3, method: "GET", path: "/pets", status: 500, responseBody: "", error: "boom" },
+    ];
+    const res = saveRecordingsToMock(spec, records, "https://api.test", url, "t");
+    expect(res).toEqual({ saved: 1, unmatched: 1, failed: 1 });
   });
 });

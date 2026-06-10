@@ -575,4 +575,50 @@ describe("MockServerModal 프리셋", () => {
     expect(screen.queryByRole("option", { name: /옛이름/ })).toBeNull();
     promptSpy.mockRestore();
   });
+
+  it("'현재 설정 저장' 입력 중 취소하면 저장 폼이 닫히고 프리셋이 안 생긴다", async () => {
+    renderModal();
+    fireEvent.click(screen.getByRole("button", { name: "현재 설정 저장" }));
+    fireEvent.change(await screen.findByPlaceholderText("프리셋 제목"), { target: { value: "버림" } });
+    fireEvent.click(screen.getByRole("button", { name: "취소" }));
+    expect(screen.queryByPlaceholderText("프리셋 제목")).toBeNull();
+    expect(screen.getByText("저장된 프리셋 없음")).toBeTruthy();
+  });
+
+  it("빈 제목이면 저장 버튼이 비활성", async () => {
+    renderModal();
+    fireEvent.click(screen.getByRole("button", { name: "현재 설정 저장" }));
+    await screen.findByPlaceholderText("프리셋 제목");
+    expect((screen.getByRole("button", { name: "저장" }) as HTMLButtonElement).disabled).toBe(true);
+  });
+
+  it("드롭다운에서 빈 옵션(불러오기…)을 고르면 아무 일도 없다", async () => {
+    const confirmSpy = vi.spyOn(window, "confirm").mockReturnValue(true);
+    renderModal();
+    fireEvent.click(screen.getByRole("button", { name: "현재 설정 저장" }));
+    fireEvent.change(await screen.findByPlaceholderText("프리셋 제목"), { target: { value: "세트X" } });
+    fireEvent.click(screen.getByRole("button", { name: "저장" }));
+    const select = await screen.findByRole("combobox");
+    fireEvent.change(select, { target: { value: "" } }); // "프리셋 불러오기…"
+    expect(confirmSpy).not.toHaveBeenCalled();
+    confirmSpy.mockRestore();
+  });
+
+  it("이름변경 prompt를 취소하면(빈 값) 제목이 그대로다", async () => {
+    renderModal();
+    await saveAndSelect("그대로");
+    const promptSpy = vi.spyOn(window, "prompt").mockReturnValue(null);
+    fireEvent.click(screen.getByTitle("이름변경"));
+    expect(await screen.findByRole("option", { name: /그대로/ })).toBeTruthy();
+    promptSpy.mockRestore();
+  });
+
+  it("삭제 confirm을 거부하면 프리셋이 유지된다", async () => {
+    renderModal();
+    await saveAndSelect("유지세트");
+    const confirmSpy = vi.spyOn(window, "confirm").mockReturnValue(false);
+    fireEvent.click(screen.getByTitle("삭제"));
+    expect(await screen.findByRole("option", { name: /유지세트/ })).toBeTruthy();
+    confirmSpy.mockRestore();
+  });
 });
