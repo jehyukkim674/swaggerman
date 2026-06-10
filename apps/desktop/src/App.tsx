@@ -261,7 +261,7 @@ export default function App() {
   // 프록시 녹화를 Mock 데이터로 저장. 결과 메시지 반환.
   function sendRecordingToMock(record: ProxyRecord): string {
     if (!spec) return "스펙이 로드되지 않았습니다";
-    const target = recordingToMock(spec, record);
+    const target = recordingToMock(spec, record, baseURL);
     if (!target) return `스펙에 없는 경로입니다: ${record.method} ${record.path}`;
     const url = activeSpecUrl || specUrl;
     const cfg = loadMockConfig(url, spec);
@@ -273,7 +273,7 @@ export default function App() {
   // 프록시 녹화 전체를 Mock으로 일괄 저장. 같은 operation은 최신 녹화가 이긴다.
   function sendAllRecordingsToMock(records: ProxyRecord[]): string {
     if (!spec) return "스펙이 로드되지 않았습니다";
-    const { targets, unmatched, failed } = recordingsToMocks(spec, records);
+    const { targets, unmatched, failed } = recordingsToMocks(spec, records, baseURL);
     if (targets.length === 0) return "저장할 녹화가 없습니다(스펙에 없는 경로거나 실패한 녹화)";
     const url = activeSpecUrl || specUrl;
     const cfg = loadMockConfig(url, spec);
