@@ -81,6 +81,25 @@ pub fn rewrite_location(value: &str, target_base: &str, bound_port: u16) -> Stri
     }
 }
 
+/// 포워딩용 reqwest 클라이언트. 리다이렉트는 추적하지 않는다(클라이언트가 302를 직접 보게).
+/// insecure=true면 TLS 검증을 끈다(사내망 MITM CA 대응 — 앱 설정의 'SSL 검증 끄기'와 동일).
+fn build_forward_client(
+    insecure: bool,
+    proxy: Option<&str>,
+    timeout_ms: u64,
+) -> Result<reqwest::Client, String> {
+    let mut builder = reqwest::Client::builder()
+        .redirect(reqwest::redirect::Policy::none())
+        .timeout(std::time::Duration::from_millis(timeout_ms));
+    if insecure {
+        builder = builder.danger_accept_invalid_certs(true);
+    }
+    if let Some(p) = proxy.filter(|s| !s.trim().is_empty()) {
+        builder = builder.proxy(reqwest::Proxy::all(p).map_err(|e| format!("프록시 설정 오류: {e}"))?);
+    }
+    builder.build().map_err(|e| e.to_string())
+}
+
 /// 녹화 추가(최근 100개 유지).
 fn push_record(rec: ProxyRecord) {
     let mut recs = recordings().lock().unwrap();
@@ -105,6 +124,7 @@ use axum::Router;
 struct ProxyState {
     target: Arc<String>,
     client: reqwest::Client,
+    bound_port: u16,
 }
 
 fn cors_headers(resp: &mut axum::http::HeaderMap) {
@@ -209,22 +229,31 @@ pub(crate) fn stop_proxy_internal() {
 }
 
 #[tauri::command]
-pub async fn proxy_start(target_base_url: String, port: u16) -> Result<u16, String> {
+pub async fn proxy_start(
+    target_base_url: String,
+    port: u16,
+    insecure: Option<bool>,
+    proxy: Option<String>,
+    timeout_ms: Option<u64>,
+) -> Result<u16, String> {
     stop_proxy_internal();
     if target_base_url.trim().is_empty() {
         return Err("타깃 Base URL이 비어 있습니다".into());
     }
+    let client = build_forward_client(
+        insecure.unwrap_or(false),
+        proxy.as_deref(),
+        timeout_ms.unwrap_or(30_000),
+    )?;
     let listener = tokio::net::TcpListener::bind(("127.0.0.1", port))
         .await
         .map_err(|e| format!("PORT_IN_USE: {e}"))?;
-    let bound = listener
-        .local_addr()
-        .map_err(|e| e.to_string())?
-        .port();
+    let bound = listener.local_addr().map_err(|e| e.to_string())?.port();
     let (tx, rx) = oneshot::channel::<()>();
     let state = ProxyState {
         target: Arc::new(target_base_url),
-        client: reqwest::Client::new(),
+        client,
+        bound_port: bound,
     };
     let app = Router::new().fallback(forward_handler).with_state(state);
     *proxy_handle().lock().unwrap() = Some(RunningProxy {
@@ -301,6 +330,13 @@ mod tests {
     }
 
     #[test]
+    fn forward_client_builds_with_options() {
+        assert!(build_forward_client(true, None, 5_000).is_ok());
+        assert!(build_forward_client(false, Some("http://127.0.0.1:8888"), 5_000).is_ok());
+        assert!(build_forward_client(false, Some("::이상한값::"), 5_000).is_err());
+    }
+
+    #[test]
     fn set_cookie_rewritten_for_localhost() {
         // Domain(도메인 불일치 거부)·Secure(http localhost)·SameSite=None(Secure 필수) 제거
         assert_eq!(
@@ -362,7 +398,8 @@ mod tests {
         let proxy_port = proxy_listener.local_addr().unwrap().port();
         let state = ProxyState {
             target: Arc::new(format!("http://127.0.0.1:{target_port}")),
-            client: reqwest::Client::new(),
+            client: build_forward_client(false, None, 30_000).unwrap(),
+            bound_port: proxy_port,
         };
         let proxy_app = Router::new().fallback(forward_handler).with_state(state);
         tokio::spawn(async move {
