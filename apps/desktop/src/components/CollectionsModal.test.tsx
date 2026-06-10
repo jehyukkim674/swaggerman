@@ -82,11 +82,19 @@ describe("CollectionsModal", () => {
 
   it("current가 있으면 현재 요청을 기존 컬렉션에 저장", () => {
     const { onChange } = setup({ current: CURRENT });
-    fireEvent.change(screen.getByPlaceholderText("요청 이름"), { target: { value: "새 요청" } });
+    // placeholder는 URL 경로 기반 기본 이름
+    fireEvent.change(screen.getByPlaceholderText("/users"), { target: { value: "새 요청" } });
     fireEvent.click(screen.getByText("현재 요청 저장"));
     const next = vi.mocked(onChange).mock.calls[0][0] as Collection[];
     expect(next[0].requests).toHaveLength(2);
     expect(next[0].requests[1].name).toBe("새 요청");
+  });
+
+  it("이름을 비우고 저장하면 URL 경로가 기본 이름이 된다", () => {
+    const { onChange } = setup({ current: CURRENT });
+    fireEvent.click(screen.getByText("현재 요청 저장"));
+    const next = vi.mocked(onChange).mock.calls[0][0] as Collection[];
+    expect(next[0].requests[1].name).toBe("/users");
   });
 
   it("새 컬렉션 대상으로 저장하면 컬렉션이 생성된다", () => {

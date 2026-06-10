@@ -38,6 +38,17 @@ export function CollectionsModal({ collections, onChange, current, onLoad, onClo
   const [newColName, setNewColName] = useState("");
   const [msg, setMsg] = useState<string | null>(null);
 
+  // 기본 요청 이름: URL 경로(없으면 호스트/원문) — "GET 요청"만 쌓여 구분 안 되는 문제 방지
+  const defaultName = (() => {
+    if (!current) return "";
+    try {
+      const u = new URL(current.url);
+      return u.pathname && u.pathname !== "/" ? u.pathname : u.host;
+    } catch {
+      return current.url;
+    }
+  })();
+
   const addCollection = (name: string): Collection => {
     const col = { id: newId(), name: name || `컬렉션 ${collections.length + 1}`, requests: [] };
     onChange([...collections, col]);
@@ -47,7 +58,7 @@ export function CollectionsModal({ collections, onChange, current, onLoad, onClo
   const saveCurrent = () => {
     if (!current) return;
     const saved = requestToSaved(
-      saveName || `${current.method} 요청`,
+      saveName || defaultName || `${current.method} 요청`,
       current.method,
       current.url,
       current.headers,
@@ -137,7 +148,7 @@ export function CollectionsModal({ collections, onChange, current, onLoad, onClo
                 className="kv-input"
                 value={saveName}
                 onChange={(e) => setSaveName(e.target.value)}
-                placeholder="요청 이름"
+                placeholder={defaultName || "요청 이름"}
                 spellCheck={false}
               />
               <Select
