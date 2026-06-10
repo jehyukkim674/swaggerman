@@ -91,6 +91,8 @@ export function applyMockTargets(cfg: MockServerConfig, targets: MockTarget[]): 
   `method/url/headers/body`를 `current` 값으로 교체. 이름은 `saveName`이 입력돼
   있으면 그걸로, 아니면 기존 이름 유지. `id`/`folder` 보존.
 - 다른 operation을 선택하면 `selected.id`가 바뀌어 버튼이 자연히 사라진다(상태 누수 없음).
+- 의도된 한계: 덮어쓰기의 URL은 기존 "현재 요청 저장"과 동일하게 **변수 치환된 최종
+  URL**이 저장된다(`{{var}}`가 실값으로 박힘). 변수 보존 저장은 별도 과제.
 
 ## C. baseURL 프로젝트별 저장/복원
 
