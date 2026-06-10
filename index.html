@@ -857,6 +857,7 @@ claude            # 최초 1회 로그인</code></pre>
       <li><span class="n">2</span> <strong>진짜 백엔드처럼</strong> — 목록↔단건 조회 일관성, <code>page</code>/<code>size</code>·<code>offset</code>/<code>limit</code> 페이징 자동, 응답 지연 시뮬레이션, CORS 허용.</li>
       <li><span class="n">3</span> <strong>operation별 설정</strong> — 활성/비활성, 상태코드·지연, 데이터셋 직접 편집(JSON).</li>
       <li><span class="n">4</span> <strong>실시간 요청 로그</strong> — 어떤 클라이언트가 무엇을 호출했는지 모달에서 확인.</li>
+      <li><span class="n">5</span> <strong>프리셋 <span class="badge">v0.4.12</span></strong> — 현재 Mock 설정 전체를 <strong>제목 붙여 저장</strong>해 두고, 드롭다운에서 골라 불러온다(불러올 때 현재 설정을 덮어쓸지 확인). 시나리오별 응답 세트(정상/오류/빈 목록 등)를 오가며 쓸 수 있고, 이름변경·삭제도 가능하다.</li>
     </ul>
   </section>
 
@@ -871,7 +872,7 @@ claude            # 최초 1회 로그인</code></pre>
     <ul class="nums">
       <li><span class="n">1</span> <strong>타깃 Base URL · 포트</strong>를 지정하고 <strong>시작</strong> → 프론트 앱을 <code>localhost:9091</code>로 향하게 하면 실서버로 전달되며 녹화됩니다. 설정(⚙)의 <strong>SSL 검증 끄기·프록시·타임아웃</strong>이 포워딩에도 적용돼 사내망(사설 CA) https 타깃도 녹화됩니다.</li>
       <li><span class="n">2</span> <strong>실시간 녹화 목록</strong> — 메서드·경로·상태코드가 쌓입니다.</li>
-      <li><span class="n">3</span> <strong>Mock으로 / 전체 Mock으로</strong> — 항목별로, 또는 목록 전체를 한 번에 Mock으로 저장합니다. 같은 API가 여러 번 녹화됐으면 <strong>최신 응답</strong>이 저장되고, 스펙에 없는 경로는 제외 건수로 알려줍니다.</li>
+      <li><span class="n">3</span> <strong>Mock으로 / 전체 Mock으로</strong> — 항목별로는 현재 Mock 설정에 바로 저장하고, <strong>전체 Mock으로</strong>는 <strong>제목을 입력해 새 Mock 프리셋</strong>으로 저장합니다(현재 설정은 그대로 둠 → Mock 서버에서 그 프리셋을 골라 사용). 같은 API가 여러 번 녹화됐으면 <strong>최신 응답</strong>이 저장되고, 스펙에 없는 경로는 제외 건수로 알려줍니다.</li>
     </ul>
 
     <h3>브라우저 모드 — Okta 등 로그인 흐름 녹화 <span class="badge">v0.4.11</span></h3>
