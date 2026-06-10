@@ -1,4 +1,5 @@
 mod ai;
+mod browser_capture;
 mod global_shortcut;
 mod mock_server;
 mod proxy_server;
