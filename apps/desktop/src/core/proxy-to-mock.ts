@@ -40,7 +40,8 @@ export function stripBasePath(path: string, baseUrl: string): string {
   prefix = prefix.replace(/\/+$/, "");
   if (!prefix) return path;
   if (path === prefix) return "/";
-  if (path.startsWith(prefix + "/") || path.startsWith(prefix + "?")) return path.slice(prefix.length);
+  if (path.startsWith(prefix + "/")) return path.slice(prefix.length);
+  if (path.startsWith(prefix + "?")) return "/" + path.slice(prefix.length);
   return path;
 }
 

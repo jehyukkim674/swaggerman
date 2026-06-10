@@ -2,12 +2,12 @@
 import { describe, it, expect } from "vitest";
 import { matchOperation, recordingToMock, recordingsToMocks, applyMockTargets, stripBasePath } from "./proxy-to-mock";
 import { defaultMockConfig } from "./mock-config";
-import type { ParsedSpec, ParsedOperation } from "./types";
+import type { ParsedSpec } from "./types";
 import type { ProxyRecord } from "./proxy-client";
 
 /** 최소 스펙 픽스처 생성. ops는 { id, method, path } 배열. */
 function makeSpec(ops: { id: string; method: string; path: string }[]): ParsedSpec {
-  const operations: ParsedOperation[] = ops.map((o) => ({
+  const operations = ops.map((o) => ({
     id: o.id,
     method: o.method,
     path: o.path,
@@ -18,12 +18,11 @@ function makeSpec(ops: { id: string; method: string; path: string }[]): ParsedSp
   return { info: { title: "t", version: "1" }, operations, securitySchemes: [] } as unknown as ParsedSpec;
 }
 
-const ops: ParsedOperation[] = [
-  { id: "GET /pet/findByStatus", method: "GET", path: "/pet/findByStatus", tags: [], parameters: [], responses: [] },
-  { id: "GET /pet/{petId}", method: "GET", path: "/pet/{petId}", tags: [], parameters: [], responses: [] },
-  { id: "POST /pet", method: "POST", path: "/pet", tags: [], parameters: [], responses: [] },
-];
-const spec = { info: { title: "t", version: "1" }, operations: ops, securitySchemes: [] } as unknown as ParsedSpec;
+const spec = makeSpec([
+  { id: "GET /pet/findByStatus", method: "GET", path: "/pet/findByStatus" },
+  { id: "GET /pet/{petId}", method: "GET", path: "/pet/{petId}" },
+  { id: "POST /pet", method: "POST", path: "/pet" },
+]);
 
 function rec(over: Partial<ProxyRecord>): ProxyRecord {
   return { atMs: 1, method: "GET", path: "/pet/findByStatus", status: 200, responseBody: "[]", ...over };
@@ -128,6 +127,14 @@ describe("stripBasePath", () => {
   it("baseUrl에 경로가 없거나 URL이 아니면 원본 그대로", () => {
     expect(stripBasePath("/pets", "https://host.com")).toBe("/pets");
     expect(stripBasePath("/pets", "not a url")).toBe("/pets");
+  });
+
+  it("baseUrl의 trailing slash는 무시하고 접두사를 제거한다", () => {
+    expect(stripBasePath("/api/v1/pets", "https://host.com/api/v1/")).toBe("/pets");
+  });
+
+  it("쿼리만 있는 경우 슬래시를 앞에 붙인다", () => {
+    expect(stripBasePath("/api/v1?x=1", "https://host.com/api/v1")).toBe("/?x=1");
   });
 });
 
