@@ -1,6 +1,17 @@
 // 브라우저 캡처: 전용 Chrome을 CDP 디버깅 모드로 기동해 Network 이벤트(XHR/Fetch)를 녹화한다.
 // proxy_server.rs의 전역 핸들·녹화 저장소(최근 100개) 패턴을 따른다.
+use std::collections::HashMap;
 use std::path::PathBuf;
+use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::{Mutex, OnceLock};
+use std::time::{SystemTime, UNIX_EPOCH};
+
+use base64::Engine;
+use futures_util::{SinkExt, StreamExt};
+use serde_json::{json, Value};
+use tokio_tungstenite::tungstenite::Message;
+
+use crate::proxy_server::ProxyRecord;
 
 /// OS별 Chrome 계열 실행 파일 후보(우선순위 순). 에러 메시지 안내에도 쓴다.
 pub fn chrome_candidates() -> Vec<PathBuf> {
@@ -83,14 +94,6 @@ fn pick_free_port(from: u16, to: u16) -> Result<u16, String> {
     }
     Err("빈 디버깅 포트를 찾지 못했습니다".into())
 }
-
-use std::collections::HashMap;
-use std::time::{SystemTime, UNIX_EPOCH};
-
-use base64::Engine;
-use serde_json::{json, Value};
-
-use crate::proxy_server::ProxyRecord;
 
 fn now_ms() -> u64 {
     SystemTime::now()
@@ -218,11 +221,6 @@ fn decode_body(result: &Value) -> String {
     }
 }
 
-use std::sync::{Mutex, OnceLock};
-
-use futures_util::{SinkExt, StreamExt};
-use tokio_tungstenite::tungstenite::Message;
-
 static CAPTURE_RECORDINGS: OnceLock<Mutex<Vec<ProxyRecord>>> = OnceLock::new();
 fn capture_recordings_store() -> &'static Mutex<Vec<ProxyRecord>> {
     CAPTURE_RECORDINGS.get_or_init(|| Mutex::new(Vec::new()))
@@ -237,8 +235,6 @@ fn push_capture_record(rec: ProxyRecord) {
         recs.drain(0..overflow);
     }
 }
-
-use std::sync::atomic::{AtomicU64, Ordering};
 
 /// 실행 중 캡처: 자식 Chrome 프로세스 + 세션 id(오래된 WS 태스크가 새 세션을 끄지 않게).
 struct RunningCapture {
@@ -371,7 +367,7 @@ pub async fn run_ws_session(ws_url: &str) -> Result<(), String> {
         let Ok(Message::Text(text)) = msg else { continue };
         let out = tracker.on_message(&text);
         for cmd in out.commands {
-            if ws.send(Message::Text(cmd.into())).await.is_err() {
+            if ws.send(Message::Text(cmd)).await.is_err() {
                 return Ok(()); // 전송 실패 = 연결 종료
             }
         }
@@ -539,9 +535,6 @@ mod tests {
     /// 가짜 CDP WS 서버에 붙여 XHR 흐름 종단 검증. 실제 Chrome은 CI에서 띄우지 않는다.
     #[tokio::test]
     async fn ws_session_records_xhr_via_fake_cdp() {
-        use futures_util::{SinkExt, StreamExt};
-        use tokio_tungstenite::tungstenite::Message;
-
         let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
         let addr = listener.local_addr().unwrap();
         tokio::spawn(async move {
@@ -563,7 +556,7 @@ mod tests {
                 let v: serde_json::Value = serde_json::from_str(&t).unwrap();
                 assert_eq!(v["method"], "Network.getResponseBody");
                 let resp = serde_json::json!({"id": v["id"], "result": {"body": "[{\"id\":1}]", "base64Encoded": false}});
-                let _ = ws.send(Message::Text(resp.to_string().into())).await;
+                let _ = ws.send(Message::Text(resp.to_string())).await;
             }
             let _ = ws.close(None).await;
         });
