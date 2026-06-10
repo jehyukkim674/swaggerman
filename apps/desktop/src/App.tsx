@@ -51,7 +51,7 @@ import { loadNotes, saveNotes, emptyNote, type NotesMap, type ApiNote } from "./
 import { log } from "./core/log";
 import { newId, clampHistoryBody, type HistoryItem } from "./core/history";
 import { openNewWindow } from "./core/window";
-import { CloseCircleIcon, CoffeeIcon } from "./components/icons";
+import { CloseCircleIcon, CoffeeIcon, ReplayIcon } from "./components/icons";
 import { LoadingOverlay } from "./components/LoadingOverlay";
 import { Select } from "./components/Select";
 import { ConfirmDialog } from "./components/ConfirmDialog";
@@ -165,6 +165,11 @@ export default function App() {
   useEffect(() => {
     if (activeSpecUrl) saveJSON(`swaggerman.activeEnv.${activeSpecUrl}`, activeEnvName);
   }, [activeEnvName, activeSpecUrl]);
+
+  // 사용자가 바꾼 baseURL을 프로젝트별로 저장(리로드/프로젝트 전환 시 복원). 빈 값은 저장하지 않는다.
+  useEffect(() => {
+    if (activeSpecUrl && baseURL) saveJSON(`swaggerman.baseURL.${activeSpecUrl}`, baseURL);
+  }, [baseURL, activeSpecUrl]);
 
   // 요청 체이닝으로 추출된 런타임 변수(응답에서 뽑은 값). 환경 변수보다 우선.
   const [chainVars, setChainVars] = useState<Record<string, string>>({});
@@ -661,11 +666,11 @@ export default function App() {
       }
       // ---- 성공/캐시 폴백 공용 적용: 스펙과 URL별 상태를 복원 ----
       setSpec(parsed);
-      setBaseURL(
-        isFileProject(targetUrl)
-          ? pickFileBaseURL(parsed.servers)
-          : deriveBaseURL(targetUrl, parsed.servers),
-      );
+      // 사용자가 바꾼 baseURL(프로젝트별 저장)이 있으면 우선, 없으면 스펙에서 계산
+      const derivedBase = isFileProject(targetUrl)
+        ? pickFileBaseURL(parsed.servers)
+        : deriveBaseURL(targetUrl, parsed.servers);
+      setBaseURL(loadJSON(`swaggerman.baseURL.${targetUrl}`, "") || derivedBase);
       setActiveSpecUrl(targetUrl);
       saveJSON("swaggerman.lastSpecUrl", targetUrl);
       // 프로젝트 목록에 upsert(최근 것을 맨 앞으로). 기존 사용자 지정 이름/fileName은 보존.
@@ -724,6 +729,15 @@ export default function App() {
     }
   }
 
+  // baseURL을 스펙 계산값으로 복원(저장값 삭제). 스펙의 서버 주소가 바뀐 경우의 탈출구.
+  function resetBaseURL() {
+    if (!spec) return;
+    const url = activeSpecUrl || specUrl;
+    localStorage.removeItem(`swaggerman.baseURL.${url}`);
+    setBaseURL(isFileProject(url) ? pickFileBaseURL(spec.servers) : deriveBaseURL(url, spec.servers));
+    setActiveEnvName("");
+  }
+
   function removeProject(url: string) {
     setProjects((prev) => prev.filter((p) => p.url !== url));
     localStorage.removeItem(`swaggerman.fav.${url}`);
@@ -731,6 +745,7 @@ export default function App() {
     localStorage.removeItem(`swaggerman.auth.${url}`);
     localStorage.removeItem(`swaggerman.inputs.${url}`);
     localStorage.removeItem(`swaggerman.lastOp.${url}`);
+    localStorage.removeItem(`swaggerman.baseURL.${url}`);
     if (isFileProject(url)) void deleteImportedSpec(url);
   }
 
@@ -1397,6 +1412,9 @@ export default function App() {
               spellCheck={false}
             />
           </label>
+          <button className="icon-btn" title="스펙 기본값으로 복원" onClick={resetBaseURL} disabled={!spec}>
+            <ReplayIcon size={14} />
+          </button>
           <div className="env-bar">
             <Select
               className="env-select"
