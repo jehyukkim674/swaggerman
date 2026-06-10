@@ -5,9 +5,12 @@ import { startProxy, stopProxy, getRecordings, type ProxyRecord } from "../core/
 import { methodColor } from "./method";
 import { CloseCircleIcon, CopyIcon } from "./icons";
 import { useEscToClose } from "./useEscToClose";
+import type { NetworkSettings } from "../core/types";
 
 interface Props {
   defaultTarget: string;
+  /** 앱 네트워크 설정(SSL 검증 끄기 등) — 포워딩에 적용 */
+  net?: Partial<NetworkSettings>;
   /** 녹화를 Mock으로 변환 요청(App이 매칭·저장). 성공 메시지/실패는 App이 결정 → 결과 문자열 반환 */
   onSendToMock: (record: ProxyRecord) => string;
   /** 녹화 전체를 Mock으로 일괄 저장(App이 매칭·저장). 결과 메시지 반환 */
@@ -17,7 +20,7 @@ interface Props {
 
 const DEFAULT_PORT = 9091;
 
-export function ProxyModal({ defaultTarget, onSendToMock, onSendAllToMock, onClose }: Props) {
+export function ProxyModal({ defaultTarget, net, onSendToMock, onSendAllToMock, onClose }: Props) {
   useEscToClose(onClose);
   const [target, setTarget] = useState(defaultTarget);
   const [port, setPort] = useState(DEFAULT_PORT);
@@ -51,7 +54,7 @@ export function ProxyModal({ defaultTarget, onSendToMock, onSendAllToMock, onClo
       return;
     }
     try {
-      const bp = await startProxy(target, port);
+      const bp = await startProxy(target, port, net);
       setBoundPort(bp);
       setRunning(true);
     } catch (e) {

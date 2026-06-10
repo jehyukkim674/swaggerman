@@ -59,6 +59,27 @@ describe("ProxyModal", () => {
   });
 });
 
+describe("ProxyModal net prop", () => {
+  it("net 설정(insecure/proxy/timeout)을 proxy_start에 전달한다", async () => {
+    render(
+      <ProxyModal
+        defaultTarget="https://api.example.com"
+        net={{ insecure: true, proxy: "http://proxy:8888", timeoutMs: 5000 }}
+        onSendToMock={vi.fn()}
+        onSendAllToMock={vi.fn(() => "")}
+        onClose={vi.fn()}
+      />,
+    );
+    fireEvent.click(screen.getByRole("button", { name: "시작" }));
+    await waitFor(() =>
+      expect(invokeMock).toHaveBeenCalledWith(
+        "proxy_start",
+        expect.objectContaining({ insecure: true, proxy: "http://proxy:8888", timeoutMs: 5000 }),
+      ),
+    );
+  });
+});
+
 describe("ProxyModal 추가 동작", () => {
   it("타깃이 비면 시작 버튼이 비활성", () => {
     render(<ProxyModal defaultTarget="" onSendToMock={vi.fn()} onSendAllToMock={vi.fn(() => "")} onClose={vi.fn()} />);

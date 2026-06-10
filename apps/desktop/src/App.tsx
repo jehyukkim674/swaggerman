@@ -1731,6 +1731,7 @@ export default function App() {
       {proxyOpen && spec && (
         <ProxyModal
           defaultTarget={baseURL}
+          net={netSettings}
           onSendToMock={sendRecordingToMock}
           onSendAllToMock={sendAllRecordingsToMock}
           onClose={() => setProxyOpen(false)}
