@@ -538,4 +538,41 @@ describe("MockServerModal 프리셋", () => {
     expect(confirmSpy).toHaveBeenCalled();
     confirmSpy.mockRestore();
   });
+
+  it("프리셋이 없으면 '저장된 프리셋 없음' 힌트를 보여준다", () => {
+    renderModal();
+    expect(screen.getByText("저장된 프리셋 없음")).toBeTruthy();
+    expect(screen.queryByRole("combobox")).toBeNull();
+  });
+
+  // 프리셋을 하나 저장하고 드롭다운에서 선택한 상태로 만든다
+  async function saveAndSelect(title: string) {
+    const confirmSpy = vi.spyOn(window, "confirm").mockReturnValue(true);
+    fireEvent.click(screen.getByRole("button", { name: "현재 설정 저장" }));
+    fireEvent.change(await screen.findByPlaceholderText("프리셋 제목"), { target: { value: title } });
+    fireEvent.click(screen.getByRole("button", { name: "저장" }));
+    const select = await screen.findByRole("combobox");
+    const option = await screen.findByRole("option", { name: new RegExp(title) }) as HTMLOptionElement;
+    fireEvent.change(select, { target: { value: option.value } });
+    confirmSpy.mockRestore();
+  }
+
+  it("선택한 프리셋을 confirm 후 삭제하면 드롭다운에서 사라진다", async () => {
+    renderModal();
+    await saveAndSelect("지울세트");
+    const confirmSpy = vi.spyOn(window, "confirm").mockReturnValue(true);
+    fireEvent.click(screen.getByTitle("삭제"));
+    await waitFor(() => expect(screen.queryByRole("option", { name: /지울세트/ })).toBeNull());
+    confirmSpy.mockRestore();
+  });
+
+  it("선택한 프리셋을 prompt로 이름변경하면 드롭다운 라벨이 바뀐다", async () => {
+    renderModal();
+    await saveAndSelect("옛이름");
+    const promptSpy = vi.spyOn(window, "prompt").mockReturnValue("새이름");
+    fireEvent.click(screen.getByTitle("이름변경"));
+    expect(await screen.findByRole("option", { name: /새이름/ })).toBeTruthy();
+    expect(screen.queryByRole("option", { name: /옛이름/ })).toBeNull();
+    promptSpy.mockRestore();
+  });
 });

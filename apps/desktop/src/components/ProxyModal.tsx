@@ -123,6 +123,7 @@ export function ProxyModal({ defaultTarget, net, onSendToMock, onSendAllToMock, 
     setMode(m);
     setError(null);
     setSendMsg(null);
+    setBulkOpen(false);
   };
 
   const baseUrl = `http://localhost:${boundPort}`;

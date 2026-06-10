@@ -2784,10 +2784,11 @@ tr.cmp-changed td { background: #d2992214; }
 }
 
 .mock-preset-bar { display: flex; align-items: center; gap: 8px; padding: 6px 12px; flex-wrap: wrap; border-bottom: 1px solid var(--border); background: var(--bg-3); flex-shrink: 0; }
-.mock-preset-select, .mock-preset-title, .proxy-bulk-title {
-  background: var(--input-bg, #0d1117); color: inherit;
-  border: 1px solid var(--border, #30363d); border-radius: 6px; padding: 4px 8px; font-size: 13px;
+.mock-preset-title, .proxy-bulk-title {
+  background: var(--bg); color: var(--text);
+  border: 1px solid var(--border); border-radius: 6px; padding: 4px 8px; font-size: 13px;
 }
+/* .mock-preset-select는 전역 select 스타일(배경·셰브론) 상속, 폭만 지정 */
 .mock-preset-select { min-width: 200px; }
 
 .mock-port-label {
