@@ -127,10 +127,37 @@ struct ProxyState {
     bound_port: u16,
 }
 
-fn cors_headers(resp: &mut axum::http::HeaderMap) {
-    resp.insert("Access-Control-Allow-Origin", "*".parse().unwrap());
+/// Origin이 있으면 echo + credentials 허용(쿠키 포함 요청), 없으면 "*".
+fn cors_headers(resp: &mut axum::http::HeaderMap, origin: Option<&axum::http::HeaderValue>) {
+    match origin {
+        Some(o) => {
+            resp.insert("Access-Control-Allow-Origin", o.clone());
+            resp.insert("Access-Control-Allow-Credentials", "true".parse().unwrap());
+            resp.insert("Vary", "Origin".parse().unwrap());
+        }
+        None => {
+            resp.insert("Access-Control-Allow-Origin", "*".parse().unwrap());
+        }
+    }
     resp.insert("Access-Control-Allow-Methods", "*".parse().unwrap());
-    resp.insert("Access-Control-Allow-Headers", "*".parse().unwrap());
+}
+
+/// 클라이언트로 그대로 보내지 않을 응답 헤더.
+/// hop-by-hop + 본문 변형으로 무효(content-length/encoding) + CORS는 자체 계산.
+fn skip_response_header(name: &str) -> bool {
+    matches!(
+        name,
+        "connection"
+            | "keep-alive"
+            | "proxy-authenticate"
+            | "proxy-authorization"
+            | "te"
+            | "trailers"
+            | "transfer-encoding"
+            | "upgrade"
+            | "content-length"
+            | "content-encoding"
+    ) || name.starts_with("access-control-")
 }
 
 async fn forward_handler(
@@ -140,24 +167,31 @@ async fn forward_handler(
     headers: HeaderMap,
     body: Bytes,
 ) -> axum::response::Response {
-    // OPTIONS preflight
+    let origin = headers.get("origin").cloned();
+
+    // OPTIONS preflight: 요청한 헤더를 echo(없으면 *)
     if method == Method::OPTIONS {
         let mut resp = (axum::http::StatusCode::NO_CONTENT).into_response();
-        cors_headers(resp.headers_mut());
+        let allow_headers = headers
+            .get("access-control-request-headers")
+            .cloned()
+            .unwrap_or_else(|| "*".parse().unwrap());
+        cors_headers(resp.headers_mut(), origin.as_ref());
+        resp.headers_mut().insert("Access-Control-Allow-Headers", allow_headers);
         return resp;
     }
 
     let path = uri.path().to_string();
     let url = build_forward_url(&st.target, &path, uri.query());
 
-    // reqwest 메서드 변환
     let rmethod =
         reqwest::Method::from_bytes(method.as_str().as_bytes()).unwrap_or(reqwest::Method::GET);
     let mut req = st.client.request(rmethod, &url).body(body.to_vec());
-    // host 제외하고 헤더 전달
+    // host 제외(타깃이 자기 호스트를 받도록), accept-encoding 제외(본문을 text로 다루므로
+    // reqwest가 직접 gzip을 협상·해제하게 둔다 — 클라이언트 값(br/zstd)을 넘기면 본문이 깨진다)
     for (k, v) in headers.iter() {
         let name = k.as_str();
-        if name.eq_ignore_ascii_case("host") {
+        if name.eq_ignore_ascii_case("host") || name.eq_ignore_ascii_case("accept-encoding") {
             continue;
         }
         if let Ok(val) = v.to_str() {
@@ -168,12 +202,25 @@ async fn forward_handler(
     match req.send().await {
         Ok(res) => {
             let status = res.status().as_u16();
-            // 업스트림 Content-Type을 본문 소비 전에 캡처한다.
-            let upstream_ct = res
-                .headers()
-                .get(reqwest::header::CONTENT_TYPE)
-                .and_then(|v| v.to_str().ok())
-                .map(|s| s.to_owned());
+            // 본문 소비 전에 패스스루 응답 헤더를 수집·재작성.
+            // is_append: Set-Cookie만 다중 값이라 append, 나머지는 insert(axum 기본 Content-Type 대체).
+            let mut passthrough: Vec<(String, String, bool)> = Vec::new();
+            for (k, v) in res.headers() {
+                let name = k.as_str(); // reqwest는 소문자 보장
+                if skip_response_header(name) {
+                    continue;
+                }
+                let Ok(val) = v.to_str() else { continue };
+                match name {
+                    "set-cookie" => passthrough.push((name.into(), rewrite_set_cookie(val), true)),
+                    "location" => passthrough.push((
+                        name.into(),
+                        rewrite_location(val, &st.target, st.bound_port),
+                        false,
+                    )),
+                    _ => passthrough.push((name.into(), val.to_string(), false)),
+                }
+            }
             // 주의: 바이너리/비-UTF8 응답은 text() 디코딩 시 손실될 수 있다.
             let resp_body = res.text().await.unwrap_or_default();
             push_record(ProxyRecord {
@@ -190,14 +237,16 @@ async fn forward_handler(
                 resp_body,
             )
                 .into_response();
-            cors_headers(resp.headers_mut());
-            // 업스트림 Content-Type을 덮어써서 axum 기본값(text/plain)을 방지한다.
-            if let Some(ct) = upstream_ct {
-                if let Ok(val) = ct.parse::<axum::http::HeaderValue>() {
-                    resp.headers_mut()
-                        .insert(axum::http::header::CONTENT_TYPE, val);
+            for (name, val, is_append) in passthrough {
+                let Ok(n) = axum::http::HeaderName::from_bytes(name.as_bytes()) else { continue };
+                let Ok(v) = val.parse::<axum::http::HeaderValue>() else { continue };
+                if is_append {
+                    resp.headers_mut().append(n, v);
+                } else {
+                    resp.headers_mut().insert(n, v);
                 }
             }
+            cors_headers(resp.headers_mut(), origin.as_ref());
             resp
         }
         Err(e) => {
@@ -214,7 +263,7 @@ async fn forward_handler(
                 format!("프록시 포워딩 실패: {e}"),
             )
                 .into_response();
-            cors_headers(resp.headers_mut());
+            cors_headers(resp.headers_mut(), origin.as_ref());
             resp
         }
     }
@@ -426,6 +475,129 @@ mod tests {
         assert!(
             ct.contains("application/json"),
             "Content-Type이 application/json이어야 하지만 '{ct}'",
+        );
+    }
+
+    /// 쿠키·리다이렉트가 추적 없이 그대로 전달되고(Set-Cookie 재작성), CORS가 Origin echo인지 확인.
+    #[tokio::test]
+    async fn proxy_passes_cookies_redirect_and_cors() {
+        use axum::routing::get;
+
+        let target_app = Router::new().route(
+            "/login",
+            get(|| async {
+                axum::http::Response::builder()
+                    .status(302)
+                    .header("Set-Cookie", "sid=abc; Domain=.api.test; Secure; Path=/; HttpOnly; SameSite=None")
+                    .header("Set-Cookie", "csrf=xyz; Path=/")
+                    .header("Location", "/home")
+                    .body(axum::body::Body::empty())
+                    .unwrap()
+            }),
+        );
+        let target_listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let target_port = target_listener.local_addr().unwrap().port();
+        tokio::spawn(async move {
+            axum::serve(target_listener, target_app).await.unwrap();
+        });
+
+        let proxy_listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let proxy_port = proxy_listener.local_addr().unwrap().port();
+        let state = ProxyState {
+            target: Arc::new(format!("http://127.0.0.1:{target_port}")),
+            client: build_forward_client(false, None, 30_000).unwrap(),
+            bound_port: proxy_port,
+        };
+        let proxy_app = Router::new().fallback(forward_handler).with_state(state);
+        tokio::spawn(async move {
+            axum::serve(proxy_listener, proxy_app).await.unwrap();
+        });
+        tokio::time::sleep(std::time::Duration::from_millis(50)).await;
+
+        // 테스트 클라이언트도 리다이렉트를 따라가지 않게 해서 302를 그대로 관찰
+        let client = reqwest::Client::builder()
+            .redirect(reqwest::redirect::Policy::none())
+            .build()
+            .unwrap();
+        let resp = client
+            .get(format!("http://127.0.0.1:{proxy_port}/login"))
+            .header("Origin", "http://localhost:5173")
+            .send()
+            .await
+            .unwrap();
+
+        assert_eq!(resp.status().as_u16(), 302, "리다이렉트가 추적되지 않고 그대로 와야 한다");
+        let cookies: Vec<String> = resp
+            .headers()
+            .get_all("set-cookie")
+            .iter()
+            .map(|v| v.to_str().unwrap().to_string())
+            .collect();
+        assert_eq!(
+            cookies,
+            vec!["sid=abc; Path=/; HttpOnly".to_string(), "csrf=xyz; Path=/".to_string()],
+            "Set-Cookie 다중 값이 재작성되어 모두 전달돼야 한다"
+        );
+        assert_eq!(resp.headers().get("location").unwrap(), "/home", "상대 Location은 그대로");
+        assert_eq!(
+            resp.headers().get("access-control-allow-origin").unwrap(),
+            "http://localhost:5173",
+            "Origin이 있으면 echo"
+        );
+        assert_eq!(resp.headers().get("access-control-allow-credentials").unwrap(), "true");
+    }
+
+    /// 절대 URL Location이 타깃 접두사면 프록시 주소로 재작성되는지 확인.
+    #[tokio::test]
+    async fn proxy_rewrites_absolute_location_to_proxy() {
+        use axum::routing::get;
+
+        let target_listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let target_port = target_listener.local_addr().unwrap().port();
+        let loc = format!("http://127.0.0.1:{target_port}/next");
+        let target_app = Router::new().route(
+            "/go",
+            get(move || {
+                let loc = loc.clone();
+                async move {
+                    axum::http::Response::builder()
+                        .status(302)
+                        .header("Location", loc)
+                        .body(axum::body::Body::empty())
+                        .unwrap()
+                }
+            }),
+        );
+        tokio::spawn(async move {
+            axum::serve(target_listener, target_app).await.unwrap();
+        });
+
+        let proxy_listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let proxy_port = proxy_listener.local_addr().unwrap().port();
+        let state = ProxyState {
+            target: Arc::new(format!("http://127.0.0.1:{target_port}")),
+            client: build_forward_client(false, None, 30_000).unwrap(),
+            bound_port: proxy_port,
+        };
+        let proxy_app = Router::new().fallback(forward_handler).with_state(state);
+        tokio::spawn(async move {
+            axum::serve(proxy_listener, proxy_app).await.unwrap();
+        });
+        tokio::time::sleep(std::time::Duration::from_millis(50)).await;
+
+        let client = reqwest::Client::builder()
+            .redirect(reqwest::redirect::Policy::none())
+            .build()
+            .unwrap();
+        let resp = client
+            .get(format!("http://127.0.0.1:{proxy_port}/go"))
+            .send()
+            .await
+            .unwrap();
+        assert_eq!(
+            resp.headers().get("location").unwrap().to_str().unwrap(),
+            format!("http://localhost:{proxy_port}/next"),
+            "타깃 내부 리다이렉트는 프록시 주소로 재작성"
         );
     }
 }
