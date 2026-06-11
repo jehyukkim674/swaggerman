@@ -271,15 +271,15 @@ export default function App() {
   }
 
   // 프록시 녹화 전체를 제목 붙인 Mock 프리셋(IndexedDB)으로 저장한다.
+  // 각 녹화는 요청 엔트리(실제 경로+쿼리)로 보존된다(같은 스펙 템플릿이어도 안 합쳐짐).
   // (활성 설정은 건드리지 않음 → Mock 서버 모달의 프리셋 드롭다운에서 선택해 적용)
   async function sendAllRecordingsToMock(records: ProxyRecord[], title: string): Promise<string> {
     if (!spec) return "스펙이 로드되지 않았습니다";
     const url = activeSpecUrl || specUrl;
-    const { saved, unmatched, failed, persisted } = await saveRecordingsToMock(spec, records, baseURL, url, title);
-    if (saved === 0) return "저장할 녹화가 없습니다(스펙에 없는 경로거나 실패한 녹화)";
+    const { saved, failed, persisted } = await saveRecordingsToMock(spec, records, baseURL, url, title);
+    if (saved === 0) return "저장할 녹화가 없습니다(목록을 모두 지웠거나 실패한 녹화)";
     if (!persisted) return "프리셋 저장 실패 — 저장소에 기록하지 못했습니다(용량/권한 확인)";
     const parts = [`프리셋 '${title}' 저장 ${saved}건 — Mock 서버에서 프리셋을 선택해 적용하세요`];
-    if (unmatched > 0) parts.push(`스펙에 없는 경로 ${unmatched}건 제외`);
     if (failed > 0) parts.push(`실패 녹화 ${failed}건 제외`);
     return parts.join(", ");
   }

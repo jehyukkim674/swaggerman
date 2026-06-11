@@ -248,6 +248,8 @@ pub fn build_response(
 
 /// 들어온 요청을 요청 엔트리에 매칭. 메서드+경로 정확일치 + 쿼리/헤더 부분일치.
 /// 조건 수(query+header)가 많은(더 구체적인) 엔트리가 우선. 동률이면 먼저 정의된 것.
+// 주의: 경로/쿼리는 디코딩하지 않고 raw 비교한다(엔트리·요청 양쪽 모두 인코딩 상태 동일).
+// ASCII 경로(IP_STATUS 등)는 정확히 매칭됨. 퍼센트 인코딩된 세그먼트는 Phase 2에서 재검토.
 pub fn match_request_entry<'a>(
     entries: &'a [MockRequestEntry],
     method: &str,
@@ -545,6 +547,37 @@ mod tests {
         assert_eq!(r1.status, 201);
         assert!(r1.dataset.is_none());
         assert_eq!(r1.body.as_ref().unwrap()["ok"], true);
+    }
+
+    #[test]
+    fn mock_config_deserializes_request_entries() {
+        // TS가 보내는 요청 엔트리(camelCase) JSON이 그대로 역직렬화되는지(IPC 경계 고정)
+        let ts_json = r#"{
+            "port": 9090,
+            "routes": [],
+            "requests": [
+                {
+                    "id": "abc",
+                    "method": "GET",
+                    "path": "/api/v1/code/IP_STATUS",
+                    "query": [{"name": "activeOnly", "value": "true"}],
+                    "headers": [{"name": "Authorization", "value": "Bearer t"}],
+                    "status": 200,
+                    "body": [{"id": 1, "name": "코드"}],
+                    "delayMs": 50,
+                    "note": "라벨"
+                }
+            ]
+        }"#;
+        let config: MockConfig = serde_json::from_str(ts_json).expect("요청 엔트리 역직렬화 실패");
+        assert_eq!(config.requests.len(), 1);
+        let e = &config.requests[0];
+        assert_eq!(e.method, "GET");
+        assert_eq!(e.path, "/api/v1/code/IP_STATUS");
+        assert_eq!(e.delay_ms, 50);
+        assert_eq!(e.query[0].name, "activeOnly");
+        assert_eq!(e.headers[0].value, "Bearer t");
+        assert_eq!(e.body.as_ref().unwrap()[0]["name"], "코드");
     }
 
     #[test]

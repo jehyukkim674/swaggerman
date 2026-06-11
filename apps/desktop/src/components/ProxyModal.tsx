@@ -129,6 +129,8 @@ export function ProxyModal({ defaultTarget, net, onSendToMock, onSendAllToMock, 
 
   const baseUrl = `http://localhost:${boundPort}`;
   const isBrowser = mode === "browser";
+  // 숨김 키. index 대신 atMs+method+path로 안정화(목록이 최신순 reverse라 index는 불안정).
+  // 완전 동일한 녹화(같은 ms·메서드·경로)는 함께 숨겨져도 무방.
   const recKey = (r: ProxyRecord) => `${r.atMs}-${r.method}-${r.path}`;
   const allRecords = isBrowser ? capRecords : records;
   const shownRecords = allRecords.filter((r) => !hiddenIds.has(recKey(r)));
