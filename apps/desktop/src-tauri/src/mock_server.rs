@@ -855,7 +855,21 @@ mod tests {
                     list_wrapper: None,
                 },
             ],
-            requests: vec![],
+            // 요청 엔트리: 같은 스펙 템플릿(/code/{id})이어도 정확 경로로 구분돼 서로 다른 응답
+            requests: vec![
+                MockRequestEntry {
+                    id: "s".into(), method: "GET".into(),
+                    path: "/api/v1/code/IP_STATUS".into(),
+                    query: vec![], headers: vec![],
+                    status: 200, body: Some(json!({"code": "status"})), delay_ms: 0,
+                },
+                MockRequestEntry {
+                    id: "u".into(), method: "GET".into(),
+                    path: "/api/v1/code/IP_USAGE".into(),
+                    query: vec![], headers: vec![],
+                    status: 200, body: Some(json!({"code": "usage"})), delay_ms: 0,
+                },
+            ],
         };
 
         let port = mock_start(config).await.expect("서버 시작 실패");
@@ -895,6 +909,19 @@ mod tests {
             "로그에 /hello 요청이 없음: {:?}",
             status2.logs
         );
+
+        // 요청 엔트리 서빙: IP_STATUS와 IP_USAGE가 정확 경로로 구분돼 서로 다른 응답
+        let status_resp = client
+            .get(format!("http://127.0.0.1:{port}/api/v1/code/IP_STATUS"))
+            .send().await.expect("IP_STATUS 요청 실패");
+        let status_body: Value = serde_json::from_str(&status_resp.text().await.unwrap()).unwrap();
+        assert_eq!(status_body["code"], "status");
+
+        let usage_resp = client
+            .get(format!("http://127.0.0.1:{port}/api/v1/code/IP_USAGE"))
+            .send().await.expect("IP_USAGE 요청 실패");
+        let usage_body: Value = serde_json::from_str(&usage_resp.text().await.unwrap()).unwrap();
+        assert_eq!(usage_body["code"], "usage"); // 합쳐지지 않고 각각 다른 응답
 
         // 서버 중지
         mock_stop().await.expect("서버 중지 실패");
