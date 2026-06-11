@@ -2,7 +2,7 @@
 // 프록시 녹화 → 경로 매칭 operation + Mock 변환.
 import type { ParsedOperation, ParsedSpec } from "./types";
 import type { ProxyRecord } from "./proxy-client";
-import { loadMockConfig, type MockServerConfig } from "./mock-config";
+import { loadMockConfig, type MockServerConfig, type MockRequestEntry } from "./mock-config";
 import { savePreset } from "./mock-presets-store";
 
 /** operation path 템플릿(/pet/{petId})과 실제 경로(/pet/42)를 매칭. {x}는 와일드카드. */
@@ -101,6 +101,47 @@ export function applyMockTargets(cfg: MockServerConfig, targets: MockTarget[]): 
   }
 }
 
+/** 녹화 1건을 요청 엔트리로 변환(실제 경로+쿼리 보존). */
+export function recordingToRequestEntry(record: ProxyRecord): MockRequestEntry {
+  const [pathPart, queryStr] = record.path.split("?");
+  const query = queryStr
+    ? queryStr.split("&").filter(Boolean).map((pair) => {
+        const i = pair.indexOf("=");
+        return i < 0
+          ? { name: pair, value: "" }
+          : { name: pair.slice(0, i), value: pair.slice(i + 1) };
+      })
+    : undefined;
+  let body: unknown;
+  try {
+    body = JSON.parse(record.responseBody);
+  } catch {
+    body = record.responseBody;
+  }
+  return {
+    id: crypto.randomUUID(),
+    method: record.method,
+    path: pathPart,
+    query,
+    status: record.status,
+    body,
+    delayMs: 0,
+  };
+}
+
+/** 녹화 전체를 요청 엔트리로. error 녹화 제외, 같은 method+path+query는 최신이 이김. */
+export function recordingsToRequestEntries(records: ProxyRecord[]): { entries: MockRequestEntry[]; failed: number } {
+  const byKey = new Map<string, MockRequestEntry>();
+  let failed = 0;
+  for (const r of records) {
+    if (r.error) { failed += 1; continue; }
+    const e = recordingToRequestEntry(r);
+    const key = `${e.method} ${e.path}?${(e.query ?? []).map((q) => `${q.name}=${q.value}`).join("&")}`;
+    byKey.set(key, e); // 나중(최신)이 이김
+  }
+  return { entries: [...byKey.values()], failed };
+}
+
 /** saveRecordingsToMock 결과 — 저장된 건수와 제외 건수, 실제 저장 성공 여부. */
 export interface SaveRecordingsResult {
   saved: number;     // Mock으로 저장된(매칭된) operation 수
@@ -110,10 +151,10 @@ export interface SaveRecordingsResult {
 }
 
 /**
- * 녹화 전체를 **제목 붙은 Mock 프리셋**으로 IndexedDB에 저장한다(현재 활성 설정은 건드리지 않음).
+ * 녹화 전체를 **요청 엔트리**로 변환해 제목 붙은 Mock 프리셋으로 IndexedDB에 저장한다.
+ * 스펙 operation 매칭 없이 실제 경로를 그대로 보존(같은 템플릿이어도 분리 저장).
  * 저장된 프리셋은 Mock 서버 모달의 프리셋 드롭다운에서 골라 적용한다.
- * 프리셋 내용 = 현재 활성 설정 스냅샷 + 녹화 매칭분 적용.
- * 매칭된 녹화(saved>0)가 없으면 프리셋을 만들지 않는다(persisted=false).
+ * 엔트리가 없으면(error 녹화만 있으면) 프리셋을 만들지 않는다(persisted=false).
  */
 export async function saveRecordingsToMock(
   spec: ParsedSpec,
@@ -122,13 +163,14 @@ export async function saveRecordingsToMock(
   specUrl: string,
   title: string,
 ): Promise<SaveRecordingsResult> {
-  const { targets, unmatched, failed } = recordingsToMocks(spec, records, baseUrl);
+  void spec; void baseUrl; // 요청 엔트리는 스펙 매칭 불필요(실제 경로 그대로 저장)
+  const { entries, failed } = recordingsToRequestEntries(records);
   let persisted = false;
-  if (targets.length > 0) {
+  if (entries.length > 0) {
     const config = loadMockConfig(specUrl, spec);
-    applyMockTargets(config, targets);
-    const preset = await savePreset(specUrl, title, config.operations); // IndexedDB 저장
+    config.requests = [...entries, ...config.requests];
+    const preset = await savePreset(specUrl, title, config.operations, config.requests);
     persisted = preset !== null;
   }
-  return { saved: targets.length, unmatched, failed, persisted };
+  return { saved: entries.length, unmatched: 0, failed, persisted };
 }

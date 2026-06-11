@@ -3,7 +3,7 @@
 // localStorage(약 5MB) 용량을 초과한다 → 대용량을 담는 IndexedDB에 저장한다.
 // spec-cache.ts의 IndexedDB 패턴을 따른다(읽기는 절대 throw 안 함, 쓰기는 성공 여부 반환).
 import { loadJSON } from "./storage";
-import type { MockOperationConfig, MockPreset } from "./mock-config";
+import type { MockOperationConfig, MockPreset, MockRequestEntry } from "./mock-config";
 
 const DB_NAME = "swaggerman-mock-presets";
 const STORE = "presets";
@@ -92,6 +92,7 @@ export async function savePreset(
   specUrl: string,
   title: string,
   operations: MockOperationConfig[],
+  requests?: MockRequestEntry[],
 ): Promise<MockPreset | null> {
   try {
     const preset: MockPreset = {
@@ -99,6 +100,7 @@ export async function savePreset(
       title,
       savedAt: Date.now(),
       operations: structuredClone(operations),
+      requests: requests ? structuredClone(requests) : [],
     };
     const list = [preset, ...(await loadPresets(specUrl))];
     const ok = await writeRecord(specUrl, list);

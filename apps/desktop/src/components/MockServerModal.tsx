@@ -380,7 +380,7 @@ export function MockServerModal({ spec, specUrl, history, onClose }: Props) {
   const handleSavePreset = async () => {
     const t = presetTitle.trim();
     if (!t) return;
-    const saved = await savePreset(specUrl, t, config.operations);
+    const saved = await savePreset(specUrl, t, config.operations, config.requests);
     setSaveOpen(false);
     setPresetTitle("");
     if (!saved) {

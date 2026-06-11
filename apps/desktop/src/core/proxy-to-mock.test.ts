@@ -2,7 +2,7 @@
 // @vitest-environment jsdom
 import "fake-indexeddb/auto";
 import { describe, it, expect, beforeEach, vi } from "vitest";
-import { matchOperation, recordingToMock, recordingsToMocks, applyMockTargets, stripBasePath } from "./proxy-to-mock";
+import { matchOperation, recordingToMock, recordingsToMocks, applyMockTargets, stripBasePath, recordingToRequestEntry, recordingsToRequestEntries } from "./proxy-to-mock";
 import { defaultMockConfig } from "./mock-config";
 import { IDBFactory } from "fake-indexeddb";
 import type { ParsedSpec } from "./types";
@@ -154,6 +154,41 @@ describe("recordingToMock baseUrl 폴백", () => {
   });
 });
 
+describe("녹화 → 요청 엔트리", () => {
+  it("recordingToRequestEntry는 경로/쿼리/응답을 엔트리로 변환한다", () => {
+    const e = recordingToRequestEntry({
+      atMs: 1, method: "GET", path: "/api/v1/code/IP_STATUS?activeOnly=true",
+      status: 200, responseBody: '[{"id":1}]',
+    });
+    expect(e.method).toBe("GET");
+    expect(e.path).toBe("/api/v1/code/IP_STATUS");
+    expect(e.query).toEqual([{ name: "activeOnly", value: "true" }]);
+    expect(e.status).toBe(200);
+    expect(e.body).toEqual([{ id: 1 }]);
+    expect(e.id).toBeTruthy();
+  });
+
+  it("JSON 아닌 응답은 원문 문자열 body", () => {
+    const e = recordingToRequestEntry({ atMs: 1, method: "GET", path: "/x", status: 200, responseBody: "plain" });
+    expect(e.body).toBe("plain");
+    expect(e.query).toBeUndefined();
+  });
+
+  it("recordingsToRequestEntries는 같은 method+path+query 중 최신이 이기고 실패는 제외한다", () => {
+    const { entries, failed } = recordingsToRequestEntries([
+      { atMs: 1, method: "GET", path: "/api/v1/code/IP_STATUS", status: 200, responseBody: '{"v":1}' },
+      { atMs: 2, method: "GET", path: "/api/v1/code/IP_USAGE", status: 200, responseBody: '{"v":2}' },
+      { atMs: 3, method: "GET", path: "/api/v1/code/IP_STATUS", status: 200, responseBody: '{"v":3}' }, // 최신
+      { atMs: 4, method: "GET", path: "/api/v1/code/X", status: 500, responseBody: "", error: "boom" },
+    ]);
+    expect(failed).toBe(1);
+    expect(entries).toHaveLength(2);
+    const ipStatus = entries.find((e) => e.path === "/api/v1/code/IP_STATUS")!;
+    expect(ipStatus.body).toEqual({ v: 3 }); // 최신 이김
+    expect(entries.some((e) => e.path === "/api/v1/code/IP_USAGE")).toBe(true);
+  });
+});
+
 describe("saveRecordingsToMock (전체저장 = IndexedDB 프리셋으로 저장)", () => {
   const url = "https://api.test/openapi.json";
   // dbPromise 모듈 캐시 격리 — 매 테스트마다 새 IndexedDB + 모듈 재import
@@ -167,45 +202,39 @@ describe("saveRecordingsToMock (전체저장 = IndexedDB 프리셋으로 저장)
     storeMod = await import("./mock-presets-store");
   });
 
-  it("녹화를 IndexedDB 프리셋으로 저장(persisted)하고 활성 설정은 건드리지 않는다", async () => {
+  it("녹화를 요청 엔트리로 프리셋에 저장(persisted)한다", async () => {
     const spec = makeSpec([{ id: "GET /pets", method: "GET", path: "/pets" }]);
     const records: ProxyRecord[] = [
-      { atMs: 1, method: "GET", path: "/pets", status: 200, responseBody: '[{"id":1}]' },
+      { atMs: 1, method: "GET", path: "/api/v1/code/IP_STATUS?activeOnly=true", status: 200, responseBody: '[{"id":1}]' },
+      { atMs: 2, method: "GET", path: "/api/v1/code/IP_USAGE?activeOnly=true", status: 200, responseBody: '[{"id":2}]' },
     ];
-    const res = await mod.saveRecordingsToMock(spec, records, "https://api.test", url, "스모크");
-    expect(res).toEqual({ saved: 1, unmatched: 0, failed: 0, persisted: true });
-
-    // 프리셋에 녹화 매칭분 반영(Mock에서 선택해 적용)
+    const res = await mod.saveRecordingsToMock(spec, records, "https://api.test", url, "스냅샷");
+    expect(res).toEqual({ saved: 2, unmatched: 0, failed: 0, persisted: true });
     const presets = await storeMod.loadPresets(url);
-    expect(presets).toHaveLength(1);
-    expect(presets[0].title).toBe("스모크");
-    const presetOp = presets[0].operations.find((o) => o.opId === "GET /pets")!;
-    expect(presetOp.enabled).toBe(true);
-    expect(presetOp.source).toBe("manual");
-    expect(presetOp.dataset).toEqual([{ id: 1 }]);
-
-    // 활성 설정(localStorage)은 변경하지 않는다
-    expect(localStorage.getItem(`swaggerman.mock.${url}`)).toBeNull();
+    expect(presets[0].requests).toHaveLength(2);
+    const paths = presets[0].requests!.map((r) => r.path).sort();
+    expect(paths).toEqual(["/api/v1/code/IP_STATUS", "/api/v1/code/IP_USAGE"]);
   });
 
-  it("매칭 0건이면 프리셋을 만들지 않는다(persisted=false)", async () => {
+  it("error 녹화만 있으면 프리셋을 만들지 않는다(persisted=false)", async () => {
     const spec = makeSpec([{ id: "GET /pets", method: "GET", path: "/pets" }]);
     const records: ProxyRecord[] = [
-      { atMs: 1, method: "GET", path: "/unknown", status: 200, responseBody: "[]" },
+      { atMs: 1, method: "GET", path: "/x", status: 500, responseBody: "", error: "boom" },
     ];
     const res = await mod.saveRecordingsToMock(spec, records, "https://api.test", url, "x");
-    expect(res).toEqual({ saved: 0, unmatched: 1, failed: 0, persisted: false });
+    expect(res).toEqual({ saved: 0, unmatched: 0, failed: 1, persisted: false });
     expect(await storeMod.loadPresets(url)).toHaveLength(0);
   });
 
-  it("실패 녹화·미매칭 건수를 결과에 함께 반환한다", async () => {
+  it("실패 녹화 건수를 결과에 반환하고 성공 녹화는 저장된다", async () => {
     const spec = makeSpec([{ id: "GET /pets", method: "GET", path: "/pets" }]);
     const records: ProxyRecord[] = [
       { atMs: 1, method: "GET", path: "/pets", status: 200, responseBody: '[{"id":1}]' },
-      { atMs: 2, method: "GET", path: "/nope", status: 404, responseBody: "" },
+      { atMs: 2, method: "GET", path: "/nope", status: 404, responseBody: '{"err":"not found"}' },
       { atMs: 3, method: "GET", path: "/pets", status: 500, responseBody: "", error: "boom" },
     ];
     const res = await mod.saveRecordingsToMock(spec, records, "https://api.test", url, "t");
-    expect(res).toEqual({ saved: 1, unmatched: 1, failed: 1, persisted: true });
+    // /nope는 이제 spec 매칭 불필요 — 엔트리로 저장됨(unmatched=0). /pets 최신이 이김. error=1.
+    expect(res).toEqual({ saved: 2, unmatched: 0, failed: 1, persisted: true });
   });
 });

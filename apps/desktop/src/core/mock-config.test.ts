@@ -521,7 +521,7 @@ describe("applyPresetToConfig", () => {
 
   it("config에 있는 opId만 프리셋 값으로 교체하고 port·미존재는 유지한다", () => {
     const spec = makeSpec([makeOp({ id: "GET /items" }), makeOp({ id: "GET /pets", path: "/pets" })]);
-    const config: MockServerConfig = { port: 9099, operations: defaultMockConfig(spec).operations };
+    const config: MockServerConfig = { port: 9099, operations: defaultMockConfig(spec).operations, requests: [] };
     const preset: MockPreset = {
       id: "p1",
       title: "p",

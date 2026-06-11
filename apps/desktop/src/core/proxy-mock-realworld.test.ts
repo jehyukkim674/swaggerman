@@ -46,6 +46,7 @@ const RECORDED = [
   "/api/v1/cmdb/infra",
   "/api/v1/cmdb/location-storage",
   "/api/v1/common/code/IP_STATUS?activeOnly=true",
+  "/api/v1/common/code/IP_USAGE?activeOnly=true",
   "/api/v1/cmdb/subnet",
   "/api/v1/cmdb/os",
   "/api/v1/cmdb/infra/18/props",
@@ -98,12 +99,10 @@ describe("실세계 형태 스펙 — 전체 저장→IndexedDB 영속→재로�
     const res = await mod.saveRecordingsToMock(spec, records, baseURL, specUrl, "CMDB 스냅샷");
     expect(res.saved).toBeGreaterThan(0);
     expect(res.persisted).toBe(true);
-
     const presets = await storeMod.loadPresets(specUrl);
-    expect(presets).toHaveLength(1);
-    expect(presets[0].title).toBe("CMDB 스냅샷");
-    const subnet = presets[0].operations.find((o) => o.opId === "GET /api/v1/cmdb/subnet");
-    expect(subnet?.enabled).toBe(true);
-    expect((subnet?.dataset as unknown[])?.length).toBe(50);
+    expect(presets[0].requests!.length).toBe(res.saved);
+    // IP_STATUS / IP_USAGE가 각각 별도 엔트리로 저장됨
+    const codePaths = presets[0].requests!.filter((r) => r.path.includes("/common/code/")).map((r) => r.path);
+    expect(new Set(codePaths).size).toBe(codePaths.length); // 중복 없음(합쳐지지 않음)
   });
 });
