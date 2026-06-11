@@ -10,6 +10,7 @@ import {
   loadMockConfig,
   saveMockConfig,
   applyPresetToConfig,
+  defaultMockConfig,
 } from "../core/mock-config";
 import { loadPresets, savePreset, deletePreset, renamePreset } from "../core/mock-presets-store";
 import { generateDataset } from "../core/mock-generator";
@@ -374,6 +375,13 @@ export function MockServerModal({ spec, specUrl, history, onClose }: Props) {
     navigator.clipboard.writeText(`http://localhost:${config.port}`).catch(() => {});
   }
 
+  // ─ 초기화 핸들러 ─
+  const handleResetConfig = () => {
+    if (!window.confirm("Mock 설정을 기본값으로 되돌립니다(요청 엔트리·operation 설정 초기화). 계속할까요?")) return;
+    setConfig(defaultMockConfig(spec));
+    setSelectedPresetId("");
+  };
+
   // ─ 프리셋 핸들러 (IndexedDB — 모두 async) ─
   const refreshPresets = async () => setPresets(await loadPresets(specUrl));
 
@@ -466,6 +474,9 @@ export function MockServerModal({ spec, specUrl, history, onClose }: Props) {
             <button className="btn danger small" onClick={handleStop}>
               서버 중지
             </button>
+          )}
+          {!running && (
+            <button className="btn small" onClick={handleResetConfig} title="Mock 설정 초기화">초기화</button>
           )}
           {serverError && (
             <span className="mock-error-inline">{serverError}</span>

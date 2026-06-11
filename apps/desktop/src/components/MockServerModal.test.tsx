@@ -113,6 +113,7 @@ void _makeHistory;
 // ────────────────────────────────────────────────
 
 import { MockServerModal } from "./MockServerModal";
+import { saveMockConfig } from "../core/mock-config";
 
 // ────────────────────────────────────────────────
 // 테스트 스위트
@@ -624,6 +625,39 @@ describe("MockServerModal 프리셋", () => {
     const confirmSpy = vi.spyOn(window, "confirm").mockReturnValue(false);
     fireEvent.click(screen.getByTitle("삭제"));
     expect(await screen.findByRole("option", { name: /유지세트/ })).toBeTruthy();
+    confirmSpy.mockRestore();
+  });
+});
+
+describe("MockServerModal 초기화", () => {
+  it("초기화 confirm 후 설정을 기본값으로 되돌린다(요청 엔트리 비움)", async () => {
+    vi.clearAllMocks();
+    mockGetMockStatus.mockResolvedValue({ running: false, port: 9090, logs: [] });
+    mockStartMockServer.mockResolvedValue(9090);
+    const confirmSpy = vi.spyOn(window, "confirm").mockReturnValue(true);
+    const SPEC = `https://api.example.com/${crypto.randomUUID()}.json`;
+    const spec = makeSpec([{ id: "GET /users", method: "GET", path: "/users" }]);
+
+    render(<MockServerModal spec={spec} specUrl={SPEC} history={[]} onClose={() => {}} />);
+
+    // 초기화 버튼이 제어 바에 표시(서버 미실행 시)
+    expect(screen.getByRole("button", { name: "초기화" })).toBeTruthy();
+
+    // 초기 자동저장 이력 초기화(render 후 debounce 호출 무시)
+    vi.mocked(saveMockConfig).mockClear();
+
+    // 초기화 클릭
+    fireEvent.click(screen.getByRole("button", { name: "초기화" }));
+    expect(confirmSpy).toHaveBeenCalled();
+
+    // 디바운스(400ms) 후 saveMockConfig가 requests=[]로 호출되는지 확인
+    await waitFor(() => {
+      expect(vi.mocked(saveMockConfig)).toHaveBeenCalledWith(
+        SPEC,
+        expect.objectContaining({ requests: [] }),
+      );
+    }, { timeout: 2000 });
+
     confirmSpy.mockRestore();
   });
 });
