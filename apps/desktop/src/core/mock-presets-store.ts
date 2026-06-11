@@ -129,3 +129,19 @@ export async function renamePreset(specUrl: string, id: string, title: string): 
     /* 무시 */
   }
 }
+
+/** 스펙의 프리셋 레코드 전체 삭제(프로젝트 제거 시 정리용). */
+export async function deleteAllPresets(specUrl: string): Promise<void> {
+  try {
+    const db = await openDB();
+    await new Promise<void>((resolve) => {
+      const tx = db.transaction(STORE, "readwrite");
+      tx.objectStore(STORE).delete(specUrl);
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => resolve();
+      tx.onabort = () => resolve();
+    });
+  } catch {
+    /* 무시 */
+  }
+}

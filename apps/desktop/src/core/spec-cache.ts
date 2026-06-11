@@ -46,6 +46,22 @@ export async function saveSpecCache(url: string, spec: ParsedSpec): Promise<void
   }
 }
 
+/** URL의 캐시 삭제(프로젝트 제거 시 정리용). 실패는 조용히 무시. */
+export async function deleteSpecCache(url: string): Promise<void> {
+  try {
+    const db = await openDB();
+    await new Promise<void>((resolve) => {
+      const tx = db.transaction(STORE, "readwrite");
+      tx.objectStore(STORE).delete(url);
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => resolve();
+      tx.onabort = () => resolve();
+    });
+  } catch {
+    /* 무시 */
+  }
+}
+
 /** URL에 캐시된 spec과 저장 시각을 반환. 없거나 오류면 null. */
 export async function loadSpecCache(
   url: string,

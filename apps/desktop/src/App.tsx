@@ -12,8 +12,8 @@ import {
   isFileProject,
   saveImportedSpec,
   loadImportedSpec,
-  deleteImportedSpec,
 } from "./core/imported-spec-store";
+import { removeSpecLocalData } from "./core/project-cleanup";
 import { executeRequest } from "./core/http-client";
 import {
   buildRequest,
@@ -753,13 +753,8 @@ export default function App() {
 
   function removeProject(url: string) {
     setProjects((prev) => prev.filter((p) => p.url !== url));
-    localStorage.removeItem(`swaggerman.fav.${url}`);
-    localStorage.removeItem(`swaggerman.hist.${url}`);
-    localStorage.removeItem(`swaggerman.auth.${url}`);
-    localStorage.removeItem(`swaggerman.inputs.${url}`);
-    localStorage.removeItem(`swaggerman.lastOp.${url}`);
-    localStorage.removeItem(`swaggerman.baseURL.${url}`);
-    if (isFileProject(url)) void deleteImportedSpec(url);
+    // 스펙별 localStorage 키 + IndexedDB(Mock 설정·프리셋·스펙 캐시·가져온 파일) 전부 정리
+    void removeSpecLocalData(url);
   }
 
   // 프로젝트 관리 모달(목록 추가/수정/삭제)
