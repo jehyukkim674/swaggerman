@@ -27,6 +27,7 @@ import { methodColor, statusColor } from "./method";
 import { CloseCircleIcon, CopyIcon, TrashIcon, EditIcon } from "./icons";
 import { useEscToClose } from "./useEscToClose";
 import { Select } from "./Select";
+import { MockRequestsPanel } from "./MockRequestsPanel";
 
 // ────────────────────────────────────────────────
 // Props
@@ -515,6 +516,12 @@ export function MockServerModal({ spec, specUrl, history, onClose }: Props) {
             </>
           )}
         </div>
+
+        {/* ── 요청 엔트리(캡처/커스텀) 패널 ── */}
+        <MockRequestsPanel
+          requests={config.requests}
+          onChange={(next) => setConfig((prev) => ({ ...prev, requests: next }))}
+        />
 
         {/* ── 바디 (좌/우 2단) ── */}
         <div className="mock-body">

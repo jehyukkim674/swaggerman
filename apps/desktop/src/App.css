@@ -2827,6 +2827,35 @@ tr.cmp-changed td { background: #d2992214; }
   overflow: hidden;
 }
 
+/* ── 요청 엔트리 패널 ── */
+.mock-requests-panel {
+  border-bottom: 1px solid var(--border);
+  padding: 8px 12px;
+  max-height: 38%;
+  overflow: auto;
+  flex-shrink: 0;
+}
+.mock-requests-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
+.mock-requests-title { font-size: 12px; color: var(--muted); font-weight: 600; }
+.mock-requests-list { display: flex; flex-direction: column; gap: 4px; }
+.mock-req-item { border: 1px solid var(--border); border-radius: 6px; overflow: hidden; }
+.mock-req-item.open { border-color: var(--accent); }
+.mock-req-row { display: flex; align-items: center; gap: 8px; padding: 5px 8px; cursor: pointer; font-size: 12px; }
+.mock-req-row:hover { background: var(--bg-3); }
+.mock-req-path { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: ui-monospace, monospace; }
+.mock-req-status { color: var(--muted); }
+.mock-req-edit { padding: 8px; border-top: 1px solid var(--border); display: flex; flex-direction: column; gap: 8px; }
+.mock-req-fields { display: flex; gap: 8px; align-items: flex-end; flex-wrap: wrap; }
+.mock-req-fields label { display: flex; flex-direction: column; gap: 3px; font-size: 11px; color: var(--muted); }
+.mock-req-fields label.grow { flex: 1; }
+.mock-req-fields input, .mock-req-fields select { background: var(--bg); color: var(--text); border: 1px solid var(--border); border-radius: 5px; padding: 4px 7px; font-size: 12px; }
+.mock-req-section { display: flex; flex-direction: column; gap: 4px; }
+.mock-req-label { font-size: 11px; color: var(--muted); }
+.mock-req-matches { display: flex; flex-direction: column; gap: 4px; }
+.mock-req-match-row { display: flex; gap: 6px; }
+.mock-req-match-row input { flex: 1; background: var(--bg); color: var(--text); border: 1px solid var(--border); border-radius: 5px; padding: 3px 7px; font-size: 12px; }
+.mock-req-body { background: var(--bg); color: var(--text); border: 1px solid var(--border); border-radius: 6px; padding: 7px; font-family: ui-monospace, monospace; font-size: 12px; resize: vertical; }
+
 /* 좌측 operation 목록 */
 .mock-op-list {
   width: 340px;
