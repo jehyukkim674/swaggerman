@@ -230,6 +230,32 @@ describe("ProxyModal 전체 Mock으로 제목", () => {
   });
 });
 
+describe("ProxyModal 캡처 목록 행 삭제", () => {
+  it("행의 × 삭제 시 그 녹화가 목록에서 사라지고 전체 저장 대상에서 빠진다", async () => {
+    const recs: ProxyRecord[] = [
+      { atMs: 1, method: "GET", path: "/a", status: 200, responseBody: "[]" },
+      { atMs: 2, method: "GET", path: "/b", status: 200, responseBody: "[]" },
+    ];
+    invokeMock.mockImplementation(async (cmd: unknown) => {
+      if (cmd === "proxy_start") return 9091;
+      if (cmd === "proxy_recordings") return recs;
+      return undefined;
+    });
+    // 타입 명시: calls[0][0]이 ProxyRecord[]로 추론되게
+    const onSendAll = vi.fn(async (_recs: ProxyRecord[], _t: string): Promise<string> => "저장됨");
+    render(<ProxyModal defaultTarget="https://api.example.com"
+      onSendToMock={vi.fn()} onSendAllToMock={onSendAll} onClose={vi.fn()} />);
+    fireEvent.click(screen.getByRole("button", { name: "시작" }));
+    await screen.findByText("/a");
+    // 최신순(reverse) 표시: /b가 [0], /a가 [1]. 하나 삭제 후 1건만 남는지 확인
+    fireEvent.click(screen.getAllByTitle("이 녹화 삭제")[1]);
+    fireEvent.click(await screen.findByRole("button", { name: "전체 Mock으로" }));
+    fireEvent.change(await screen.findByPlaceholderText("프리셋 제목"), { target: { value: "t" } });
+    fireEvent.click(screen.getByRole("button", { name: "저장" }));
+    expect(onSendAll.mock.calls[0][0]).toHaveLength(1);
+  });
+});
+
 describe("ProxyModal 브라우저 모드", () => {
   it("브라우저 탭 클릭 시 시작 URL 입력과 시작 버튼을 표시한다", async () => {
     renderModal();

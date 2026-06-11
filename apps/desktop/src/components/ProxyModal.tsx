@@ -43,6 +43,7 @@ export function ProxyModal({ defaultTarget, net, onSendToMock, onSendAllToMock, 
   const [sendMsg, setSendMsg] = useState<string | null>(null);
   const [bulkTitle, setBulkTitle] = useState("");
   const [bulkOpen, setBulkOpen] = useState(false);
+  const [hiddenIds, setHiddenIds] = useState<Set<string>>(new Set());
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const capPollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -128,7 +129,9 @@ export function ProxyModal({ defaultTarget, net, onSendToMock, onSendAllToMock, 
 
   const baseUrl = `http://localhost:${boundPort}`;
   const isBrowser = mode === "browser";
-  const shownRecords = isBrowser ? capRecords : records;
+  const recKey = (r: ProxyRecord) => `${r.atMs}-${r.method}-${r.path}`;
+  const allRecords = isBrowser ? capRecords : records;
+  const shownRecords = allRecords.filter((r) => !hiddenIds.has(recKey(r)));
   const activeRunning = isBrowser ? capRunning : running;
 
   return (
@@ -227,6 +230,8 @@ export function ProxyModal({ defaultTarget, net, onSendToMock, onSendAllToMock, 
                   {r.error ? "ERR" : r.status}
                 </span>
                 <button className="btn small" onClick={() => setSendMsg(onSendToMock(r))}>Mock으로</button>
+                <button className="btn small" title="이 녹화 삭제"
+                  onClick={() => setHiddenIds((prev) => { const next = new Set(prev); next.add(recKey(r)); return next; })}>×</button>
               </div>
             ))}
           </div>
