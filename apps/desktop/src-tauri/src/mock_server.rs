@@ -45,12 +45,41 @@ pub struct MockRoute {
     pub list_wrapper: Option<String>,
 }
 
+/// 쿼리/헤더 매칭 조건(이름=값)
+#[derive(Clone, Deserialize, Debug)]
+#[serde(rename_all = "camelCase")]
+pub struct MockMatch {
+    pub name: String,
+    pub value: String,
+}
+
+/// 실제 요청 단위 Mock 엔트리 (스펙 operation과 별개, 정확 경로 매칭)
+#[derive(Clone, Deserialize, Debug)]
+#[serde(rename_all = "camelCase")]
+pub struct MockRequestEntry {
+    #[allow(dead_code)]
+    pub id: String,
+    pub method: String,
+    pub path: String,
+    #[serde(default)]
+    pub query: Vec<MockMatch>,
+    #[serde(default)]
+    pub headers: Vec<MockMatch>,
+    pub status: u16,
+    #[serde(default)]
+    pub body: Option<Value>,
+    #[serde(default)]
+    pub delay_ms: u64,
+}
+
 /// mock_start 에 전달되는 설정
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct MockConfig {
     pub port: u16,
     pub routes: Vec<MockRoute>,
+    #[serde(default)]
+    pub requests: Vec<MockRequestEntry>,
 }
 
 /// 요청 로그 1건
@@ -217,6 +246,36 @@ pub fn build_response(
     (route.status, body)
 }
 
+/// 들어온 요청을 요청 엔트리에 매칭. 메서드+경로 정확일치 + 쿼리/헤더 부분일치.
+/// 조건 수(query+header)가 많은(더 구체적인) 엔트리가 우선. 동률이면 먼저 정의된 것.
+pub fn match_request_entry<'a>(
+    entries: &'a [MockRequestEntry],
+    method: &str,
+    path: &str,
+    query: &HashMap<String, String>,
+    headers: &HashMap<String, String>,
+) -> Option<&'a MockRequestEntry> {
+    let mut best: Option<&MockRequestEntry> = None;
+    let mut best_score = -1i32;
+    for e in entries {
+        if !e.method.eq_ignore_ascii_case(method) || e.path != path {
+            continue;
+        }
+        let q_ok = e.query.iter().all(|m| query.get(&m.name).map(|v| v == &m.value).unwrap_or(false));
+        let h_ok = e.headers.iter().all(|m| {
+            headers.get(&m.name.to_ascii_lowercase()).map(|v| v == &m.value).unwrap_or(false)
+        });
+        if q_ok && h_ok {
+            let score = (e.query.len() + e.headers.len()) as i32;
+            if score > best_score {
+                best = Some(e);
+                best_score = score;
+            }
+        }
+    }
+    best
+}
+
 // ─────────────────────────────────────────────
 // axum 서버 내부 구조
 // ─────────────────────────────────────────────
@@ -225,6 +284,7 @@ pub fn build_response(
 #[derive(Clone)]
 struct AppState {
     routes: Vec<MockRoute>,
+    requests: Vec<MockRequestEntry>,
 }
 
 /// 모든 요청을 받아 라우트 테이블과 매칭하는 fallback 핸들러
@@ -236,6 +296,13 @@ async fn fallback_handler(
     let uri = req.uri().clone();
     let path = uri.path().to_string();
     let query_str = uri.query().unwrap_or("").to_string();
+
+    // 헤더 맵(이름 소문자)
+    let headers: HashMap<String, String> = req
+        .headers()
+        .iter()
+        .filter_map(|(k, v)| v.to_str().ok().map(|val| (k.as_str().to_ascii_lowercase(), val.to_string())))
+        .collect();
 
     // CORS preflight — OPTIONS 는 204로 즉시 응답
     if method == Method::OPTIONS {
@@ -255,22 +322,28 @@ async fn fallback_handler(
         })
         .collect();
 
-    // 메서드 + 경로 매칭
-    let matched = state.routes.iter().find_map(|route| {
-        if route.method.to_uppercase() != method.as_str() {
-            return None;
+    // 1) 요청 엔트리 먼저
+    let (status_code, body_val, delay_ms) = if let Some(e) =
+        match_request_entry(&state.requests, method.as_str(), &path, &query, &headers)
+    {
+        (e.status, e.body.clone().unwrap_or(Value::Null), e.delay_ms)
+    } else {
+        // 2) 스펙 라우트 폴백
+        let matched = state.routes.iter().find_map(|route| {
+            if route.method.to_uppercase() != method.as_str() {
+                return None;
+            }
+            let params = match_path(&route.path, &path)?;
+            Some((route.clone(), params))
+        });
+        match matched {
+            Some((route, params)) => {
+                let delay = route.delay_ms;
+                let (status, body) = build_response(&route, &params, &query);
+                (status, body, delay)
+            }
+            None => (404, json!({"error": "no mock route"}), 0),
         }
-        let params = match_path(&route.path, &path)?;
-        Some((route.clone(), params))
-    });
-
-    let (status_code, body_val, delay_ms) = match matched {
-        Some((route, params)) => {
-            let delay = route.delay_ms;
-            let (status, body) = build_response(&route, &params, &query);
-            (status, body, delay)
-        }
-        None => (404, json!({"error": "no mock route"}), 0),
     };
 
     // 딜레이 적용
@@ -361,6 +434,7 @@ pub async fn mock_start(config: MockConfig) -> Result<u16, String> {
     // axum 앱 구성
     let state = AppState {
         routes: config.routes,
+        requests: config.requests,
     };
     let app = Router::new()
         .fallback(fallback_handler)
@@ -667,6 +741,65 @@ mod tests {
         assert_eq!(body["id"], 100);
     }
 
+    // ── 요청 엔트리 테스트 ──────────────────────
+
+    fn entry(method: &str, path: &str, query: &[(&str, &str)], headers: &[(&str, &str)]) -> MockRequestEntry {
+        MockRequestEntry {
+            id: "x".into(),
+            method: method.into(),
+            path: path.into(),
+            query: query.iter().map(|(n, v)| MockMatch { name: n.to_string(), value: v.to_string() }).collect(),
+            headers: headers.iter().map(|(n, v)| MockMatch { name: n.to_string(), value: v.to_string() }).collect(),
+            status: 200,
+            body: Some(serde_json::json!({"ok": true})),
+            delay_ms: 0,
+        }
+    }
+
+    #[test]
+    fn request_entry_exact_path_distinguishes_code() {
+        let entries = vec![
+            entry("GET", "/api/v1/code/IP_STATUS", &[], &[]),
+            entry("GET", "/api/v1/code/IP_USAGE", &[], &[]),
+        ];
+        let q = std::collections::HashMap::new();
+        let h = std::collections::HashMap::new();
+        let m1 = match_request_entry(&entries, "GET", "/api/v1/code/IP_STATUS", &q, &h);
+        assert_eq!(m1.unwrap().path, "/api/v1/code/IP_STATUS");
+        let none = match_request_entry(&entries, "GET", "/api/v1/code/OTHER", &q, &h);
+        assert!(none.is_none());
+    }
+
+    #[test]
+    fn request_entry_query_subset_and_specificity() {
+        let entries = vec![
+            entry("GET", "/search", &[], &[]),                       // 조건 0
+            entry("GET", "/search", &[("type", "A")], &[]),          // 조건 1 — 더 구체적
+        ];
+        let mut q = std::collections::HashMap::new();
+        q.insert("type".to_string(), "A".to_string());
+        let h = std::collections::HashMap::new();
+        // type=A 요청 → 더 구체적인(조건 많은) 엔트리가 이김
+        let m = match_request_entry(&entries, "GET", "/search", &q, &h).unwrap();
+        assert_eq!(m.query.len(), 1);
+        // type=B 요청 → 조건 0 엔트리만 매칭
+        let mut q2 = std::collections::HashMap::new();
+        q2.insert("type".to_string(), "B".to_string());
+        let m2 = match_request_entry(&entries, "GET", "/search", &q2, &h).unwrap();
+        assert_eq!(m2.query.len(), 0);
+    }
+
+    #[test]
+    fn request_entry_header_case_insensitive() {
+        let entries = vec![entry("GET", "/x", &[], &[("Authorization", "Bearer t")])];
+        let q = std::collections::HashMap::new();
+        let mut h = std::collections::HashMap::new();
+        h.insert("authorization".to_string(), "Bearer t".to_string()); // 소문자 헤더
+        assert!(match_request_entry(&entries, "GET", "/x", &q, &h).is_some());
+        let h2 = std::collections::HashMap::new();
+        assert!(match_request_entry(&entries, "GET", "/x", &q, &h2).is_none()); // 헤더 없으면 매칭 X
+    }
+
     // ── 통합 테스트 (실제 HTTP 서버) ─────────
     // 주의: mock 서버는 전역 싱글톤(SERVER_HANDLE)이라 서버를 띄우는 tokio 테스트가
     // 병렬로 돌면 서로의 서버를 중지시켜 깨진다. 라이프사이클 검증은 모두
@@ -689,6 +822,7 @@ mod tests {
                     list_wrapper: None,
                 },
             ],
+            requests: vec![],
         };
 
         let port = mock_start(config).await.expect("서버 시작 실패");
@@ -739,7 +873,7 @@ mod tests {
 
         // ── stop_server_internal(pub(crate)) 검증: 재시작 후 동기 정리 호출 ──
         // (앱 종료 시 Tauri RunEvent 훅이 호출하는 경로)
-        let port2 = mock_start(MockConfig { port: 0, routes: vec![] })
+        let port2 = mock_start(MockConfig { port: 0, routes: vec![], requests: vec![] })
             .await
             .expect("재시작 실패");
         assert!(port2 > 0);
