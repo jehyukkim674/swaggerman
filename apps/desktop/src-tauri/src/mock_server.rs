@@ -162,8 +162,9 @@ pub fn paginate(
     if let (Some(page_str), Some(size_str)) = (query.get("page"), query.get("size")) {
         let page: usize = page_str.parse().unwrap_or(0);
         let size: usize = size_str.parse().unwrap_or(20).max(1);
-        let start = page * size;
-        let end = (start + size).min(dataset.len());
+        // saturating: 거대한 page/size 값이 곱셈·덧셈 오버플로로 패닉하지 않게
+        let start = page.saturating_mul(size);
+        let end = start.saturating_add(size).min(dataset.len());
         let items = if start >= dataset.len() {
             vec![]
         } else {
@@ -174,7 +175,7 @@ pub fn paginate(
     if let (Some(offset_str), Some(limit_str)) = (query.get("offset"), query.get("limit")) {
         let offset: usize = offset_str.parse().unwrap_or(0);
         let limit: usize = limit_str.parse().unwrap_or(20).max(1);
-        let end = (offset + limit).min(dataset.len());
+        let end = offset.saturating_add(limit).min(dataset.len());
         let items = if offset >= dataset.len() {
             vec![]
         } else {
@@ -683,6 +684,24 @@ mod tests {
         assert_eq!(size, 3);
         assert_eq!(items.len(), 3);
         assert_eq!(items[0]["n"], 3);
+    }
+
+    #[test]
+    fn paginate_huge_values_do_not_overflow() {
+        // page*size / offset+limit가 usize 최대값 근처여도 패닉 없이 빈 결과
+        let dataset: Vec<Value> = (0..3).map(|i| json!({"n": i})).collect();
+
+        let mut query = HashMap::new();
+        query.insert("page".into(), usize::MAX.to_string());
+        query.insert("size".into(), "2".into());
+        let (items, _, _) = paginate(&dataset, &query).unwrap();
+        assert!(items.is_empty());
+
+        let mut query2 = HashMap::new();
+        query2.insert("offset".into(), usize::MAX.to_string());
+        query2.insert("limit".into(), "20".into());
+        let (items2, _, _) = paginate(&dataset, &query2).unwrap();
+        assert!(items2.is_empty());
     }
 
     // ── 래퍼 테스트 ──────────────────────────
