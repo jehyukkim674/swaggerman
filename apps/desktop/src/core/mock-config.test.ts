@@ -10,7 +10,7 @@ import {
   buildMockRoutes,
   applyPresetToConfig,
 } from "./mock-config";
-import type { MockServerConfig, MockPreset } from "./mock-config";
+import type { MockServerConfig, MockPreset, MockRequestEntry } from "./mock-config";
 import type { ParsedOperation, ParsedSpec } from "./types";
 
 // ────────────────────────────────────────────────
@@ -493,6 +493,28 @@ describe("buildMockRoutes — enabled=false", () => {
 // ────────────────────────────────────────────────
 // 테스트 8: Mock 프리셋 CRUD + applyPresetToConfig
 // ────────────────────────────────────────────────
+
+describe("requests 필드(요청 엔트리)", () => {
+  beforeEach(() => localStorage.clear());
+  const url = "https://api.test/spec.json";
+
+  it("defaultMockConfig는 requests를 빈 배열로 둔다", () => {
+    const spec = makeSpec([makeOp({ id: "GET /x" })]);
+    expect(defaultMockConfig(spec).requests).toEqual([]);
+  });
+
+  it("loadMockConfig/saveMockConfig가 requests를 보존한다", () => {
+    const spec = makeSpec([makeOp({ id: "GET /x" })]);
+    const cfg = defaultMockConfig(spec);
+    cfg.requests = [
+      { id: "r1", method: "GET", path: "/api/v1/code/IP_STATUS", status: 200, body: { ok: true }, delayMs: 0 },
+    ] as MockRequestEntry[];
+    saveMockConfig(url, cfg);
+    const loaded = loadMockConfig(url, spec);
+    expect(loaded.requests).toHaveLength(1);
+    expect(loaded.requests![0].path).toBe("/api/v1/code/IP_STATUS");
+  });
+});
 
 describe("applyPresetToConfig", () => {
   // 프리셋 CRUD(load/save/delete/rename)는 IndexedDB 저장소(mock-presets-store.test.ts)에서 테스트.

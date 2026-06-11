@@ -25,10 +25,30 @@ export interface MockOperationConfig {
   seed: number;
 }
 
+/** 쿼리/헤더 매칭 조건(이름=값) */
+export interface MockMatch {
+  name: string;
+  value: string;
+}
+
+/** 실제 요청 단위 Mock 엔트리 (스펙 operation과 별개, 정확 경로 매칭) */
+export interface MockRequestEntry {
+  id: string;
+  method: string;
+  path: string;             // 실제 경로(템플릿 아님)
+  query?: MockMatch[];      // 쿼리 부분일치
+  headers?: MockMatch[];    // 헤더 부분일치(이름 대소문자 무시)
+  status: number;
+  body?: unknown;           // 응답(JSON/원문)
+  delayMs: number;
+  note?: string;
+}
+
 /** mock 서버 전체 설정 */
 export interface MockServerConfig {
   port: number;         // 기본 9090
   operations: MockOperationConfig[];
+  requests: MockRequestEntry[];   // ← 요청 엔트리
 }
 
 /** 이름 붙인 Mock 설정 스냅샷 */
@@ -37,6 +57,7 @@ export interface MockPreset {
   title: string;
   savedAt: number;
   operations: MockOperationConfig[];
+  requests?: MockRequestEntry[];  // ← 구버전 호환 위해 optional
 }
 
 /** Rust mock_start로 보내는 라우트 — Rust serde camelCase와 일치해야 함 */
@@ -141,6 +162,7 @@ export function defaultMockConfig(spec: ParsedSpec): MockServerConfig {
   return {
     port: DEFAULT_MOCK_PORT,
     operations: spec.operations.map(defaultOpConfig),
+    requests: [],
   };
 }
 
@@ -169,7 +191,7 @@ export function loadMockConfig(specUrl: string, spec: ParsedSpec): MockServerCon
     return defaultOpConfig(op);
   });
 
-  return { port, operations };
+  return { port, operations, requests: stored.requests ?? [] };
 }
 
 /**
@@ -300,5 +322,6 @@ export function applyPresetToConfig(config: MockServerConfig, preset: MockPreset
       const fromPreset = presetMap.get(o.opId);
       return fromPreset ? structuredClone(fromPreset) : o;
     }),
+    requests: preset.requests ? structuredClone(preset.requests) : config.requests,
   };
 }
