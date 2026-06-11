@@ -7,8 +7,8 @@ import type { HistoryItem } from "../core/history";
 import type { MockOperationConfig, MockServerConfig, MockPreset } from "../core/mock-config";
 import {
   buildMockRoutes,
-  loadMockConfig,
-  saveMockConfig,
+  loadMockConfigAsync,
+  saveMockConfigAsync,
   applyPresetToConfig,
   defaultMockConfig,
 } from "../core/mock-config";
@@ -75,10 +75,22 @@ export function MockServerModal({ spec, specUrl, history, onClose }: Props) {
   const [serverError, setServerError] = useState<string | null>(null);
   const [logs, setLogs] = useState<MockLogEntry[]>([]);
 
-  // 설정 (localStorage)
-  const [config, setConfig] = useState<MockServerConfig>(() =>
-    loadMockConfig(specUrl, spec)
-  );
+  // 설정 (IndexedDB — 마운트 시 비동기 로드, 로드 전에는 기본값 표시)
+  const [config, setConfig] = useState<MockServerConfig>(() => defaultMockConfig(spec));
+  // 설정이 통째로 교체된 횟수(비동기 로드/프리셋 적용/초기화) — 미리보기·요청엔트리 패널 재동기화 신호
+  const [configEpoch, setConfigEpoch] = useState(0);
+  // 저장본 로드 완료 여부 — 완료 전 자동저장 금지(기본값이 저장본을 덮어쓰는 것 방지)
+  const [configLoaded, setConfigLoaded] = useState(false);
+  // 로드 완료 전 사용자가 이미 설정을 바꿨는지 — 바꿨으면 로드 결과로 덮어쓰지 않는다
+  const userTouchedRef = useRef(false);
+  // 자동 저장 실패 여부(용량/권한) — 조용한 유실 방지용 경고
+  const [saveFailed, setSaveFailed] = useState(false);
+
+  /** 사용자 조작에 의한 설정 변경 — 늦게 도착한 비동기 로드가 이 변경을 덮어쓰지 않게 표시 */
+  const touchConfig = (updater: (prev: MockServerConfig) => MockServerConfig) => {
+    userTouchedRef.current = true;
+    setConfig(updater);
+  };
 
   // 프리셋
   const [presets, setPresets] = useState<MockPreset[]>([]);
@@ -110,12 +122,18 @@ export function MockServerModal({ spec, specUrl, history, onClose }: Props) {
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // ─ 설정 변경 시 자동 저장 (디바운스 400ms) ─
+  // 로드 완료 전 또는 사용자 변경이 없으면 저장하지 않는다 —
+  // 로드 전 기본값/로드 직후 동일 설정이 저장본을 덮어쓰는 것을 막는다.
   useEffect(() => {
-    const timer = setTimeout(() => saveMockConfig(specUrl, config), 400);
+    if (!configLoaded || !userTouchedRef.current) return;
+    const timer = setTimeout(() => {
+      saveMockConfigAsync(specUrl, config).then((ok) => setSaveFailed(!ok)).catch(() => setSaveFailed(true));
+    }, 400);
     return () => clearTimeout(timer);
-  }, [config, specUrl]);
+  }, [config, specUrl, configLoaded]);
 
-  // ─ 선택 operation 변경 시 데이터셋 텍스트 갱신 ─
+  // ─ 선택 operation 변경·설정 통째 교체(로드/프리셋/초기화) 시 데이터셋 텍스트 갱신 ─
+  // config 자체는 의존성에서 제외 — 키 입력마다 미리보기가 재포맷되는 thrash 방지.
   useEffect(() => {
     if (!selectedOpId) return;
     const opCfg = config.operations.find((o) => o.opId === selectedOpId);
@@ -134,7 +152,7 @@ export function MockServerModal({ spec, specUrl, history, onClose }: Props) {
     }
     setDatasetParseError(null);
     setPanelError(null);
-  }, [selectedOpId]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [selectedOpId, configEpoch]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ─ 폴링 시작/중지 ─
   const stopPoll = useCallback(() => {
@@ -167,27 +185,40 @@ export function MockServerModal({ spec, specUrl, history, onClose }: Props) {
     return () => stopPoll();
   }, [stopPoll]);
 
-  // ─ 마운트 시 실제 서버 상태로 동기화 (모달 재오픈 시 불일치 방지) ─
+  // ─ 마운트 시: 저장된 설정 비동기 로드(IndexedDB) → 실제 서버 상태로 동기화 ─
   useEffect(() => {
     let cancelled = false;
-    getMockStatus()
-      .then((status) => {
+    (async () => {
+      try {
+        const loaded = await loadMockConfigAsync(specUrl, spec);
+        if (cancelled) return;
+        setConfigLoaded(true);
+        // 로드 전에 사용자가 이미 바꾼 설정(초기화·편집)은 보존한다
+        if (!userTouchedRef.current) {
+          setConfig(loaded);
+          setConfigEpoch((e) => e + 1);
+        }
+      } catch {
+        // 로드 실패 시 기본값 유지 — configLoaded=false라 자동저장도 게이트됨
+      }
+      try {
+        const status = await getMockStatus();
         if (cancelled) return;
         setRunning(status.running);
         setLogs(status.logs);
         if (status.running) {
-          // 포트도 실제 값으로 맞춤
+          // 포트도 실제 값으로 맞춤 (모달 재오픈 시 불일치 방지)
           setConfig((prev) => ({ ...prev, port: status.port }));
           startPoll();
         }
-      })
-      .catch(() => {
+      } catch {
         // 상태 조회 실패는 무시 (Tauri 미초기화 등)
-      });
+      }
+    })();
     return () => {
       cancelled = true;
     };
-  }, [startPoll]);  
+  }, [specUrl, spec, startPoll]);
 
   // ─ 서버 시작 ─
   async function handleStart() {
@@ -198,7 +229,7 @@ export function MockServerModal({ spec, specUrl, history, onClose }: Props) {
       const boundPort = await startMockServer(portNum, routes, config.requests);
       // OS가 실제로 바인딩한 포트가 다를 경우 config.port를 갱신
       if (typeof boundPort === "number" && boundPort !== portNum) {
-        setConfig((prev) => ({ ...prev, port: boundPort }));
+        touchConfig((prev) => ({ ...prev, port: boundPort }));
       }
       setRunning(true);
       setLogs([]);
@@ -226,7 +257,7 @@ export function MockServerModal({ spec, specUrl, history, onClose }: Props) {
 
   // ─ operation 활성화/비활성화 토글 ─
   function toggleEnabled(opId: string) {
-    setConfig((prev) => ({
+    touchConfig((prev) => ({
       ...prev,
       operations: prev.operations.map((o) =>
         o.opId === opId ? { ...o, enabled: !o.enabled } : o
@@ -240,7 +271,7 @@ export function MockServerModal({ spec, specUrl, history, onClose }: Props) {
 
   // ─ opCfg 필드 업데이트 헬퍼 ─
   function updateOpCfg(opId: string, patch: Partial<MockOperationConfig>) {
-    setConfig((prev) => ({
+    touchConfig((prev) => ({
       ...prev,
       operations: prev.operations.map((o) =>
         o.opId === opId ? { ...o, ...patch } : o
@@ -379,7 +410,8 @@ export function MockServerModal({ spec, specUrl, history, onClose }: Props) {
   // ─ 초기화 핸들러 ─
   const handleResetConfig = () => {
     if (!window.confirm("Mock 설정을 기본값으로 되돌립니다(요청 엔트리·operation 설정 초기화). 계속할까요?")) return;
-    setConfig(defaultMockConfig(spec));
+    touchConfig(() => defaultMockConfig(spec));
+    setConfigEpoch((e) => e + 1); // 미리보기·요청엔트리 패널 재동기화
     setSelectedPresetId("");
   };
 
@@ -404,7 +436,8 @@ export function MockServerModal({ spec, specUrl, history, onClose }: Props) {
     const preset = presets.find((p) => p.id === id);
     if (!preset) return;
     if (!window.confirm(`현재 Mock 설정을 '${preset.title}' 프리셋으로 덮어씁니다. 계속할까요?`)) return;
-    setConfig((prev) => applyPresetToConfig(prev, preset));
+    touchConfig((prev) => applyPresetToConfig(prev, preset));
+    setConfigEpoch((e) => e + 1); // 미리보기·요청엔트리 패널 재동기화(이전 데이터 잔상 방지)
     setSelectedPresetId(id);
   };
 
@@ -465,7 +498,7 @@ export function MockServerModal({ spec, specUrl, history, onClose }: Props) {
             min={1024}
             max={65535}
             disabled={running}
-            onChange={(e) => setConfig((prev) => ({ ...prev, port: Number(e.target.value) }))}
+            onChange={(e) => touchConfig((prev) => ({ ...prev, port: Number(e.target.value) }))}
           />
           {!running ? (
             <button className="btn primary small" onClick={handleStart}>
@@ -481,6 +514,9 @@ export function MockServerModal({ spec, specUrl, history, onClose }: Props) {
           )}
           {serverError && (
             <span className="mock-error-inline">{serverError}</span>
+          )}
+          {saveFailed && (
+            <span className="mock-error-inline">설정 저장 실패 — 저장소 용량/권한을 확인하세요</span>
           )}
         </div>
 
@@ -518,9 +554,11 @@ export function MockServerModal({ spec, specUrl, history, onClose }: Props) {
         </div>
 
         {/* ── 요청 엔트리(캡처/커스텀) 패널 ── */}
+        {/* key=configEpoch: 설정 통째 교체(로드/프리셋/초기화) 시 리마운트해 편집 draft 잔상 제거 */}
         <MockRequestsPanel
+          key={configEpoch}
           requests={config.requests}
-          onChange={(next) => setConfig((prev) => ({ ...prev, requests: next }))}
+          onChange={(next) => touchConfig((prev) => ({ ...prev, requests: next }))}
         />
 
         {/* ── 바디 (좌/우 2단) ── */}

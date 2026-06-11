@@ -82,7 +82,7 @@ import { MockServerModal } from "./components/MockServerModal";
 import { ProxyModal } from "./components/ProxyModal";
 import { recordingToMock, applyMockTargets, saveRecordingsToMock } from "./core/proxy-to-mock";
 import type { ProxyRecord } from "./core/proxy-client";
-import { loadMockConfig, saveMockConfig } from "./core/mock-config";
+import { loadMockConfigAsync, saveMockConfigAsync } from "./core/mock-config";
 import { ShareModal } from "./components/ShareModal";
 import { PermissionMatrixModal } from "./components/PermissionMatrixModal";
 import { PerfModal } from "./components/PerfModal";
@@ -258,15 +258,16 @@ export default function App() {
     }
   }
 
-  // 프록시 녹화를 Mock 데이터로 저장. 결과 메시지 반환.
-  function sendRecordingToMock(record: ProxyRecord): string {
+  // 프록시 녹화를 Mock 데이터로 저장(IndexedDB — 대용량 응답 대응). 결과 메시지 반환.
+  async function sendRecordingToMock(record: ProxyRecord): Promise<string> {
     if (!spec) return "스펙이 로드되지 않았습니다";
     const target = recordingToMock(spec, record, baseURL);
     if (!target) return `스펙에 없는 경로입니다: ${record.method} ${record.path}`;
     const url = activeSpecUrl || specUrl;
-    const cfg = loadMockConfig(url, spec);
+    const cfg = await loadMockConfigAsync(url, spec);
     applyMockTargets(cfg, [target]);
-    saveMockConfig(url, cfg);
+    const persisted = await saveMockConfigAsync(url, cfg);
+    if (!persisted) return "Mock 저장 실패 — 저장소에 기록하지 못했습니다(용량/권한 확인)";
     return `Mock 저장됨: ${target.opId}`;
   }
 

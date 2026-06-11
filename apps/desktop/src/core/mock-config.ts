@@ -1,8 +1,11 @@
-// mock 서버 설정 관리. operation별 소스/데이터셋 설정을 localStorage에 저장하고,
+// mock 서버 설정 관리. operation별 소스/데이터셋 설정을 IndexedDB에 저장하고,
 // Rust axum mock 서버(mock_start)에 보낼 라우트 목록으로 변환한다.
+// (활성 설정은 캡처 요청 엔트리로 수 MB가 될 수 있어 localStorage 용량을 초과한다 —
+//  구버전 localStorage 저장본은 loadMockConfigAsync가 1회 마이그레이션한다)
 
 import type { ParsedSpec, ParsedOperation } from "./types";
-import { loadJSON, saveJSON } from "./storage";
+import { loadJSON } from "./storage";
+import { loadStoredMockConfig, saveStoredMockConfig } from "./mock-config-store";
 import { generateDataset, extractItemSchema } from "./mock-generator";
 
 // ────────────────────────────────────────────────
@@ -167,40 +170,71 @@ export function defaultMockConfig(spec: ParsedSpec): MockServerConfig {
 }
 
 /**
- * localStorage에서 specUrl에 해당하는 MockServerConfig를 로드한다.
- * 저장된 설정이 없으면 defaultMockConfig를 반환한다.
- * 저장된 설정에 없는 새 operation은 기본값으로 채운다 (스펙이 바뀌어도 동작).
+ * 저장된(부분일 수 있는) 설정을 현재 스펙과 병합해 완전한 설정으로 만든다.
+ * - port: 저장 값 없으면 9090
+ * - 저장된 설정에 없는 새 operation은 기본값으로 채운다 (스펙이 바뀌어도 동작)
  */
-export function loadMockConfig(specUrl: string, spec: ParsedSpec): MockServerConfig {
-  const key = `${STORAGE_KEY_PREFIX}${specUrl}`;
-  const stored = loadJSON<Partial<MockServerConfig>>(key, {});
-
-  // port: 저장된 값이 없으면 9090
-  const port: number = typeof stored.port === "number" ? stored.port : DEFAULT_MOCK_PORT;
+export function mergeMockConfig(
+  spec: ParsedSpec,
+  stored: Partial<MockServerConfig> | null,
+): MockServerConfig {
+  const s = stored ?? {};
+  const port: number = typeof s.port === "number" ? s.port : DEFAULT_MOCK_PORT;
 
   // 저장된 operation 설정을 opId → config 맵으로 변환
   const storedOpsMap = new Map<string, MockOperationConfig>(
-    (stored.operations ?? []).map((o) => [o.opId, o]),
+    (s.operations ?? []).map((o) => [o.opId, o]),
   );
 
   // 현재 스펙의 모든 operation에 대해 저장된 설정 또는 기본값 적용
-  const operations: MockOperationConfig[] = spec.operations.map((op) => {
-    const saved = storedOpsMap.get(op.id);
-    if (saved) return saved;
-    // 저장된 설정에 없는 새 operation → 기본값
-    return defaultOpConfig(op);
-  });
+  const operations: MockOperationConfig[] = spec.operations.map(
+    (op) => storedOpsMap.get(op.id) ?? defaultOpConfig(op),
+  );
 
-  return { port, operations, requests: stored.requests ?? [] };
+  return { port, operations, requests: s.requests ?? [] };
 }
 
 /**
- * MockServerConfig를 localStorage에 저장한다.
- * 키: swaggerman.mock.${specUrl}
+ * 레거시: localStorage에서 specUrl에 해당하는 MockServerConfig를 로드한다.
+ * 실제 저장소는 IndexedDB(loadMockConfigAsync)로 이전됨 — 이 함수는 마이그레이션
+ * 소스 읽기와 테스트 픽스처용으로만 남아 있다.
  */
-export function saveMockConfig(specUrl: string, config: MockServerConfig): void {
+export function loadMockConfig(specUrl: string, spec: ParsedSpec): MockServerConfig {
   const key = `${STORAGE_KEY_PREFIX}${specUrl}`;
-  saveJSON(key, config);
+  return mergeMockConfig(spec, loadJSON<Partial<MockServerConfig> | null>(key, null));
+}
+
+/**
+ * IndexedDB에서 specUrl에 해당하는 MockServerConfig를 로드한다.
+ * IndexedDB에 없고 구버전 localStorage 저장본이 있으면 1회 마이그레이션한다.
+ */
+export async function loadMockConfigAsync(specUrl: string, spec: ParsedSpec): Promise<MockServerConfig> {
+  let stored = await loadStoredMockConfig(specUrl);
+  if (!stored) {
+    // 구버전 localStorage → IndexedDB 1회 마이그레이션
+    const legacyKey = `${STORAGE_KEY_PREFIX}${specUrl}`;
+    const legacy = loadJSON<Partial<MockServerConfig> | null>(legacyKey, null);
+    if (legacy) {
+      const migrated = mergeMockConfig(spec, legacy);
+      if (await saveStoredMockConfig(specUrl, migrated)) {
+        try {
+          localStorage.removeItem(legacyKey);
+        } catch {
+          /* 무시 */
+        }
+      }
+      stored = legacy;
+    }
+  }
+  return mergeMockConfig(spec, stored);
+}
+
+/**
+ * MockServerConfig를 IndexedDB에 저장한다. 성공 여부 반환 —
+ * 실패 시 호출자가 사용자에게 알린다(조용한 유실 방지).
+ */
+export async function saveMockConfigAsync(specUrl: string, config: MockServerConfig): Promise<boolean> {
+  return saveStoredMockConfig(specUrl, config);
 }
 
 /**

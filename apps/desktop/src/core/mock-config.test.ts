@@ -1,12 +1,13 @@
 // @vitest-environment jsdom
 // mock-config.ts 단위 테스트
 
-import { describe, it, expect, beforeEach } from "vitest";
+import "fake-indexeddb/auto";
+import { describe, it, expect, beforeEach, vi } from "vitest";
+import { IDBFactory } from "fake-indexeddb";
 import {
   DEFAULT_MOCK_PORT,
   defaultMockConfig,
   loadMockConfig,
-  saveMockConfig,
   buildMockRoutes,
   applyPresetToConfig,
 } from "./mock-config";
@@ -93,7 +94,12 @@ describe("defaultMockConfig", () => {
 // 테스트 2: 저장 후 로드 — 동일 설정 복원
 // ────────────────────────────────────────────────
 
-describe("saveMockConfig / loadMockConfig", () => {
+// 레거시 localStorage 읽기 경로 — 저장은 IndexedDB(loadMockConfigAsync 마이그레이션 소스)
+describe("loadMockConfig (레거시 localStorage 읽기)", () => {
+  /** 레거시 포맷 그대로 localStorage에 기록 (구버전 saveMockConfig가 하던 일) */
+  const writeLegacy = (specUrl: string, config: unknown) =>
+    localStorage.setItem(`swaggerman.mock.${specUrl}`, JSON.stringify(config));
+
   it("저장한 설정을 로드하면 port와 itemCount 변경이 반영된다", () => {
     const spec = makeSpec([makeOp()]);
     const original = defaultMockConfig(spec);
@@ -101,7 +107,7 @@ describe("saveMockConfig / loadMockConfig", () => {
     original.operations[0].itemCount = 50;
     original.operations[0].seed = 42;
 
-    saveMockConfig("http://localhost/api.json", original);
+    writeLegacy("http://localhost/api.json", original);
     const loaded = loadMockConfig("http://localhost/api.json", spec);
 
     expect(loaded.port).toBe(8080);
@@ -118,7 +124,7 @@ describe("saveMockConfig / loadMockConfig", () => {
     const spec1 = makeSpec([op1]);
     const config1 = defaultMockConfig(spec1);
     config1.port = 7777;
-    saveMockConfig("http://api/spec.json", config1);
+    writeLegacy("http://api/spec.json", config1);
 
     // 스펙에 새 operation 추가
     const op2 = makeOp({
@@ -148,7 +154,7 @@ describe("saveMockConfig / loadMockConfig", () => {
     const spec = makeSpec([makeOp()]);
     // port 필드 없이 저장
     const partial = { operations: [] } as unknown as MockServerConfig;
-    saveMockConfig("http://api/no-port.json", partial);
+    writeLegacy("http://api/no-port.json", partial);
     const loaded = loadMockConfig("http://api/no-port.json", spec);
     expect(loaded.port).toBe(9090);
   });
@@ -503,13 +509,13 @@ describe("requests 필드(요청 엔트리)", () => {
     expect(defaultMockConfig(spec).requests).toEqual([]);
   });
 
-  it("loadMockConfig/saveMockConfig가 requests를 보존한다", () => {
+  it("loadMockConfig가 레거시 저장본의 requests를 보존한다", () => {
     const spec = makeSpec([makeOp({ id: "GET /x" })]);
     const cfg = defaultMockConfig(spec);
     cfg.requests = [
       { id: "r1", method: "GET", path: "/api/v1/code/IP_STATUS", status: 200, body: { ok: true }, delayMs: 0 },
     ] as MockRequestEntry[];
-    saveMockConfig(url, cfg);
+    localStorage.setItem(`swaggerman.mock.${url}`, JSON.stringify(cfg));
     const loaded = loadMockConfig(url, spec);
     expect(loaded.requests).toHaveLength(1);
     expect(loaded.requests![0].path).toBe("/api/v1/code/IP_STATUS");
@@ -540,5 +546,69 @@ describe("applyPresetToConfig", () => {
     expect(pets.enabled).toBe(true); // 프리셋에 없으니 config 기존값 유지
     expect(out.operations.some((o) => o.opId === "GET /gone")).toBe(false); // 미존재 opId 무시
     expect(config.operations.find((o) => o.opId === "GET /items")!.status).toBe(200); // 원본 불변
+  });
+});
+
+// ────────────────────────────────────────────────
+// 테스트: 비동기 IndexedDB 설정 저장/로드 (활성 설정 — 대용량 캡처 대응)
+// ────────────────────────────────────────────────
+
+describe("loadMockConfigAsync / saveMockConfigAsync (IndexedDB)", () => {
+  const url = "https://api.test/openapi.json";
+  // mock-config-store의 dbPromise가 모듈에 캐시되므로 매 테스트 격리
+  let mod: typeof import("./mock-config");
+  beforeEach(async () => {
+    globalThis.indexedDB = new IDBFactory();
+    localStorage.clear();
+    vi.resetModules();
+    mod = await import("./mock-config");
+  });
+
+  it("저장된 게 없으면 기본 설정을 반환한다", async () => {
+    const spec = makeSpec([makeOp()]);
+    const loaded = await mod.loadMockConfigAsync(url, spec);
+    expect(loaded).toEqual(mod.defaultMockConfig(spec));
+  });
+
+  it("saveAsync→loadAsync 라운드트립으로 requests·port가 보존된다", async () => {
+    const spec = makeSpec([makeOp()]);
+    const cfg = mod.defaultMockConfig(spec);
+    cfg.port = 8123;
+    cfg.requests = [
+      { id: "r1", method: "GET", path: "/api/v1/code/IP_STATUS", status: 200, body: { ok: true }, delayMs: 0 },
+    ];
+    expect(await mod.saveMockConfigAsync(url, cfg)).toBe(true);
+    const loaded = await mod.loadMockConfigAsync(url, spec);
+    expect(loaded.port).toBe(8123);
+    expect(loaded.requests).toHaveLength(1);
+    expect(loaded.requests[0].path).toBe("/api/v1/code/IP_STATUS");
+  });
+
+  it("레거시 localStorage 설정을 IndexedDB로 마이그레이션하고 키를 제거한다", async () => {
+    const spec = makeSpec([makeOp()]);
+    const legacy = mod.defaultMockConfig(spec);
+    legacy.port = 7070;
+    localStorage.setItem(`swaggerman.mock.${url}`, JSON.stringify(legacy));
+
+    const loaded = await mod.loadMockConfigAsync(url, spec);
+    expect(loaded.port).toBe(7070);
+    // localStorage에서 제거되고 IndexedDB로 옮겨짐
+    expect(localStorage.getItem(`swaggerman.mock.${url}`)).toBeNull();
+    expect((await mod.loadMockConfigAsync(url, spec)).port).toBe(7070);
+  });
+
+  it("저장본에 없는 새 operation은 기본값으로 채워진다", async () => {
+    const op1 = makeOp({ id: "GET /items" });
+    const spec1 = makeSpec([op1]);
+    const cfg = mod.defaultMockConfig(spec1);
+    cfg.operations[0].itemCount = 77;
+    await mod.saveMockConfigAsync(url, cfg);
+
+    const op2 = makeOp({ id: "POST /items", method: "POST", responses: [{ statusCode: "201" }] });
+    const loaded = await mod.loadMockConfigAsync(url, makeSpec([op1, op2]));
+    expect(loaded.operations.find((o) => o.opId === "GET /items")?.itemCount).toBe(77);
+    const added = loaded.operations.find((o) => o.opId === "POST /items");
+    expect(added?.status).toBe(201);
+    expect(added?.itemCount).toBe(20);
   });
 });

@@ -46,10 +46,10 @@ vi.mock("../core/mock-config", async (importOriginal) => {
   const original = await importOriginal<typeof import("../core/mock-config")>();
   return {
     ...original,
-    loadMockConfig: vi.fn((_specUrl: string, spec: ParsedSpec) =>
+    loadMockConfigAsync: vi.fn(async (_specUrl: string, spec: ParsedSpec) =>
       original.defaultMockConfig(spec)
     ),
-    saveMockConfig: vi.fn(),
+    saveMockConfigAsync: vi.fn(async () => true),
   };
 });
 
@@ -113,7 +113,7 @@ void _makeHistory;
 // ────────────────────────────────────────────────
 
 import { MockServerModal } from "./MockServerModal";
-import { saveMockConfig } from "../core/mock-config";
+import { saveMockConfigAsync } from "../core/mock-config";
 
 // ────────────────────────────────────────────────
 // 테스트 스위트
@@ -644,20 +644,109 @@ describe("MockServerModal 초기화", () => {
     expect(screen.getByRole("button", { name: "초기화" })).toBeTruthy();
 
     // 초기 자동저장 이력 초기화(render 후 debounce 호출 무시)
-    vi.mocked(saveMockConfig).mockClear();
+    vi.mocked(saveMockConfigAsync).mockClear();
 
     // 초기화 클릭
     fireEvent.click(screen.getByRole("button", { name: "초기화" }));
     expect(confirmSpy).toHaveBeenCalled();
 
-    // 디바운스(400ms) 후 saveMockConfig가 requests=[]로 호출되는지 확인
+    // 디바운스(400ms) 후 saveMockConfigAsync가 requests=[]로 호출되는지 확인
     await waitFor(() => {
-      expect(vi.mocked(saveMockConfig)).toHaveBeenCalledWith(
+      expect(vi.mocked(saveMockConfigAsync)).toHaveBeenCalledWith(
         SPEC,
         expect.objectContaining({ requests: [] }),
       );
     }, { timeout: 2000 });
 
     confirmSpy.mockRestore();
+  });
+});
+
+// ── 설정 통째 교체(프리셋 적용/초기화) 시 우측 미리보기 재동기화 ──────────
+describe("MockServerModal 미리보기 재동기화", () => {
+  let SPEC_URL = "";
+  beforeEach(() => {
+    vi.clearAllMocks();
+    localStorage.clear();
+    SPEC_URL = `https://api.example.com/${crypto.randomUUID()}.json`;
+    mockStartMockServer.mockResolvedValue(9090);
+    mockStopMockServer.mockResolvedValue(undefined);
+    mockGetMockStatus.mockResolvedValue({ running: false, port: 9090, logs: [] });
+  });
+
+  async function renderAndLoad() {
+    const spec = makeSpec([{ id: "GET /users", method: "GET", path: "/users" }]);
+    const utils = render(
+      <MockServerModal spec={spec} specUrl={SPEC_URL} history={[]} onClose={() => {}} />,
+    );
+    await act(async () => {}); // 비동기 설정 로드 완료 대기
+    fireEvent.click(utils.container.querySelector(".mock-op-row")!);
+    return utils;
+  }
+
+  it("프리셋 적용 시 데이터셋 미리보기가 프리셋 데이터로 갱신된다", async () => {
+    const confirmSpy = vi.spyOn(window, "confirm").mockReturnValue(true);
+    const { container } = await renderAndLoad();
+    const ta = container.querySelector<HTMLTextAreaElement>(".mock-dataset-textarea")!;
+
+    // ① 데이터셋을 [{"id":9}]로 만들고 프리셋 저장
+    fireEvent.change(ta, { target: { value: '[{"id":9}]' } });
+    fireEvent.click(screen.getByRole("button", { name: "현재 설정 저장" }));
+    fireEvent.change(await screen.findByPlaceholderText("프리셋 제목"), { target: { value: "세트S" } });
+    fireEvent.click(screen.getByRole("button", { name: "저장" }));
+
+    // ② 데이터셋을 다른 값으로 바꾼 뒤
+    fireEvent.change(ta, { target: { value: '[{"id":111}]' } });
+    expect(ta.value).toContain("111");
+
+    // ③ 프리셋을 적용하면 미리보기가 프리셋 데이터(id:9)로 되돌아와야 한다
+    const select = await screen.findByRole("combobox");
+    const option = await screen.findByRole("option", { name: /세트S/ }) as HTMLOptionElement;
+    fireEvent.change(select, { target: { value: option.value } });
+    await waitFor(() => {
+      const cur = container.querySelector<HTMLTextAreaElement>(".mock-dataset-textarea")!;
+      expect(cur.value).toContain('"id": 9');
+      expect(cur.value).not.toContain("111");
+    });
+    confirmSpy.mockRestore();
+  });
+
+  it("초기화 시 데이터셋 미리보기가 기본 생성 데이터로 갱신된다", async () => {
+    const confirmSpy = vi.spyOn(window, "confirm").mockReturnValue(true);
+    const { container } = await renderAndLoad();
+    const ta = container.querySelector<HTMLTextAreaElement>(".mock-dataset-textarea")!;
+
+    fireEvent.change(ta, { target: { value: '[{"id":42}]' } });
+    fireEvent.click(screen.getByRole("button", { name: "초기화" }));
+
+    await waitFor(() => {
+      const cur = container.querySelector<HTMLTextAreaElement>(".mock-dataset-textarea")!;
+      expect(cur.value).not.toBe('[{"id":42}]');
+      const parsed = JSON.parse(cur.value);
+      expect(Array.isArray(parsed)).toBe(true);
+      expect(parsed).toHaveLength(20); // 기본 itemCount로 재생성
+    });
+    confirmSpy.mockRestore();
+  });
+});
+
+// ── 자동 저장 실패 시 경고 표시(조용한 유실 방지) ──────────
+describe("MockServerModal 저장 실패 경고", () => {
+  it("자동 저장이 실패하면 경고를 표시한다", async () => {
+    vi.clearAllMocks();
+    mockGetMockStatus.mockResolvedValue({ running: false, port: 9090, logs: [] });
+    vi.mocked(saveMockConfigAsync).mockResolvedValue(false);
+
+    const spec = makeSpec([{ id: "GET /users", method: "GET", path: "/users" }]);
+    const { container } = render(
+      <MockServerModal spec={spec} specUrl="https://api.example.com/save-fail.json" history={[]} onClose={() => {}} />,
+    );
+    await act(async () => {}); // 비동기 설정 로드 완료 대기
+
+    // 설정 변경(체크박스 토글) → 디바운스 저장 → 실패 경고
+    fireEvent.click(container.querySelector<HTMLInputElement>(".mock-op-row input[type=checkbox]")!);
+    expect(await screen.findByText(/설정 저장 실패/, undefined, { timeout: 2000 })).toBeTruthy();
+
+    vi.mocked(saveMockConfigAsync).mockResolvedValue(true); // 다른 테스트 오염 방지
   });
 });

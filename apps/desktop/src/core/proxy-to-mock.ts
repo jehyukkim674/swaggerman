@@ -2,7 +2,7 @@
 // 프록시 녹화 → 경로 매칭 operation + Mock 변환.
 import type { ParsedOperation, ParsedSpec } from "./types";
 import type { ProxyRecord } from "./proxy-client";
-import { loadMockConfig, type MockServerConfig, type MockRequestEntry } from "./mock-config";
+import { loadMockConfigAsync, type MockServerConfig, type MockRequestEntry } from "./mock-config";
 import { savePreset } from "./mock-presets-store";
 
 /** operation path 템플릿(/pet/{petId})과 실제 경로(/pet/42)를 매칭. {x}는 와일드카드. */
@@ -167,7 +167,7 @@ export async function saveRecordingsToMock(
   const { entries, failed } = recordingsToRequestEntries(records);
   let persisted = false;
   if (entries.length > 0) {
-    const config = loadMockConfig(specUrl, spec);
+    const config = await loadMockConfigAsync(specUrl, spec);
     config.requests = [...entries, ...config.requests];
     const preset = await savePreset(specUrl, title, config.operations, config.requests);
     persisted = preset !== null;

@@ -138,7 +138,22 @@ describe("ProxyModal 추가 동작", () => {
     fireEvent.click(screen.getByRole("button", { name: "시작" }));
     const btn = await screen.findByRole("button", { name: "Mock으로" });
     fireEvent.click(btn);
-    expect(screen.getByText("Mock에 저장됨")).toBeTruthy();
+    expect(await screen.findByText("Mock에 저장됨")).toBeTruthy();
+  });
+
+  it("비동기(Promise) onSendToMock 결과 메시지도 표시한다", async () => {
+    // App의 sendRecordingToMock이 IndexedDB 저장으로 async가 됨 — Promise 반환도 지원해야 한다
+    const recs: ProxyRecord[] = [{ atMs: 1, method: "GET", path: "/pet", status: 200, responseBody: "[]" }];
+    invokeMock.mockImplementation(async (cmd: unknown) => {
+      if (cmd === "proxy_start") return 9091;
+      if (cmd === "proxy_recordings") return recs;
+      return undefined;
+    });
+    renderModal(vi.fn(async () => "Mock 저장됨(비동기)"));
+    fireEvent.click(screen.getByRole("button", { name: "시작" }));
+    const btn = await screen.findByRole("button", { name: "Mock으로" });
+    fireEvent.click(btn);
+    expect(await screen.findByText("Mock 저장됨(비동기)")).toBeTruthy();
   });
 
   it("'전체 Mock으로' 클릭 시 제목 입력 후 저장하면 records와 title을 넘기고 결과를 표시한다", async () => {

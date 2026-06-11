@@ -14,8 +14,8 @@ interface Props {
   defaultTarget: string;
   /** 앱 네트워크 설정(SSL 검증 끄기 등) — 포워딩에 적용 */
   net?: Partial<NetworkSettings>;
-  /** 녹화를 Mock으로 변환 요청(App이 매칭·저장). 성공 메시지/실패는 App이 결정 → 결과 문자열 반환 */
-  onSendToMock: (record: ProxyRecord) => string;
+  /** 녹화를 Mock으로 변환 요청(App이 매칭·IndexedDB 저장). 성공 메시지/실패는 App이 결정 → 결과 문자열 반환(async 가능) */
+  onSendToMock: (record: ProxyRecord) => string | Promise<string>;
   /** 녹화 전체를 Mock으로 일괄 저장(App이 매칭·저장, IndexedDB). 결과 메시지 반환(async) */
   onSendAllToMock: (records: ProxyRecord[], title: string) => Promise<string>;
   onClose: () => void;
@@ -231,7 +231,10 @@ export function ProxyModal({ defaultTarget, net, onSendToMock, onSendAllToMock, 
                 <span className="proxy-rec-status" style={{ color: r.error ? "#f85149" : "#3fb950" }}>
                   {r.error ? "ERR" : r.status}
                 </span>
-                <button className="btn small" onClick={() => setSendMsg(onSendToMock(r))}>Mock으로</button>
+                <button className="btn small"
+                  onClick={() => { Promise.resolve(onSendToMock(r)).then(setSendMsg).catch(() => setSendMsg("Mock 저장 실패")); }}>
+                  Mock으로
+                </button>
                 <button className="btn small" title="이 녹화 삭제"
                   onClick={() => setHiddenIds((prev) => { const next = new Set(prev); next.add(recKey(r)); return next; })}>×</button>
               </div>

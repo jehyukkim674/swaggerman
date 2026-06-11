@@ -187,6 +187,7 @@ describe("녹화 → 요청 엔트리", () => {
     expect(ipStatus.body).toEqual({ v: 3 }); // 최신 이김
     expect(entries.some((e) => e.path === "/api/v1/code/IP_USAGE")).toBe(true);
   });
+
 });
 
 describe("saveRecordingsToMock (전체저장 = IndexedDB 프리셋으로 저장)", () => {
