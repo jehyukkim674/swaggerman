@@ -179,6 +179,7 @@ describe("MockServerModal", () => {
     // startMockServer 호출 확인
     expect(mockStartMockServer).toHaveBeenCalledWith(
       9090,
+      expect.any(Array),
       expect.any(Array)
     );
 

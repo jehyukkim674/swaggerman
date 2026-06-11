@@ -193,7 +193,7 @@ export function MockServerModal({ spec, specUrl, history, onClose }: Props) {
     const portNum = config.port;
     const routes = buildMockRoutes(spec, config);
     try {
-      const boundPort = await startMockServer(portNum, routes);
+      const boundPort = await startMockServer(portNum, routes, config.requests);
       // OS가 실제로 바인딩한 포트가 다를 경우 config.port를 갱신
       if (typeof boundPort === "number" && boundPort !== portNum) {
         setConfig((prev) => ({ ...prev, port: boundPort }));
