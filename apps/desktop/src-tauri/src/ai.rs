@@ -24,6 +24,8 @@ pub struct AiCompleteArgs {
     pub prompt: String,
     pub system: String,
     pub model: String,
+    /// TS provider가 보내는 출력 스키마 힌트 — 프롬프트에 이미 포함돼 현재 미사용(IPC 계약 유지).
+    #[allow(dead_code)]
     pub schema: String,
     #[serde(default)]
     pub claude_path: Option<String>,
@@ -190,6 +192,8 @@ const CREATE_NO_WINDOW: u32 = 0x0800_0000;
 /// .cmd/.bat(npm 셰임 등)는 직접 실행이 안 되므로 Windows에서 cmd /C로 감싼다.
 /// Windows에서는 CREATE_NO_WINDOW로 콘솔 창이 뜨지 않게 한다.
 fn std_command_for(bin: &str) -> std::process::Command {
+    // mut는 Windows 전용 creation_flags 블록에서만 쓰인다 — 비Windows 빌드 경고 억제
+    #[cfg_attr(not(windows), allow(unused_mut))]
     let mut c = if cfg!(windows) && (bin.ends_with(".cmd") || bin.ends_with(".bat")) {
         let mut c = std::process::Command::new("cmd");
         c.arg("/C").arg(bin);
@@ -207,6 +211,8 @@ fn std_command_for(bin: &str) -> std::process::Command {
 
 /// tokio 버전(스트리밍/비동기 실행용). Windows 콘솔 창 숨김 포함.
 fn tokio_command_for(bin: &str) -> tokio::process::Command {
+    // mut는 Windows 전용 creation_flags 블록에서만 쓰인다 — 비Windows 빌드 경고 억제
+    #[cfg_attr(not(windows), allow(unused_mut))]
     let mut c = if cfg!(windows) && (bin.ends_with(".cmd") || bin.ends_with(".bat")) {
         let mut c = tokio::process::Command::new("cmd");
         c.arg("/C").arg(bin);
