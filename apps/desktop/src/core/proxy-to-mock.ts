@@ -103,7 +103,10 @@ export function applyMockTargets(cfg: MockServerConfig, targets: MockTarget[]): 
 
 /** 녹화 1건을 요청 엔트리로 변환(실제 경로+쿼리 보존). */
 export function recordingToRequestEntry(record: ProxyRecord): MockRequestEntry {
-  const [pathPart, queryStr] = record.path.split("?");
+  // 첫 '?'에서만 분리 — 쿼리 값 안의 '?'(허용 문자)를 보존한다
+  const qIdx = record.path.indexOf("?");
+  const pathPart = qIdx < 0 ? record.path : record.path.slice(0, qIdx);
+  const queryStr = qIdx < 0 ? "" : record.path.slice(qIdx + 1);
   const query = queryStr
     ? queryStr.split("&").filter(Boolean).map((pair) => {
         const i = pair.indexOf("=");
@@ -136,7 +139,12 @@ export function recordingsToRequestEntries(records: ProxyRecord[]): { entries: M
   for (const r of records) {
     if (r.error) { failed += 1; continue; }
     const e = recordingToRequestEntry(r);
-    const key = `${e.method} ${e.path}?${(e.query ?? []).map((q) => `${q.name}=${q.value}`).join("&")}`;
+    // 쿼리는 정렬해서 키 생성 — 파라미터 순서만 다른 같은 요청을 중복 저장하지 않는다
+    const sortedQuery = (e.query ?? [])
+      .map((q) => `${q.name}=${q.value}`)
+      .sort()
+      .join("&");
+    const key = `${e.method} ${e.path}?${sortedQuery}`;
     byKey.set(key, e); // 나중(최신)이 이김
   }
   return { entries: [...byKey.values()], failed };

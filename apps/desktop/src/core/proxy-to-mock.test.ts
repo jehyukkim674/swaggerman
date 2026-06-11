@@ -188,6 +188,25 @@ describe("녹화 → 요청 엔트리", () => {
     expect(entries.some((e) => e.path === "/api/v1/code/IP_USAGE")).toBe(true);
   });
 
+  it("쿼리 값에 '?'가 있어도 첫 '?'에서만 분리해 나머지를 보존한다", () => {
+    const e = recordingToRequestEntry({
+      atMs: 1, method: "GET", path: "/search?q=a?b&x=1", status: 200, responseBody: "{}",
+    });
+    expect(e.path).toBe("/search");
+    expect(e.query).toEqual([
+      { name: "q", value: "a?b" },
+      { name: "x", value: "1" },
+    ]);
+  });
+
+  it("쿼리 순서만 다른 같은 요청은 하나로 합쳐진다(최신이 이김)", () => {
+    const { entries } = recordingsToRequestEntries([
+      { atMs: 1, method: "GET", path: "/s?a=1&b=2", status: 200, responseBody: '{"v":1}' },
+      { atMs: 2, method: "GET", path: "/s?b=2&a=1", status: 200, responseBody: '{"v":2}' },
+    ]);
+    expect(entries).toHaveLength(1);
+    expect(entries[0].body).toEqual({ v: 2 });
+  });
 });
 
 describe("saveRecordingsToMock (전체저장 = IndexedDB 프리셋으로 저장)", () => {
