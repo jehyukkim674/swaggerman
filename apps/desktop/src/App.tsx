@@ -1325,7 +1325,9 @@ export default function App() {
         <button
           className="btn"
           title="Mock 서버 — 스펙 기반 가짜 API 서버를 로컬에 띄웁니다"
-          onClick={() => setMockOpen(true)}
+          // 프록시 모달과 상호 배타 — 둘 다 열리면 ESC가 동시에 닫히고,
+          // 양쪽이 같은 Mock 설정(IndexedDB)을 편집해 늦게 저장한 쪽이 덮어쓴다
+          onClick={() => { setProxyOpen(false); setMockOpen(true); }}
           disabled={!spec}
         >
           Mock
@@ -1333,7 +1335,7 @@ export default function App() {
         <button
           className="btn"
           title="프록시 녹화 — 실서버로 포워딩하며 응답을 녹화해 Mock으로"
-          onClick={() => setProxyOpen(true)}
+          onClick={() => { setMockOpen(false); setProxyOpen(true); }}
           disabled={!spec}
         >
           프록시
