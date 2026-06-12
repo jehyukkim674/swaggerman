@@ -262,6 +262,19 @@ export function buildMockRoutes(spec: ParsedSpec, config: MockServerConfig): Moc
     if (op.method !== "GET") continue;
     if (op.path.includes("{")) continue; // path param 있으면 단건 GET
 
+    // 명시 body만 있는 목록 GET(히스토리/직접 편집의 래퍼 객체 등) → 그대로 응답.
+    // 자동 생성 dataset이 사용자가 넣은 body를 가리면 안 된다.
+    if (cfg.dataset === undefined && cfg.body !== undefined) {
+      routes.push({
+        method: op.method,
+        path: op.path,
+        status: cfg.status,
+        body: cfg.body,
+        delayMs: cfg.delayMs,
+      });
+      continue;
+    }
+
     // 목록 GET
     const dataset = cfg.dataset ?? generateDataset(op, cfg.itemCount, cfg.seed);
     listDatasetMap.set(op.path, dataset);
@@ -291,6 +304,18 @@ export function buildMockRoutes(spec: ParsedSpec, config: MockServerConfig): Moc
     if (op.method === "GET" && !op.path.includes("{")) continue; // 이미 1단계에서 처리
 
     if (op.method === "GET" && op.path.includes("{")) {
+      // 명시 body만 있는 단건 GET(히스토리/직접 편집) → id 매칭 없이 그대로 응답
+      if (cfg.dataset === undefined && cfg.body !== undefined) {
+        routes.push({
+          method: op.method,
+          path: op.path,
+          status: cfg.status,
+          body: cfg.body,
+          delayMs: cfg.delayMs,
+        });
+        continue;
+      }
+
       // 단건 GET: 부모 목록 경로에서 /{...} 이후를 제거
       const parentPath = op.path.replace(/\/\{[^}]+\}.*$/, "");
       const parentDataset = listDatasetMap.get(parentPath)

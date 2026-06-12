@@ -750,3 +750,33 @@ describe("MockServerModal 저장 실패 경고", () => {
     vi.mocked(saveMockConfigAsync).mockResolvedValue(true); // 다른 테스트 오염 방지
   });
 });
+
+// ── 직접 편집한 객체 응답(래퍼 등)이 자동 생성에 가려지지 않고 서빙되는지 ──────────
+describe("MockServerModal 객체 응답 직접 편집", () => {
+  it("목록 GET에 객체(JSON)를 직접 입력하면 서버 시작 시 body 라우트로 전달된다", async () => {
+    vi.clearAllMocks();
+    mockStartMockServer.mockResolvedValue(9090);
+    mockGetMockStatus.mockResolvedValue({ running: false, port: 9090, logs: [] });
+
+    const spec = makeSpec([{ id: "GET /items", method: "GET", path: "/items" }]);
+    const { container } = render(
+      <MockServerModal spec={spec} specUrl="https://api.example.com/body-route.json" history={[]} onClose={() => {}} />,
+    );
+    await act(async () => {}); // 설정 로드 대기
+    fireEvent.click(container.querySelector(".mock-op-row")!);
+
+    // 페이지네이션 래퍼 형태의 객체를 직접 입력
+    const ta = container.querySelector<HTMLTextAreaElement>(".mock-dataset-textarea")!;
+    fireEvent.change(ta, { target: { value: '{"content":[{"id":1}],"totalElements":1}' } });
+
+    await act(async () => {
+      fireEvent.click(screen.getByText("서버 시작"));
+    });
+
+    expect(mockStartMockServer).toHaveBeenCalledTimes(1);
+    const routes = mockStartMockServer.mock.calls[0][1] as Array<{ body?: unknown; dataset?: unknown[] }>;
+    expect(routes).toHaveLength(1);
+    expect(routes[0].body).toEqual({ content: [{ id: 1 }], totalElements: 1 });
+    expect(routes[0].dataset).toBeUndefined(); // 자동 생성 dataset이 가리면 안 됨
+  });
+});

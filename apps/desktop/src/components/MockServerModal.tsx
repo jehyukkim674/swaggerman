@@ -290,7 +290,8 @@ export function MockServerModal({ spec, specUrl, history, onClose }: Props) {
       const opCfg = config.operations.find((o) => o.opId === opId);
       const newSeed = (opCfg?.seed ?? 1) + 1;
       const generated = generateDataset(op, opCfg?.itemCount ?? 20, newSeed);
-      updateOpCfg(opId, { source: "schema", dataset: generated, seed: newSeed });
+      // body는 비운다 — 이전 소스의 객체 응답이 남아 dataset과 충돌하지 않게
+      updateOpCfg(opId, { source: "schema", dataset: generated, seed: newSeed, body: undefined });
       setDatasetText(JSON.stringify(generated, null, 2));
     } else if (source === "ai") {
       await generateAiDataset(opId);
@@ -319,7 +320,7 @@ export function MockServerModal({ spec, specUrl, history, onClose }: Props) {
         schema: JSON.stringify({ type: "array", items: { type: "object" } }),
       });
       const dataset = parseMockDatasetResponse(raw);
-      updateOpCfg(opId, { source: "ai", dataset });
+      updateOpCfg(opId, { source: "ai", dataset, body: undefined });
       setDatasetText(JSON.stringify(dataset, null, 2));
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
@@ -330,7 +331,7 @@ export function MockServerModal({ spec, specUrl, history, onClose }: Props) {
         opCfgFallback?.itemCount ?? 20,
         opCfgFallback?.seed ?? 1
       );
-      updateOpCfg(opId, { source: "schema", dataset: fallbackDataset });
+      updateOpCfg(opId, { source: "schema", dataset: fallbackDataset, body: undefined });
       setDatasetText(JSON.stringify(fallbackDataset, null, 2));
       setPanelError(`AI 생성 실패: ${msg} — 자동 생성 데이터로 대체했습니다`);
     } finally {
@@ -355,11 +356,12 @@ export function MockServerModal({ spec, specUrl, history, onClose }: Props) {
 
     try {
       const parsed = JSON.parse(matched.responseBody);
+      // 반대 필드는 비운다 — 잔존 dataset/body가 새로 가져온 응답을 가리지 않게
       if (Array.isArray(parsed)) {
-        updateOpCfg(opId, { source: "history", dataset: parsed });
+        updateOpCfg(opId, { source: "history", dataset: parsed, body: undefined });
         setDatasetText(JSON.stringify(parsed, null, 2));
       } else {
-        updateOpCfg(opId, { source: "history", body: parsed });
+        updateOpCfg(opId, { source: "history", body: parsed, dataset: undefined });
         setDatasetText(JSON.stringify(parsed, null, 2));
       }
     } catch {
@@ -376,7 +378,7 @@ export function MockServerModal({ spec, specUrl, history, onClose }: Props) {
       if (!op) return;
       const newSeed = selectedOpCfg.seed + 1;
       const generated = generateDataset(op, selectedOpCfg.itemCount, newSeed);
-      updateOpCfg(selectedOpId, { dataset: generated, seed: newSeed });
+      updateOpCfg(selectedOpId, { dataset: generated, seed: newSeed, body: undefined });
       setDatasetText(JSON.stringify(generated, null, 2));
     } else if (src === "ai") {
       await generateAiDataset(selectedOpId);
@@ -392,10 +394,11 @@ export function MockServerModal({ spec, specUrl, history, onClose }: Props) {
     try {
       const parsed = JSON.parse(text);
       setDatasetParseError(null);
+      // 반대 필드는 비운다 — 배열↔객체 전환 시 이전 값이 남아 서빙을 가리지 않게
       if (Array.isArray(parsed)) {
-        updateOpCfg(selectedOpId, { source: "manual", dataset: parsed });
+        updateOpCfg(selectedOpId, { source: "manual", dataset: parsed, body: undefined });
       } else {
-        updateOpCfg(selectedOpId, { source: "manual", body: parsed });
+        updateOpCfg(selectedOpId, { source: "manual", body: parsed, dataset: undefined });
       }
     } catch {
       setDatasetParseError("JSON 파싱 오류 — 저장되지 않습니다");

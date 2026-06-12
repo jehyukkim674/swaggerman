@@ -612,3 +612,44 @@ describe("loadMockConfigAsync / saveMockConfigAsync (IndexedDB)", () => {
     expect(added?.itemCount).toBe(20);
   });
 });
+
+// ────────────────────────────────────────────────
+// 테스트: 명시 body 우선 서빙 (히스토리/직접 편집으로 넣은 래퍼 객체 등)
+// ────────────────────────────────────────────────
+
+describe("buildMockRoutes — 명시 body 우선", () => {
+  it("목록 GET에 dataset 없이 body(래퍼 객체)만 있으면 body 라우트로 서빙한다", () => {
+    const op = makeOp({ id: "GET /items", method: "GET", path: "/items" });
+    const spec = makeSpec([op]);
+    const config = defaultMockConfig(spec);
+    // 히스토리에서 가져온 페이지네이션 래퍼 응답(객체)
+    config.operations[0].body = { content: [{ id: 1 }], totalElements: 1 };
+    config.operations[0].dataset = undefined;
+
+    const routes = buildMockRoutes(spec, config);
+
+    expect(routes).toHaveLength(1);
+    expect(routes[0].body).toEqual({ content: [{ id: 1 }], totalElements: 1 });
+    expect(routes[0].dataset).toBeUndefined(); // 자동 생성으로 가려지면 안 됨
+  });
+
+  it("단건 GET에 dataset 없이 body만 있으면 부모 dataset 공유 대신 body 라우트로 서빙한다", () => {
+    const listOp = makeOp({ id: "GET /pets", method: "GET", path: "/pets" });
+    const oneOp = makeOp({
+      id: "GET /pets/{id}", method: "GET", path: "/pets/{id}",
+      responses: [{ statusCode: "200", schema: { type: "object", properties: { id: { type: "integer" } } } }],
+    });
+    const spec = makeSpec([listOp, oneOp]);
+    const config = defaultMockConfig(spec);
+    const oneCfg = config.operations.find((o) => o.opId === "GET /pets/{id}")!;
+    oneCfg.body = { id: 7, name: "히스토리응답" };
+    oneCfg.dataset = undefined;
+
+    const routes = buildMockRoutes(spec, config);
+    const oneRoute = routes.find((r) => r.path === "/pets/{id}")!;
+
+    expect(oneRoute.body).toEqual({ id: 7, name: "히스토리응답" });
+    expect(oneRoute.dataset).toBeUndefined();
+    expect(oneRoute.idField).toBeUndefined(); // 단건 조회 매칭 없이 그대로 응답
+  });
+});
