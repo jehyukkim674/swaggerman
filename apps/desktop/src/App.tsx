@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Panel, PanelGroup, PanelResizeHandle, type ImperativePanelHandle } from "react-resizable-panels";
+import { Group, Panel, Separator, useDefaultLayout, type PanelImperativeHandle } from "react-resizable-panels";
 import { getCurrentWebview } from "@tauri-apps/api/webview";
 import { listen } from "@tauri-apps/api/event";
 import { loadShortcut, saveShortcut, registerShortcut } from "./core/global-shortcut";
@@ -393,7 +393,14 @@ export default function App() {
   useEffect(() => {
     saveJSON("swaggerman.aiCollapsed", aiCollapsed);
   }, [aiCollapsed]);
-  const aiPanelRef = useRef<ImperativePanelHandle>(null);
+  const aiPanelRef = useRef<PanelImperativeHandle>(null);
+
+  // 패널 레이아웃 저장/복원 (v4: autoSaveId 대체) — AI 패널 유무별로 따로 저장
+  const { defaultLayout, onLayoutChanged } = useDefaultLayout({
+    id: "swaggerman-panes",
+    panelIds: aiOpen ? ["sidebar", "request", "response", "ai"] : ["sidebar", "request", "response"],
+    storage: localStorage,
+  });
 
   const aiProvider = useMemo(() => getProvider("claude"), []);
 
@@ -1521,8 +1528,13 @@ export default function App() {
         </div>
       )}
 
-      <PanelGroup direction="horizontal" className="panes" autoSaveId="swaggerman-panes">
-        <Panel id="sidebar" order={1} defaultSize={24} minSize={14} className="pane">
+      <Group
+        orientation="horizontal"
+        className="panes"
+        defaultLayout={defaultLayout}
+        onLayoutChanged={onLayoutChanged}
+      >
+        <Panel id="sidebar" defaultSize="24%" minSize="14%" className="pane">
           <Sidebar
             spec={spec}
             loading={loading}
@@ -1541,8 +1553,8 @@ export default function App() {
             notes={notes}
           />
         </Panel>
-        <PanelResizeHandle className="resize-handle" />
-        <Panel id="request" order={2} defaultSize={38} minSize={20} className="pane">
+        <Separator className="resize-handle" />
+        <Panel id="request" defaultSize="38%" minSize="20%" className="pane">
           <RequestEditor
             operation={selected}
             inputs={inputs}
@@ -1579,8 +1591,8 @@ export default function App() {
             }}
           />
         </Panel>
-        <PanelResizeHandle className="resize-handle" />
-        <Panel id="response" order={3} defaultSize={38} minSize={20} className="pane">
+        <Separator className="resize-handle" />
+        <Panel id="response" defaultSize="38%" minSize="20%" className="pane">
           <ResponseView
             response={response}
             request={lastRequest}
@@ -1596,17 +1608,15 @@ export default function App() {
         </Panel>
         {aiOpen && (
           <>
-            <PanelResizeHandle className="resize-handle" />
+            <Separator className="resize-handle" />
             <Panel
               id="ai"
-              order={4}
-              ref={aiPanelRef}
+              panelRef={aiPanelRef}
               collapsible
-              collapsedSize={4}
-              defaultSize={aiCollapsed ? 4 : 26}
-              minSize={16}
-              onCollapse={() => setAiCollapsed(true)}
-              onExpand={() => setAiCollapsed(false)}
+              collapsedSize="4%"
+              defaultSize={aiCollapsed ? "4%" : "26%"}
+              minSize="16%"
+              onResize={() => setAiCollapsed(aiPanelRef.current?.isCollapsed() ?? false)}
               className="pane"
             >
               {/* 접힘 스트립과 본문을 둘 다 마운트해 두고 CSS로 전환한다.
@@ -1650,7 +1660,7 @@ export default function App() {
             </Panel>
           </>
         )}
-      </PanelGroup>
+      </Group>
 
       {envModalOpen && (
         <EnvironmentsModal

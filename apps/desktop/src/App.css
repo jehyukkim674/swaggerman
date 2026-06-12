@@ -361,9 +361,7 @@ select:hover {
     background 0.12s,
     width 0.12s;
 }
-.resize-handle:hover::after,
-.resize-handle[data-resize-handle-state="hover"]::after,
-.resize-handle[data-resize-handle-state="drag"]::after {
+.resize-handle:hover::after {
   width: 3px;
   background: var(--accent);
 }

@@ -42,7 +42,7 @@ export function toBase64Url(bytes: Uint8Array): string {
 }
 
 /** URL-safe base64 → Uint8Array. */
-export function fromBase64Url(s: string): Uint8Array {
+export function fromBase64Url(s: string): Uint8Array<ArrayBuffer> {
   const b64 = s.replace(/-/g, "+").replace(/_/g, "/") + "=".repeat((4 - (s.length % 4)) % 4);
   const bin = atob(b64);
   const out = new Uint8Array(bin.length);
@@ -50,7 +50,7 @@ export function fromBase64Url(s: string): Uint8Array {
   return out;
 }
 
-async function gzip(bytes: Uint8Array): Promise<Uint8Array> {
+async function gzip(bytes: Uint8Array<ArrayBuffer>): Promise<Uint8Array> {
   const cs = new CompressionStream("gzip");
   const writer = cs.writable.getWriter();
   writer.write(bytes);
@@ -59,7 +59,7 @@ async function gzip(bytes: Uint8Array): Promise<Uint8Array> {
   return new Uint8Array(buf);
 }
 
-async function gunzip(bytes: Uint8Array): Promise<Uint8Array> {
+async function gunzip(bytes: Uint8Array<ArrayBuffer>): Promise<Uint8Array> {
   const ds = new DecompressionStream("gzip");
   const writer = ds.writable.getWriter();
   writer.write(bytes);
