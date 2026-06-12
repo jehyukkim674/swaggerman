@@ -249,6 +249,8 @@ pub fn build_response(
 
 /// 들어온 요청을 요청 엔트리에 매칭. 메서드+경로 정확일치 + 쿼리/헤더 부분일치.
 /// 조건 수(query+header)가 많은(더 구체적인) 엔트리가 우선. 동률이면 먼저 정의된 것.
+/// 이름이 빈 조건(UI에서 추가만 하고 안 채운 행)은 무시한다 — 매칭·점수 모두 제외.
+/// 경로는 끝 슬래시 차이를 허용한다(스펙 라우트 match_path와 동일한 관대함).
 // 주의: 경로/쿼리는 디코딩하지 않고 raw 비교한다(엔트리·요청 양쪽 모두 인코딩 상태 동일).
 // ASCII 경로(IP_STATUS 등)는 정확히 매칭됨. 퍼센트 인코딩된 세그먼트는 Phase 2에서 재검토.
 pub fn match_request_entry<'a>(
@@ -258,18 +260,21 @@ pub fn match_request_entry<'a>(
     query: &HashMap<String, String>,
     headers: &HashMap<String, String>,
 ) -> Option<&'a MockRequestEntry> {
+    let path_norm = path.trim_end_matches('/');
     let mut best: Option<&MockRequestEntry> = None;
     let mut best_score = -1i32;
     for e in entries {
-        if !e.method.eq_ignore_ascii_case(method) || e.path != path {
+        if !e.method.eq_ignore_ascii_case(method) || e.path.trim_end_matches('/') != path_norm {
             continue;
         }
-        let q_ok = e.query.iter().all(|m| query.get(&m.name).map(|v| v == &m.value).unwrap_or(false));
-        let h_ok = e.headers.iter().all(|m| {
+        let q_conds = || e.query.iter().filter(|m| !m.name.is_empty());
+        let h_conds = || e.headers.iter().filter(|m| !m.name.is_empty());
+        let q_ok = q_conds().all(|m| query.get(&m.name).map(|v| v == &m.value).unwrap_or(false));
+        let h_ok = h_conds().all(|m| {
             headers.get(&m.name.to_ascii_lowercase()).map(|v| v == &m.value).unwrap_or(false)
         });
         if q_ok && h_ok {
-            let score = (e.query.len() + e.headers.len()) as i32;
+            let score = (q_conds().count() + h_conds().count()) as i32;
             if score > best_score {
                 best = Some(e);
                 best_score = score;
@@ -839,6 +844,44 @@ mod tests {
         q2.insert("type".to_string(), "B".to_string());
         let m2 = match_request_entry(&entries, "GET", "/search", &q2, &h).unwrap();
         assert_eq!(m2.query.len(), 0);
+    }
+
+    #[test]
+    fn request_entry_ignores_empty_name_conditions() {
+        // UI에서 조건 행을 추가만 하고 안 채운 경우(name="") — 엔트리가 죽으면 안 된다
+        let entries = vec![entry("GET", "/x", &[("", "")], &[("", "")])];
+        let q = std::collections::HashMap::new();
+        let h = std::collections::HashMap::new();
+        let m = match_request_entry(&entries, "GET", "/x", &q, &h);
+        assert!(m.is_some(), "빈 이름 조건은 무시하고 매칭돼야 한다");
+    }
+
+    #[test]
+    fn request_entry_empty_conditions_do_not_inflate_score() {
+        // 빈 조건은 구체성 점수에도 포함되지 않아야 한다
+        let entries = vec![
+            entry("GET", "/x", &[("", ""), ("", "")], &[]), // 빈 조건 2개 → 실질 0
+            entry("GET", "/x", &[("type", "A")], &[]),      // 실질 조건 1개 → 더 구체적
+        ];
+        let mut q = std::collections::HashMap::new();
+        q.insert("type".to_string(), "A".to_string());
+        let h = std::collections::HashMap::new();
+        let m = match_request_entry(&entries, "GET", "/x", &q, &h).unwrap();
+        assert_eq!(m.query.len(), 1, "실질 조건 있는 엔트리가 이겨야 한다");
+    }
+
+    #[test]
+    fn request_entry_path_trailing_slash_insensitive() {
+        // 스펙 라우트(match_path)는 끝 슬래시를 허용하므로 엔트리도 동일하게
+        let entries = vec![entry("GET", "/api/v1/pets", &[], &[])];
+        let q = std::collections::HashMap::new();
+        let h = std::collections::HashMap::new();
+        assert!(match_request_entry(&entries, "GET", "/api/v1/pets/", &q, &h).is_some());
+        let entries2 = vec![entry("GET", "/api/v1/pets/", &[], &[])];
+        assert!(match_request_entry(&entries2, "GET", "/api/v1/pets", &q, &h).is_some());
+        // 루트끼리도 매칭
+        let root = vec![entry("GET", "/", &[], &[])];
+        assert!(match_request_entry(&root, "GET", "/", &q, &h).is_some());
     }
 
     #[test]
