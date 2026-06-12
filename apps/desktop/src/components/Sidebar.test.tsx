@@ -130,6 +130,36 @@ describe("Sidebar - API 탭", () => {
     setup({ spec: null });
     expect(screen.getByText(/spec URL을 입력/)).toBeTruthy();
   });
+
+  it("외부에서 selectedId가 바뀌면 선택된 행을 화면 안으로 스크롤한다", () => {
+    // jsdom에는 scrollIntoView가 없어 스파이로 주입
+    const scrollSpy = vi.fn();
+    Element.prototype.scrollIntoView = scrollSpy;
+    const props: Parameters<typeof Sidebar>[0] = {
+      spec: SPEC,
+      loading: false,
+      error: null,
+      selectedId: null,
+      onSelect: vi.fn(),
+      favorites: [],
+      onToggleFavorite: vi.fn(),
+      history: [],
+      onSelectHistory: vi.fn(),
+      onReplayHistory: vi.fn(),
+      onDeleteHistory: vi.fn(),
+      onClearHistory: vi.fn(),
+      selectedHistoryId: null,
+      onCompareHistory: vi.fn(),
+      notes: {} as NotesMap,
+    };
+    const { rerender } = render(<Sidebar {...props} />);
+    scrollSpy.mockClear();
+    rerender(<Sidebar {...props} selectedId="op2" />);
+    expect(scrollSpy).toHaveBeenCalled();
+    const scrolledEl = scrollSpy.mock.contexts[0] as HTMLElement;
+    expect(scrolledEl.classList.contains("selected")).toBe(true);
+    expect(scrolledEl.textContent).toContain("/orders");
+  });
 });
 
 describe("Sidebar - 히스토리 탭", () => {

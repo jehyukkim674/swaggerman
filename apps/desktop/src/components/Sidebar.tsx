@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { HTTPMethod, ParsedOperation, ParsedSpec } from "../core/types";
 import { methodColor, statusColor } from "./method";
 import { relativeTime, type HistoryItem } from "../core/history";
@@ -36,6 +36,12 @@ export function Sidebar(props: Props) {
   const [selectedTag, setSelectedTag] = useState<string>("");
 
   const favSet = useMemo(() => new Set(props.favorites), [props.favorites]);
+
+  // 커맨드 팔레트 등 외부에서 선택이 바뀌면 선택된 행이 보이도록 스크롤
+  const selectedRowRef = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    selectedRowRef.current?.scrollIntoView({ block: "nearest" });
+  }, [selectedId]);
 
   const availableTags = useMemo(() => {
     if (!spec) return [];
@@ -98,6 +104,7 @@ export function Sidebar(props: Props) {
     return (
       <div
         key={op.id}
+        ref={op.id === selectedId ? selectedRowRef : undefined}
         className={`op-row${op.id === selectedId ? " selected" : ""}`}
         onClick={() => onSelect(op)}
       >
