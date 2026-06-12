@@ -39,6 +39,11 @@ export function MockRequestsPanel({ requests, onChange }: Props) {
 
   const setBody = (id: string, text: string) => {
     setBodyDraft(text);
+    // 비우면 빈 응답 — ""를 JSON 문자열로 서빙하지 않는다
+    if (text.trim() === "") {
+      update(id, { body: undefined });
+      return;
+    }
     let body: unknown;
     try { body = JSON.parse(text); } catch { body = text; }
     update(id, { body });
@@ -101,8 +106,12 @@ export function MockRequestsPanel({ requests, onChange }: Props) {
                           onChange={(e) => update(r.id, { path: e.target.value })} />
                       </label>
                       <label>상태
-                        <input type="number" value={r.status} style={{ width: 72 }}
+                        <input type="number" value={r.status} min={100} max={599} style={{ width: 72 }}
                           onChange={(e) => update(r.id, { status: Number(e.target.value) || 200 })} />
+                      </label>
+                      <label>지연(ms)
+                        <input type="number" value={r.delayMs} min={0} max={30000} style={{ width: 84 }}
+                          onChange={(e) => update(r.id, { delayMs: Number(e.target.value) || 0 })} />
                       </label>
                     </div>
                     <div className="mock-req-section"><span className="mock-req-label">쿼리 매칭(부분일치)</span>{matchEditor(r.id, "query", r.query)}</div>

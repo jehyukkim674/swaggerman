@@ -54,6 +54,27 @@ describe("MockRequestsPanel", () => {
     expect((onChange.mock.calls[onChange.mock.calls.length - 1][0] as MockRequestEntry[])[0].body).toEqual({ v: 9 });
   });
 
+  it("지연(ms)을 편집할 수 있다", () => {
+    const onChange = vi.fn();
+    render(<MockRequestsPanel requests={[entry()]} onChange={onChange} />);
+    fireEvent.click(screen.getByText("/api/v1/code/IP_STATUS"));
+    const delay = screen.getByLabelText(/지연/) as HTMLInputElement;
+    expect(delay.value).toBe("0");
+    fireEvent.change(delay, { target: { value: "1500" } });
+    const updated = onChange.mock.calls[onChange.mock.calls.length - 1][0] as MockRequestEntry[];
+    expect(updated[0].delayMs).toBe(1500);
+  });
+
+  it("본문을 비우면 body가 undefined(빈 응답)가 된다", () => {
+    const onChange = vi.fn();
+    render(<MockRequestsPanel requests={[entry({ body: { v: 1 } })]} onChange={onChange} />);
+    fireEvent.click(screen.getByText("/api/v1/code/IP_STATUS"));
+    const body = screen.getByRole("textbox", { name: "" }) as HTMLTextAreaElement;
+    fireEvent.change(body, { target: { value: "" } });
+    const updated = onChange.mock.calls[onChange.mock.calls.length - 1][0] as MockRequestEntry[];
+    expect(updated[0].body).toBeUndefined(); // ""(JSON 문자열)로 서빙되면 안 됨
+  });
+
   it("삭제 버튼으로 엔트리를 제거한다", () => {
     const onChange = vi.fn();
     render(<MockRequestsPanel requests={[entry(), entry({ id: "e2", path: "/b" })]} onChange={onChange} />);
