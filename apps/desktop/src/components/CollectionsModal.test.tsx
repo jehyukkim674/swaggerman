@@ -163,6 +163,33 @@ describe("CollectionsModal", () => {
     fireEvent.click(screen.getByText("내보내기"));
     await waitFor(() => expect(screen.getByText(/내보내기 실패/)).toBeTruthy());
   });
+
+  it("Postman 포맷 선택 시 Postman 컬렉션을 쓴다", async () => {
+    saveMock.mockResolvedValue("/tmp/out.json");
+    writeTextFileMock.mockResolvedValue(undefined);
+    setup();
+    fireEvent.click(screen.getByText("SwaggerMan (JSON)")); // 드롭다운 열기
+    fireEvent.mouseDown(screen.getByText("Postman v2.1 (JSON)"));
+    fireEvent.click(screen.getByText("내보내기"));
+    await waitFor(() => expect(writeTextFileMock).toHaveBeenCalled());
+    const written = writeTextFileMock.mock.calls[0][1] as string;
+    expect(written).toContain("v2.1.0");
+  });
+
+  it("Bruno 포맷 선택 시 폴더를 고르고 요청당 .bru를 쓴다", async () => {
+    openMock.mockResolvedValue("/tmp/bruno-dir");
+    writeTextFileMock.mockResolvedValue(undefined);
+    setup();
+    fireEvent.click(screen.getByText("SwaggerMan (JSON)"));
+    fireEvent.mouseDown(screen.getByText("Bruno (.bru 폴더)"));
+    fireEvent.click(screen.getByText("내보내기"));
+    await waitFor(() => expect(writeTextFileMock).toHaveBeenCalled());
+    expect(openMock).toHaveBeenCalledWith(expect.objectContaining({ directory: true }));
+    // COLLECTIONS에 요청 1건 → .bru 1개, 경로는 대상 폴더 하위
+    expect(writeTextFileMock).toHaveBeenCalledTimes(1);
+    expect(writeTextFileMock.mock.calls[0][0]).toContain("/tmp/bruno-dir/");
+    expect(writeTextFileMock.mock.calls[0][0]).toMatch(/\.bru$/);
+  });
 });
 
 describe("인라인 편집", () => {

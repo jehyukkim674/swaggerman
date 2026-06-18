@@ -102,9 +102,15 @@ fn read_text_file(path: String) -> Result<String, String> {
     std::fs::read_to_string(&path).map_err(|e| format!("파일 읽기 실패({path}): {e}"))
 }
 
-/// 텍스트 파일을 쓴다(컬렉션 export 용).
+/// 텍스트 파일을 쓴다(컬렉션 export 용). 부모 디렉터리가 없으면 생성한다(Bruno 폴더 export).
 #[tauri::command]
 fn write_text_file(path: String, contents: String) -> Result<(), String> {
+    if let Some(parent) = std::path::Path::new(&path).parent() {
+        if !parent.as_os_str().is_empty() {
+            std::fs::create_dir_all(parent)
+                .map_err(|e| format!("디렉터리 생성 실패({}): {e}", parent.display()))?;
+        }
+    }
     std::fs::write(&path, contents).map_err(|e| format!("파일 쓰기 실패({path}): {e}"))
 }
 
@@ -361,6 +367,19 @@ mod tests {
         write_text_file(path.clone(), "{\"x\":1}".into()).unwrap();
         assert_eq!(read_text_file(path.clone()).unwrap(), "{\"x\":1}");
         let _ = std::fs::remove_file(&path);
+    }
+
+    #[test]
+    fn write_text_file_creates_missing_parent_dirs() {
+        let dir = std::env::temp_dir().join(format!("swaggerman_bru_{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        let path = dir
+            .join("col/folder/req.bru")
+            .to_string_lossy()
+            .to_string();
+        write_text_file(path.clone(), "meta {}".into()).unwrap();
+        assert_eq!(read_text_file(path).unwrap(), "meta {}");
+        let _ = std::fs::remove_dir_all(&dir);
     }
 
     /// 요청 `count`건을 받아 각 요청을 캡처하고 매번 동일 응답을 반환.

@@ -8,12 +8,51 @@ import {
   type Collection,
   type SavedRequest,
 } from "../core/collections";
+import { toPostmanV21, toCurlScript, toOpenAPI, toBruFiles } from "../core/collection-export";
 import { newId } from "../core/history";
 import { methodColor } from "./method";
 import { CloseCircleIcon, TrashIcon, EditIcon } from "./icons";
 import { HTTP_METHODS } from "../core/types";
 import { useEscToClose } from "./useEscToClose";
 import { Select } from "./Select";
+
+type ExportFormat = "native" | "postman" | "curl" | "openapi" | "bruno";
+
+interface ExportSpec {
+  label: string;
+  /** Bruno(디렉터리)는 build가 없고 별도 처리. */
+  build?: (cols: Collection[]) => string;
+  fileName?: string;
+  ext?: string;
+}
+
+const EXPORT_SPECS: Record<ExportFormat, ExportSpec> = {
+  native: {
+    label: "SwaggerMan (JSON)",
+    build: exportCollections,
+    fileName: "swaggerman-collections.json",
+    ext: "json",
+  },
+  postman: {
+    label: "Postman v2.1 (JSON)",
+    build: toPostmanV21,
+    fileName: "swaggerman.postman_collection.json",
+    ext: "json",
+  },
+  curl: {
+    label: "cURL 스크립트 (.sh)",
+    build: toCurlScript,
+    fileName: "swaggerman-requests.sh",
+    ext: "sh",
+  },
+  openapi: {
+    label: "OpenAPI 3.1 (YAML)",
+    build: toOpenAPI,
+    fileName: "swaggerman-openapi.yaml",
+    ext: "yaml",
+  },
+  bruno: { label: "Bruno (.bru 폴더)" },
+};
 
 interface CurrentRequest {
   method: string;
@@ -40,6 +79,7 @@ export function CollectionsModal({ collections, onChange, current, onLoad, onClo
   const [targetId, setTargetId] = useState(collections[0]?.id ?? "__new__");
   const [newColName, setNewColName] = useState("");
   const [msg, setMsg] = useState<string | null>(null);
+  const [exportFormat, setExportFormat] = useState<ExportFormat>("native");
 
   // 인라인 편집(한 번에 한 행): 이름·메서드·URL만. 헤더/바디는 불러오기→덮어쓰기로 수정.
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -167,15 +207,32 @@ export function CollectionsModal({ collections, onChange, current, onLoad, onClo
   };
 
   const doExport = async () => {
+    if (exportFormat === "bruno") return doExportBruno();
+    const fmt = EXPORT_SPECS[exportFormat];
     try {
       const path = await save({
         title: "컬렉션 내보내기",
-        defaultPath: "swaggerman-collections.json",
-        filters: [{ name: "JSON", extensions: ["json"] }],
+        defaultPath: fmt.fileName,
+        filters: [{ name: fmt.ext!.toUpperCase(), extensions: [fmt.ext!] }],
       });
       if (typeof path !== "string") return;
-      await writeTextFile(path, exportCollections(collections));
+      await writeTextFile(path, fmt.build!(collections));
       setMsg("내보냈습니다.");
+    } catch (e) {
+      setMsg(`내보내기 실패: ${e instanceof Error ? e.message : String(e)}`);
+    }
+  };
+
+  // Bruno: 대상 폴더를 고른 뒤 요청당 .bru 파일을 폴더 구조로 기록.
+  const doExportBruno = async () => {
+    try {
+      const dir = await open({ directory: true, title: "Bruno .bru를 저장할 폴더 선택" });
+      if (typeof dir !== "string") return;
+      const files = toBruFiles(collections);
+      for (const f of files) {
+        await writeTextFile(`${dir}/${f.relPath}`, f.content);
+      }
+      setMsg(`${files.length}개 .bru 파일을 내보냈습니다.`);
     } catch (e) {
       setMsg(`내보내기 실패: ${e instanceof Error ? e.message : String(e)}`);
     }
@@ -196,6 +253,14 @@ export function CollectionsModal({ collections, onChange, current, onLoad, onClo
             <button className="btn small" onClick={doImport}>
               가져오기
             </button>
+            <Select
+              value={exportFormat}
+              onChange={(v) => setExportFormat(v as ExportFormat)}
+              options={(Object.keys(EXPORT_SPECS) as ExportFormat[]).map((k) => ({
+                value: k,
+                label: EXPORT_SPECS[k].label,
+              }))}
+            />
             <button className="btn small" onClick={doExport} disabled={collections.length === 0}>
               내보내기
             </button>
