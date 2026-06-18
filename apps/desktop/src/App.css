@@ -435,10 +435,57 @@ select:hover {
 }
 .history-head {
   display: flex;
-  justify-content: space-between;
   align-items: center;
+  gap: 6px;
   padding: 6px 10px;
   border-bottom: 1px solid var(--border);
+}
+.history-head .muted {
+  margin-right: auto;
+  white-space: nowrap;
+}
+.history-search {
+  margin: 6px 10px;
+  padding: 5px 8px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text);
+  font-size: 12px;
+}
+.history-search:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+.history-filters {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-2);
+}
+.filter-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.chip {
+  padding: 2px 8px;
+  background: var(--bg-3);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  color: var(--muted);
+  font-size: 11px;
+  cursor: pointer;
+}
+.chip:hover {
+  border-color: var(--accent);
+}
+.chip.on {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 18%, transparent);
+  font-weight: 600;
 }
 .link-danger {
   background: transparent;

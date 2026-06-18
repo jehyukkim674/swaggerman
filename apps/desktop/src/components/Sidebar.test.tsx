@@ -212,4 +212,63 @@ describe("Sidebar - 히스토리 탭", () => {
     fireEvent.click(compareBtn);
     expect(onCompareHistory).toHaveBeenCalled();
   });
+
+  it("검색어 입력 시 일치 항목만 표시한다", () => {
+    setup({
+      history: [
+        mkHist({ id: "h1", path: "/users" }),
+        mkHist({ id: "h2", path: "/orders", method: "POST" }),
+      ],
+    });
+    fireEvent.click(screen.getByText("히스토리"));
+    fireEvent.change(screen.getByPlaceholderText("경로·URL 검색"), {
+      target: { value: "orders" },
+    });
+    expect(screen.queryByText("/users")).toBeNull();
+    expect(screen.getByText("/orders")).toBeTruthy();
+    expect(screen.getByText("1 / 2개")).toBeTruthy();
+  });
+
+  it("메서드 칩으로 필터한다", () => {
+    setup({
+      history: [
+        mkHist({ id: "h1", path: "/users", method: "GET" }),
+        mkHist({ id: "h2", path: "/orders", method: "POST" }),
+      ],
+    });
+    fireEvent.click(screen.getByText("히스토리"));
+    fireEvent.click(screen.getByText("필터"));
+    fireEvent.click(screen.getByRole("button", { name: "POST" }));
+    expect(screen.queryByText("/users")).toBeNull();
+    expect(screen.getByText("/orders")).toBeTruthy();
+    expect(screen.getByText("필터 (1)")).toBeTruthy();
+  });
+
+  it("필터 활성 시 '보이는 N개 삭제'로 바뀌고 보이는 항목만 삭제한다", () => {
+    const { onDeleteHistory, onClearHistory } = setup({
+      history: [
+        mkHist({ id: "h1", path: "/users" }),
+        mkHist({ id: "h2", path: "/orders" }),
+      ],
+    });
+    fireEvent.click(screen.getByText("히스토리"));
+    fireEvent.change(screen.getByPlaceholderText("경로·URL 검색"), {
+      target: { value: "orders" },
+    });
+    fireEvent.click(screen.getByText("보이는 1개 삭제"));
+    expect(onDeleteHistory).toHaveBeenCalledWith("h2");
+    expect(onDeleteHistory).toHaveBeenCalledTimes(1);
+    expect(onClearHistory).not.toHaveBeenCalled();
+  });
+
+  it("일치 항목이 없으면 안내와 초기화 버튼을 보여준다", () => {
+    setup({ history: [mkHist({ id: "h1", path: "/users" })] });
+    fireEvent.click(screen.getByText("히스토리"));
+    fireEvent.change(screen.getByPlaceholderText("경로·URL 검색"), {
+      target: { value: "없는경로" },
+    });
+    expect(screen.getByText(/조건에 맞는 요청이 없습니다/)).toBeTruthy();
+    fireEvent.click(screen.getByText("필터 초기화"));
+    expect(screen.getByText("/users")).toBeTruthy();
+  });
 });

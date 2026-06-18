@@ -1,7 +1,14 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { HTTPMethod, ParsedOperation, ParsedSpec } from "../core/types";
 import { methodColor, statusColor } from "./method";
-import { relativeTime, type HistoryItem } from "../core/history";
+import {
+  relativeTime,
+  filterHistory,
+  isFilterActive,
+  EMPTY_HISTORY_FILTER,
+  type HistoryItem,
+  type HistoryFilter,
+} from "../core/history";
 import { ReplayIcon, TrashIcon } from "./icons";
 import { Select } from "./Select";
 import { STATUS_META, type NotesMap } from "../core/notes";
@@ -269,13 +276,80 @@ function HistoryTab({
     const b = history.find((h) => h.id === compareIds[1]);
     if (a && b) onCompare(a, b);
   };
+
+  // 검색·필터 상태(로컬, 탭 전환/새로고침 시 초기화)
+  const [filter, setFilter] = useState<HistoryFilter>(EMPTY_HISTORY_FILTER);
+  const [showFilters, setShowFilters] = useState(false);
+  const active = isFilterActive(filter);
+  const filtered = useMemo(() => filterHistory(history, filter), [history, filter]);
+  const methods: HTTPMethod[] = ["GET", "POST", "PUT", "PATCH", "DELETE"];
+  const statusGroups: { g: number; label: string }[] = [
+    { g: 2, label: "2xx" },
+    { g: 3, label: "3xx" },
+    { g: 4, label: "4xx" },
+    { g: 5, label: "5xx" },
+  ];
+  const activeCount =
+    (filter.methods.length > 0 ? 1 : 0) +
+    (filter.statusGroups.length > 0 ? 1 : 0) +
+    (filter.since != null ? 1 : 0);
+  const toggleMethod = (m: string) =>
+    setFilter((f) => ({
+      ...f,
+      methods: f.methods.includes(m) ? f.methods.filter((x) => x !== m) : [...f.methods, m],
+    }));
+  const toggleStatus = (g: number) =>
+    setFilter((f) => ({
+      ...f,
+      statusGroups: f.statusGroups.includes(g)
+        ? f.statusGroups.filter((x) => x !== g)
+        : [...f.statusGroups, g],
+    }));
+  const setSince = (preset: string) => {
+    const now = Date.now();
+    const map: Record<string, number | null> = {
+      all: null,
+      hour: now - 3_600_000,
+      today: new Date().setHours(0, 0, 0, 0),
+      week: now - 7 * 86_400_000,
+    };
+    setFilter((f) => ({ ...f, since: map[preset] ?? null }));
+  };
+  const sincePreset = (): string => {
+    if (filter.since == null) return "all";
+    const today = new Date().setHours(0, 0, 0, 0);
+    if (filter.since === today) return "today";
+    const diff = Date.now() - filter.since;
+    if (diff <= 3_600_000 + 1000) return "hour";
+    return "week";
+  };
+  const resetFilter = () => {
+    setFilter(EMPTY_HISTORY_FILTER);
+    setShowFilters(false);
+  };
+  const clearVisible = () => filtered.forEach((item) => onDelete(item.id));
+
   if (history.length === 0) {
     return <div className="hint center">요청을 보내면 여기에 기록됩니다.</div>;
   }
   return (
     <div className="history-tab">
+      <input
+        className="history-search"
+        type="search"
+        placeholder="경로·URL 검색"
+        value={filter.text}
+        onChange={(e) => setFilter((f) => ({ ...f, text: e.target.value }))}
+      />
       <div className="history-head">
-        <span className="muted">{history.length}개 요청</span>
+        <span className="muted">{active ? `${filtered.length} / ${history.length}개` : `${history.length}개 요청`}</span>
+        <button
+          className={showFilters || activeCount > 0 ? "btn small primary" : "btn small"}
+          onClick={() => setShowFilters((v) => !v)}
+          title="메서드·상태코드·기간으로 필터"
+        >
+          필터{activeCount > 0 ? ` (${activeCount})` : ""}
+        </button>
         <button
           className={compareReady ? "btn small primary" : "btn small"}
           disabled={!compareReady}
@@ -284,12 +358,63 @@ function HistoryTab({
         >
           비교 ({compareIds.length}/2)
         </button>
-        <button className="link-danger" onClick={onClear}>
-          전체 삭제
+        <button
+          className="link-danger"
+          onClick={active ? clearVisible : onClear}
+          title={active ? "현재 보이는 항목만 삭제" : "히스토리 전체 삭제"}
+        >
+          {active ? `보이는 ${filtered.length}개 삭제` : "전체 삭제"}
         </button>
       </div>
-      <div className="op-list">
-        {history.map((item) => (
+      {showFilters && (
+        <div className="history-filters">
+          <div className="filter-chips">
+            {methods.map((m) => (
+              <button
+                key={m}
+                className={`chip${filter.methods.includes(m) ? " on" : ""}`}
+                style={filter.methods.includes(m) ? { color: methodColor(m) } : undefined}
+                onClick={() => toggleMethod(m)}
+              >
+                {m}
+              </button>
+            ))}
+          </div>
+          <div className="filter-chips">
+            {statusGroups.map(({ g, label }) => (
+              <button
+                key={g}
+                className={`chip${filter.statusGroups.includes(g) ? " on" : ""}`}
+                style={filter.statusGroups.includes(g) ? { color: statusColor(g * 100) } : undefined}
+                onClick={() => toggleStatus(g)}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+          <Select
+            value={sincePreset()}
+            onChange={setSince}
+            options={[
+              { value: "all", label: "전체 기간" },
+              { value: "hour", label: "최근 1시간" },
+              { value: "today", label: "오늘" },
+              { value: "week", label: "최근 7일" },
+            ]}
+          />
+        </div>
+      )}
+      {filtered.length === 0 ? (
+        <div className="hint center">
+          조건에 맞는 요청이 없습니다.
+          <br />
+          <button className="link" onClick={resetFilter}>
+            필터 초기화
+          </button>
+        </div>
+      ) : (
+        <div className="op-list">
+          {filtered.map((item) => (
           <div
             key={item.id}
             className={`hist-row${item.id === selectedId ? " selected" : ""}`}
@@ -335,8 +460,9 @@ function HistoryTab({
               </button>
             </span>
           </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
