@@ -3381,7 +3381,7 @@ tr.cmp-changed td { background: #d2992214; }
 
 /* 가이드 문서 모달 */
 .modal.guide-modal { width: 720px; max-width: 94vw; height: 80vh; }
-.guide-body { display: flex; flex-direction: column; gap: 8px; overflow: hidden; }
+.guide-body { display: flex; flex-direction: column; gap: 8px; overflow: hidden; flex: 1; min-height: 0; }
 .guide-ops { max-height: 140px; overflow: auto; border: 1px solid var(--border); border-radius: 6px; padding: 4px; }
 .guide-op-check { display: flex; align-items: center; gap: 6px; padding: 3px 6px; font-size: 12px; cursor: pointer; }
 .guide-op-check:hover { background: var(--bg-3); }
