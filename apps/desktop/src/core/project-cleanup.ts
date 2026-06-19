@@ -28,6 +28,7 @@ export const PER_SPEC_KEY_PREFIXES = [
   "swaggerman.aichat.",
   "swaggerman.personas.",
   "swaggerman.samples.",
+  "swaggerman.authflow.",
 ] as const;
 
 /** 스펙 하나의 로컬 데이터를 전부 삭제한다. 실패해도 throw하지 않는다. */

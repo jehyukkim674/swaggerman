@@ -104,6 +104,7 @@ import {
 } from "./core/snapshots";
 import { FlowModal } from "./components/FlowModal";
 import type { ExecResult } from "./core/flow";
+import { applyTokenHeader } from "./core/auth-flow";
 
 const DEFAULT_SPEC_URL = "http://localhost:8000/v3/api-docs";
 
@@ -1797,6 +1798,9 @@ export default function App() {
           spec={spec}
           initialVars={activeVars}
           execOne={execFlowStep}
+          onApplyToken={(cfg, token) =>
+            setGlobalHeaders((prev) => applyTokenHeader(prev, cfg, token))
+          }
           onClose={() => setFlowOpen(false)}
         />
       )}

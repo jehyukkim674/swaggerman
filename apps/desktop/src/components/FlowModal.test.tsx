@@ -147,4 +147,30 @@ describe("FlowModal 단계 편집", () => {
     await waitFor(() => expect(execOne).toHaveBeenCalled());
     expect(await screen.findByText(/추출됨:/)).toBeTruthy();
   });
+
+  it("인증 토큰 갱신: 추출한 토큰을 onApplyToken으로 전달한다", async () => {
+    const execOne = vi.fn(async () => ({
+      status: 200,
+      ok: true,
+      body: '{"token":"abc123"}',
+      durationMs: 1,
+    }));
+    const onApplyToken = vi.fn();
+    render(
+      <FlowModal specUrl="u" spec={spec} initialVars={{}} execOne={execOne} onClose={vi.fn()} onApplyToken={onApplyToken} />,
+    );
+    fireEvent.click(screen.getByRole("button", { name: /새 플로우/ }));
+    fireEvent.click(screen.getByRole("button", { name: /단계 추가/ }));
+    // 추출 규칙: token ← body.token
+    fireEvent.click(screen.getByRole("button", { name: /추출 규칙/ }));
+    fireEvent.change(screen.getByPlaceholderText("변수명"), { target: { value: "token" } });
+    fireEvent.change(screen.getByPlaceholderText("JSONPath"), { target: { value: "token" } });
+    // 토큰 변수명은 기본값 'token' — 바로 갱신
+    fireEvent.click(screen.getByRole("button", { name: /토큰 갱신/ }));
+    await waitFor(() => expect(onApplyToken).toHaveBeenCalled());
+    const [cfg, token] = onApplyToken.mock.calls[0];
+    expect(token).toBe("abc123");
+    expect(cfg.headerName).toBe("Authorization");
+    expect(await screen.findByText(/전역 헤더에 적용/)).toBeTruthy();
+  });
 });

@@ -15,6 +15,7 @@ import {
   type ExecOne,
 } from "../core/flow";
 import type { ExtractRule, Assertion } from "../core/variables";
+import { loadAuthConfig, saveAuthConfig, type AuthFlowConfig } from "../core/auth-flow";
 import { Select } from "./Select";
 import { methodColor, statusColor } from "./method";
 import { CloseCircleIcon, TrashIcon } from "./icons";
@@ -26,9 +27,11 @@ interface Props {
   initialVars: Record<string, string>;
   execOne: ExecOne;
   onClose: () => void;
+  /** 인증 플로우의 토큰을 전역 헤더에 주입(App이 처리). */
+  onApplyToken?: (cfg: AuthFlowConfig, token: string) => void;
 }
 
-export function FlowModal({ specUrl, spec, initialVars, execOne, onClose }: Props) {
+export function FlowModal({ specUrl, spec, initialVars, execOne, onClose, onApplyToken }: Props) {
   useEscToClose(onClose);
   const [flows, setFlows] = useState<Flow[]>(() => loadFlows(specUrl));
   const [activeId, setActiveId] = useState<string | null>(
@@ -36,6 +39,37 @@ export function FlowModal({ specUrl, spec, initialVars, execOne, onClose }: Prop
   );
   const [results, setResults] = useState<Record<string, FlowStepResult>>({});
   const [running, setRunning] = useState(false);
+  const [authCfg, setAuthCfg] = useState<AuthFlowConfig>(() => loadAuthConfig(specUrl));
+  const [authMsg, setAuthMsg] = useState<string | null>(null);
+
+  const patchAuth = (patch: Partial<AuthFlowConfig>) =>
+    setAuthCfg((c) => {
+      const next = { ...c, ...patch };
+      saveAuthConfig(specUrl, next);
+      return next;
+    });
+
+  // 인증: 활성 플로우를 실행해 토큰 변수를 추출 → 전역 헤더에 주입.
+  const refreshToken = async () => {
+    if (!active) return;
+    setRunning(true);
+    setAuthMsg(null);
+    try {
+      const { vars } = await runFlow(active, execOne, initialVars);
+      const token = vars[authCfg.tokenVar.trim()];
+      if (!token) {
+        setAuthMsg(`토큰 변수 '${authCfg.tokenVar}'를 추출하지 못했습니다. 단계의 추출 규칙을 확인하세요.`);
+        return;
+      }
+      const cfg = { ...authCfg, flowId: active.id };
+      saveAuthConfig(specUrl, cfg);
+      setAuthCfg(cfg);
+      onApplyToken?.(cfg, token);
+      setAuthMsg(`토큰을 갱신해 '${authCfg.headerName}' 전역 헤더에 적용했습니다.`);
+    } finally {
+      setRunning(false);
+    }
+  };
   const [dragIdx, setDragIdx] = useState<number | null>(null);
   const [newOpId, setNewOpId] = useState(spec.operations[0]?.id ?? "");
 
@@ -133,6 +167,45 @@ export function FlowModal({ specUrl, spec, initialVars, execOne, onClose }: Prop
               <div className="hint">
                 단계 요청은 스펙 기본값으로 생성되며, 이전 단계에서 추출한 {"{{변수}}"}로 값을 채웁니다.
               </div>
+
+              {active.steps.length > 0 && (
+                <div className="flow-auth">
+                  <span className="flow-auth-title">🔑 인증 플로우</span>
+                  <label>
+                    토큰 변수
+                    <input
+                      value={authCfg.tokenVar}
+                      onChange={(e) => patchAuth({ tokenVar: e.target.value })}
+                      placeholder="token"
+                    />
+                  </label>
+                  <label>
+                    헤더
+                    <input
+                      value={authCfg.headerName}
+                      onChange={(e) => patchAuth({ headerName: e.target.value })}
+                      placeholder="Authorization"
+                    />
+                  </label>
+                  <label>
+                    접두
+                    <input
+                      value={authCfg.scheme}
+                      onChange={(e) => patchAuth({ scheme: e.target.value })}
+                      placeholder="Bearer "
+                    />
+                  </label>
+                  <button className="btn small primary" disabled={running} onClick={refreshToken}>
+                    {running ? "실행 중…" : "🔑 토큰 갱신"}
+                  </button>
+                </div>
+              )}
+              {authMsg && <div className="hint">{authMsg}</div>}
+              <div className="hint">
+                이 플로우를 로그인 시퀀스로 쓰면, 추출한 토큰을 전역 헤더에 자동 주입합니다.
+                토큰이 만료되면 "토큰 갱신"만 다시 누르면 됩니다.
+              </div>
+
               <div className="flow-steps">
                 {active.steps.map((step, idx) => {
                   const r = results[step.id];
