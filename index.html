@@ -287,7 +287,7 @@
   <h1><span class="mark">✦</span> SwaggerMan</h1>
   <p>OpenAPI(Swagger) 스펙을 탐색하고 API 요청을 실행하는 데스크톱 앱.
     로컬 <code>claude</code> CLI 기반 AI 어시스턴트를 내장했습니다.</p>
-  <span class="ver">매뉴얼 기준 버전: v0.5.7</span>
+  <span class="ver">매뉴얼 기준 버전: v0.6.0</span>
 </header>
 
 <div class="wrap">
@@ -524,8 +524,9 @@
     <ul class="nums">
       <li><span class="n">1</span> <strong>상태코드 · 소요 시간 · 크기</strong> — 한눈에 결과를 확인합니다.</li>
       <li><span class="n">2</span> <strong>보기 모드 · 내보내기</strong> — <strong>Pretty</strong>(정렬+구문 색상) /
-        <strong>Raw</strong>(원본) 전환, <strong>저장</strong>(파일로), <strong>cURL</strong>·<strong>Code ▾</strong>
-        (JavaScript·Python 등 코드 스니펫) 복사, <strong>✦ 설명</strong>(AI가 응답을 해설).</li>
+        <strong>Raw</strong>(원본) / <strong>Table</strong>(객체 배열을 표로 — <span class="badge">v0.5.9</span>) 전환,
+        <strong>저장</strong>(파일로), <strong>cURL</strong>·<strong>Code ▾</strong>
+        (JavaScript·Python 등 코드 스니펫) 복사, <strong>✦ 설명</strong>(AI가 응답을 해설), <strong>✦ 고쳐줘</strong>(실패 시 수정 제안).</li>
       <li><span class="n">3</span> <strong>스키마 검증</strong> — 응답 본문을 스펙의 응답 스키마와 자동 대조해
         불일치(누락 필드·타입 오류)를 표시합니다.</li>
       <li><span class="n">4</span> <strong>검색</strong> — <kbd>⌘</kbd><kbd>F</kbd>로 포커스, Enter로 다음 매치 이동.
@@ -534,6 +535,11 @@
         가상 스크롤로 멈춤 없이 표시됩니다.</li>
       <li><span class="n">6</span> <strong>미니맵</strong> — 전체 본문에서 현재 위치와 검색 매치 위치를 보여줍니다. 클릭하면 그 위치로 이동합니다.</li>
     </ul>
+
+    <h3>표(Table) 보기 <span class="badge">v0.5.9</span></h3>
+    <p>응답이 <strong>객체 배열</strong>이면 보기 모드에 <strong>Table</strong> 버튼이 나타납니다. 누르면 행/열 표로 보여
+      목록 응답을 한눈에 비교할 수 있습니다. <code>content</code>·<code>items</code>·<code>results</code> 같은 흔한
+      필드는 자동으로 찾고, 중첩된 배열은 상단에 <code>data.items</code>처럼 <strong>배열 경로</strong>를 직접 지정할 수 있습니다.</p>
 
     <h3>Docs 탭</h3>
     <p>같은 패널의 <strong>Docs</strong> 탭에서는 선택한 엔드포인트의 스펙 문서를 봅니다.</p>
@@ -751,6 +757,16 @@
       이 API를 처음 보는 신입 개발자용으로 설명합니다 — ① 이 API가 무엇을 하는지 ② 주요 파라미터를 채운
       현실적인 호출 예시 ③ 자주 하는 실수 3가지. 응답을 보내지 않아도 동작하며, 결과는 AI 패널에 표시됩니다.</p>
 
+    <h3>✦ 고쳐줘 — 실패 진단 + 수정 제안 <span class="badge">v0.5.8</span></h3>
+    <p>4xx/5xx 응답에서 Response 탭의 <strong>✦ 고쳐줘</strong> 버튼을 누르면 AI가 실패 원인을 진단하고
+      <strong>고친 요청</strong>을 제안합니다. AI 패널의 제안 카드에서 <strong>“폼에 적용”</strong> 한 번으로
+      수정된 path/query/header/body가 그대로 반영됩니다.</p>
+
+    <h3>✦ /찾아 — 자연어로 엔드포인트 찾기 <span class="badge">v0.5.9</span></h3>
+    <p>AI 패널 입력창에 <code>/찾아 최근 주문 3건</code>처럼 입력하면 AI가 <strong>스펙 전체에서 알맞은 엔드포인트를
+      골라 자동 이동</strong>하고, 그 의도에 맞게 <strong>요청 폼까지 채워</strong> 제안합니다. 어떤 API를 써야 할지
+      모를 때 유용합니다(전송은 안전상 직접 Send).</p>
+
     <h3>대화 히스토리</h3>
     <p>대화는 <strong>프로젝트별로 자동 저장</strong>되어 앱을 재시작해도 복원됩니다.</p>
 
@@ -817,8 +833,14 @@ claude            # 최초 1회 로그인</code></pre>
         <strong>프록시 URL</strong>(사내망에서 외부 API 호출 시). 스펙 로드·요청 실행·OAuth2 발급·업데이트 확인에 모두 적용됩니다.</li>
       <li><span class="n">2</span> <strong>claude 실행파일 경로</strong> — AI가 claude CLI를 자동으로 못 찾을 때 직접 지정합니다.</li>
       <li><span class="n">3</span> <strong>쿠키</strong> — 저장된 쿠키 조회·새로고침·모두 삭제.</li>
-      <li><span class="n">4</span> <strong>정보</strong> — 현재 앱 버전 표시. 앱이 도움이 됐다면 카카오페이 QR로 개발자에게 커피 한 잔 ☕</li>
+      <li><span class="n">4</span> <strong>백업/복원</strong> <span class="badge">v0.5.8</span> — 아래 참고.</li>
+      <li><span class="n">5</span> <strong>정보</strong> — 현재 앱 버전 표시. 앱이 도움이 됐다면 카카오페이 QR로 개발자에게 커피 한 잔 ☕</li>
     </ul>
+
+    <h3>전체 백업 / 복원 <span class="badge">v0.5.8</span></h3>
+    <p>설정의 <strong>백업/복원</strong> 섹션에서 <strong>모든 설정·프로젝트·히스토리·환경·Mock·캐시</strong>를
+      <strong>JSON 한 파일</strong>로 백업하고, 새로 설치한 곳에서 그대로 <strong>복원</strong>할 수 있습니다(복원 시 전체 덮어쓰기 후 자동 재시작).
+      저장 키를 통째로 보존하므로 <strong>버전이 바뀌어도 잘 깨지지 않습니다</strong>. PC를 옮기거나 재설치할 때 유용합니다.</p>
 
     <h3>테마와 화면 배율</h3>
     <ul>
@@ -940,6 +962,11 @@ claude            # 최초 1회 로그인</code></pre>
       <li><span class="n">2</span> <strong>추출 · 어서션</strong> — 각 단계 응답에서 <code>{{변수}}</code>를 추출하면 다음 단계 요청에 자동으로 채워집니다. 단계별 상태/값 검증(어서션)도 가능합니다.</li>
       <li><span class="n">3</span> <strong>전체 실행</strong> — 순서대로 실행하며 단계별 상태코드·추출된 변수·어서션 통과(✅/❌)를 표시합니다.</li>
     </ul>
+    <h3>🔑 인증 플로우 — 토큰 갱신 자동 주입 <span class="badge">v0.6.0</span></h3>
+    <p>로그인 플로우(예: <code>POST /login</code> → 응답에서 토큰 추출)를 만들어 두면, 플로우의 <strong>인증 섹션</strong>에서
+      <strong>토큰 변수 · 헤더 이름 · 접두</strong>(기본 <code>Authorization</code> / <code>Bearer&nbsp;</code>)를 정하고
+      <strong>🔑 토큰 갱신</strong> 한 번이면 추출한 토큰을 <strong>전역 헤더에 자동 주입</strong>합니다.
+      토큰이 만료되면 “토큰 갱신”만 다시 누르면 됩니다(설정은 스펙별 저장).</p>
   </section>
 
   <!-- 21. 협업 (메모·공유·권한) -->
@@ -1036,7 +1063,7 @@ claude            # 최초 1회 로그인</code></pre>
     <a href="https://qr.kakaopay.com/FcUzxPAhE" target="_blank" rel="noopener"
        style="color:#FFCD00; font-weight:700;">여기를 눌러 바로 송금</a>할 수 있어요. (PC에서는 링크가 열리지 않습니다)
   </p>
-  <span class="mark">✦</span> SwaggerMan · OpenAPI Explorer · 매뉴얼 기준 버전 v0.3.23
+  <span class="mark">✦</span> SwaggerMan · OpenAPI Explorer · 매뉴얼 기준 버전 v0.6.0
 </footer>
 
 </body>
