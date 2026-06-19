@@ -1,7 +1,10 @@
 import { useEffect, useState } from "react";
 import { getVersion } from "@tauri-apps/api/app";
+import { open, save } from "@tauri-apps/plugin-dialog";
 import type { NetworkSettings } from "../core/types";
 import { clearCookies, listCookies, type CookieInfo } from "../core/cookies";
+import { readTextFile, writeTextFile } from "../core/fs";
+import { buildBackup, serializeBackup, parseBackup, restoreBackup, type BackupFile } from "../core/backup";
 import { CloseCircleIcon } from "./icons";
 import { useEscToClose } from "./useEscToClose";
 import { DonationQR } from "./DonationQR";
@@ -52,6 +55,54 @@ export function SettingsModal({
       .catch((e) => setCookieErr(e instanceof Error ? e.message : String(e)));
   };
   useEffect(refresh, []);
+
+  // 백업/복원
+  const [backupMsg, setBackupMsg] = useState<string | null>(null);
+  // 복원 확인: 파일을 읽어 파싱한 백업을 임시 보관, 확인 시 적용 후 재시작
+  const [pendingRestore, setPendingRestore] = useState<{ backup: BackupFile; label: string } | null>(null);
+
+  const doBackup = async () => {
+    setBackupMsg(null);
+    try {
+      const today = new Date().toISOString().slice(0, 10).replace(/-/g, "");
+      const path = await save({
+        title: "전체 백업 저장",
+        defaultPath: `swaggerman-backup-${today}.json`,
+        filters: [{ name: "JSON", extensions: ["json"] }],
+      });
+      if (typeof path !== "string") return;
+      await writeTextFile(path, serializeBackup(await buildBackup(version || undefined)));
+      setBackupMsg("백업을 저장했습니다.");
+    } catch (e) {
+      setBackupMsg(`백업 실패: ${e instanceof Error ? e.message : String(e)}`);
+    }
+  };
+
+  const pickRestore = async () => {
+    setBackupMsg(null);
+    try {
+      const path = await open({ multiple: false, title: "백업 파일 선택", filters: [{ name: "JSON", extensions: ["json"] }] });
+      if (typeof path !== "string") return;
+      const backup = parseBackup(await readTextFile(path));
+      const when = backup.exportedAt ? new Date(backup.exportedAt).toLocaleString() : "?";
+      const keys = Object.keys(backup.localStorage).length;
+      setPendingRestore({ backup, label: `${when} 백업 · 설정 ${keys}개${backup.appVersion ? ` · v${backup.appVersion}` : ""}` });
+    } catch (e) {
+      setBackupMsg(`복원 실패: ${e instanceof Error ? e.message : String(e)}`);
+    }
+  };
+
+  const confirmRestore = async () => {
+    if (!pendingRestore) return;
+    try {
+      await restoreBackup(pendingRestore.backup, "replace");
+      // 모든 상태를 새로 읽도록 앱 재시작
+      location.reload();
+    } catch (e) {
+      setBackupMsg(`복원 실패: ${e instanceof Error ? e.message : String(e)}`);
+      setPendingRestore(null);
+    }
+  };
 
   return (
     <div className="modal-overlay" onMouseDown={onClose}>
@@ -156,6 +207,33 @@ export function SettingsModal({
               {shortcutError && <div className="error-box">{shortcutError}</div>}
             </>
           )}
+
+          <div className="settings-section">
+            백업/복원
+            <span className="settings-actions">
+              <button className="btn small" onClick={doBackup}>
+                백업 파일로 저장
+              </button>
+              <button className="btn small" onClick={pickRestore}>
+                복원(파일 선택)
+              </button>
+            </span>
+          </div>
+          <div className="hint">
+            모든 설정·프로젝트·히스토리·환경·Mock·캐시를 JSON 한 파일로 백업하고, 새로 설치한 곳에서 그대로 복원합니다.
+          </div>
+          {pendingRestore && (
+            <div className="reset-warn">
+              ⚠ <b>전체 덮어쓰기</b> — 현재 데이터가 백업 내용으로 교체되고 앱이 재시작됩니다. ({pendingRestore.label})
+              <button className="btn small danger" onClick={confirmRestore}>
+                복원 후 재시작
+              </button>
+              <button className="btn small" onClick={() => setPendingRestore(null)}>
+                취소
+              </button>
+            </div>
+          )}
+          {backupMsg && <div className="hint">{backupMsg}</div>}
 
           <div className="settings-section">정보</div>
           <div className="hint">

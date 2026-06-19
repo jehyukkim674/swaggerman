@@ -196,6 +196,16 @@ describe("ResponseView AI 액션", () => {
     renderFull({ onAskAi: vi.fn() });
     expect(screen.queryByText("✦ 진단")).toBeNull();
   });
+  it("4xx 이상이면 '고쳐줘' 버튼이 onAskAi('fix') 호출", () => {
+    const onAskAi = vi.fn();
+    renderFull({ onAskAi, response: { ...response, statusCode: 400 } });
+    fireEvent.click(screen.getByText("✦ 고쳐줘"));
+    expect(onAskAi).toHaveBeenCalledWith("fix");
+  });
+  it("2xx면 '고쳐줘' 버튼 없음", () => {
+    renderFull({ onAskAi: vi.fn() });
+    expect(screen.queryByText("✦ 고쳐줘")).toBeNull();
+  });
 });
 
 describe("ResponseView 검색", () => {

@@ -40,6 +40,24 @@ describe("AiPanel", () => {
     expect(provider.complete).toHaveBeenCalled();
   });
 
+  it("pendingFix가 내려오면 complete로 고친 요청 제안 카드를 자동 생성한다", async () => {
+    const provider = makeProvider();
+    const onConsumed = vi.fn();
+    render(
+      <AiPanel
+        provider={provider}
+        buildContext={ctx}
+        onApplySuggestion={() => {}}
+        pendingFix="이 요청을 고쳐줘"
+        onPendingFixConsumed={onConsumed}
+      />,
+    );
+    await waitFor(() => expect(screen.getByText("폼에 적용")).toBeTruthy());
+    expect(provider.complete).toHaveBeenCalled();
+    expect(onConsumed).toHaveBeenCalled();
+    expect(screen.getByText("✦ 이 요청을 고쳐줘")).toBeTruthy();
+  });
+
   it("제안 카드의 적용은 onApplySuggestion으로 전달된다", async () => {
     const provider = makeProvider();
     const onApply = vi.fn();

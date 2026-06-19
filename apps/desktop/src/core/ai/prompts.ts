@@ -9,6 +9,14 @@ export function explainPrompt(): string {
   return "직전 응답 본문을 한국어로 간결히 요약하고, 주요 필드의 의미를 설명해 주세요.";
 }
 
+export function fixRequestPrompt(): string {
+  return [
+    "직전 요청이 실패했습니다. 상태코드·응답 본문·요청·스펙을 근거로 무엇이 잘못됐는지",
+    "notes에 한 줄로 원인을 적고, 고친 요청(path/query/header/body)을 제안하세요.",
+    "확실하지 않은 값은 비워 두고, 추측으로 채우지 마세요.",
+  ].join(" ");
+}
+
 export function explainApiPrompt(): string {
   return [
     "지금 선택된 엔드포인트를 이 API를 처음 보는 신입 개발자에게 한국어로 설명해 주세요.",

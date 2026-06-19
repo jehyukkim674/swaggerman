@@ -22,7 +22,7 @@ interface Props {
   onTab: (tab: "docs" | "response") => void;
   historyItem: HistoryItem | null;
   schemaIssues: ValidationIssue[];
-  onAskAi?: (kind: "diagnose" | "explain") => void;
+  onAskAi?: (kind: "diagnose" | "explain" | "fix") => void;
 }
 
 function prettyBody(body: string): string {
@@ -237,13 +237,22 @@ export function ResponseView({
                 ✦ 설명
               </button>
               {response.statusCode >= 400 && (
-                <button
-                  className="btn small"
-                  onClick={() => onAskAi("diagnose")}
-                  title="AI가 상태코드와 본문을 근거로 실패 원인과 해결 방법을 진단합니다(4xx·5xx)"
-                >
-                  ✦ 진단
-                </button>
+                <>
+                  <button
+                    className="btn small"
+                    onClick={() => onAskAi("diagnose")}
+                    title="AI가 상태코드와 본문을 근거로 실패 원인과 해결 방법을 진단합니다(4xx·5xx)"
+                  >
+                    ✦ 진단
+                  </button>
+                  <button
+                    className="btn small"
+                    onClick={() => onAskAi("fix")}
+                    title="AI가 실패 원인을 진단하고 고친 요청을 제안합니다 — ✦ AI 패널에서 '폼에 적용'으로 바로 반영"
+                  >
+                    ✦ 고쳐줘
+                  </button>
+                </>
               )}
             </span>
           )}

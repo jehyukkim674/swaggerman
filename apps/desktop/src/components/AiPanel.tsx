@@ -23,6 +23,9 @@ interface Props {
   specUrl?: string;
   pendingPrompt?: string;
   onPendingConsumed?: () => void;
+  /** 실패 응답 "고쳐줘": 진단 + 고친 요청 제안 카드를 자동 생성(handleRequestBuild 경유). */
+  pendingFix?: string;
+  onPendingFixConsumed?: () => void;
   onCopyCurl?: (s: RequestSuggestion) => void;
   onSaveVars?: (s: RequestSuggestion) => void;
   /** claude 실행파일 경로 수동 지정(설정에서). 비우면 자동 탐지. */
@@ -59,7 +62,7 @@ const REQUEST_FORMAT = `\n\n## 출력 형식(중요)\n아래 JSON 스키마에 �
 // 요청 식별용 단조 증가 카운터(취소 매칭용). 모듈 스코프 — 단일 패널 인스턴스 가정.
 let reqCounter = 1;
 
-export function AiPanel({ provider, buildContext, onApplySuggestion, paramNames = [], onMentions, specUrl, pendingPrompt, onPendingConsumed, onCopyCurl, onSaveVars, claudePath }: Props) {
+export function AiPanel({ provider, buildContext, onApplySuggestion, paramNames = [], onMentions, specUrl, pendingPrompt, onPendingConsumed, pendingFix, onPendingFixConsumed, onCopyCurl, onSaveVars, claudePath }: Props) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [totals, setTotals] = useState({ input: 0, output: 0 });
   const [input, setInput] = useState("");
@@ -192,6 +195,15 @@ export function AiPanel({ provider, buildContext, onApplySuggestion, paramNames 
     onPendingConsumed?.();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pendingPrompt]);
+
+  // "고쳐줘": 진단 + 고친 요청 제안을 한 번에. handleRequestBuild가 notes(원인)+제안 카드를 만든다.
+  useEffect(() => {
+    if (!pendingFix || busy) return;
+    setMessages((m) => [...m, { role: "user", text: "✦ 이 요청을 고쳐줘" }]);
+    handleRequestBuild(pendingFix);
+    onPendingFixConsumed?.();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pendingFix]);
 
   // 마운트 시 claude CLI 가용성 확인(없으면 경고 표시). 수동 경로가 지정되면 경고 안 함.
   useEffect(() => {

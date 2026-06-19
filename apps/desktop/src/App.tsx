@@ -94,7 +94,7 @@ import { AiPanel } from "./components/AiPanel";
 import { getProvider } from "./core/ai/provider";
 import { buildAiContext } from "./core/ai/context";
 import { applySuggestion, applySuggestionForOp, filterKnownParams } from "./core/ai/schema";
-import { diagnosePrompt, explainPrompt, explainApiPrompt } from "./core/ai/prompts";
+import { diagnosePrompt, explainPrompt, explainApiPrompt, fixRequestPrompt } from "./core/ai/prompts";
 import type { RequestSuggestion } from "./core/ai/types";
 import type { ShareableRequest } from "./core/share";
 import { TimeTravelModal } from "./components/TimeTravelModal";
@@ -381,9 +381,11 @@ export default function App() {
 
   // 응답 기반 AI 액션: 패널을 열고 보류 프롬프트를 내려 자동 전송시킨다.
   const [aiPendingPrompt, setAiPendingPrompt] = useState<string | null>(null);
-  function askAiAboutResponse(kind: "diagnose" | "explain") {
+  const [aiPendingFix, setAiPendingFix] = useState<string | null>(null);
+  function askAiAboutResponse(kind: "diagnose" | "explain" | "fix") {
     setAiOpen(true);
-    setAiPendingPrompt(kind === "diagnose" ? diagnosePrompt() : explainPrompt());
+    if (kind === "fix") setAiPendingFix(fixRequestPrompt());
+    else setAiPendingPrompt(kind === "diagnose" ? diagnosePrompt() : explainPrompt());
   }
   // 엔드포인트 기반 AI 액션: 이 API를 신입용으로 설명(응답 없어도 동작).
   function askAiExplainApi() {
@@ -1657,6 +1659,8 @@ export default function App() {
                     specUrl={activeSpecUrl}
                     pendingPrompt={aiPendingPrompt ?? undefined}
                     onPendingConsumed={() => setAiPendingPrompt(null)}
+                    pendingFix={aiPendingFix ?? undefined}
+                    onPendingFixConsumed={() => setAiPendingFix(null)}
                     onCopyCurl={copyCurlFromSuggestion}
                     onSaveVars={saveVarsFromSuggestion}
                     claudePath={claudePath || undefined}

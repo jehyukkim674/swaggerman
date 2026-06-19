@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { diagnosePrompt, explainPrompt, explainApiPrompt } from "./prompts";
+import { diagnosePrompt, explainPrompt, explainApiPrompt, fixRequestPrompt } from "./prompts";
 
 describe("prompts", () => {
   it("진단 프롬프트는 원인/진단 의도를 담는다", () => {
@@ -15,5 +15,10 @@ describe("prompts", () => {
     expect(p).toMatch(/신입/);
     expect(p).toMatch(/예시/);
     expect(p).toMatch(/실수/);
+  });
+  it("수정 프롬프트는 원인·고친 요청 의도를 담는다", () => {
+    const p = fixRequestPrompt();
+    expect(p).toMatch(/원인/);
+    expect(p).toMatch(/고친|제안/);
   });
 });

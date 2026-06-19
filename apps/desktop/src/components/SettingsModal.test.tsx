@@ -5,8 +5,29 @@ import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 const getVersionMock = vi.fn();
 const listCookiesMock = vi.fn();
 const clearCookiesMock = vi.fn();
+const saveMock = vi.fn();
+const openMock = vi.fn();
+const readTextFileMock = vi.fn();
+const writeTextFileMock = vi.fn();
+const buildBackupMock = vi.fn();
+const parseBackupMock = vi.fn();
+const restoreBackupMock = vi.fn();
 
 vi.mock("@tauri-apps/api/app", () => ({ getVersion: () => getVersionMock() }));
+vi.mock("@tauri-apps/plugin-dialog", () => ({
+  save: (...a: unknown[]) => saveMock(...a),
+  open: (...a: unknown[]) => openMock(...a),
+}));
+vi.mock("../core/fs", () => ({
+  readTextFile: (...a: unknown[]) => readTextFileMock(...a),
+  writeTextFile: (...a: unknown[]) => writeTextFileMock(...a),
+}));
+vi.mock("../core/backup", () => ({
+  buildBackup: (...a: unknown[]) => buildBackupMock(...a),
+  serializeBackup: (b: unknown) => JSON.stringify(b),
+  parseBackup: (t: string) => parseBackupMock(t),
+  restoreBackup: (...a: unknown[]) => restoreBackupMock(...a),
+}));
 vi.mock("../core/cookies", () => ({
   listCookies: () => listCookiesMock(),
   clearCookies: () => clearCookiesMock(),
@@ -33,6 +54,46 @@ describe("SettingsModal", () => {
     getVersionMock.mockResolvedValue("0.4.4");
     listCookiesMock.mockResolvedValue([]);
     clearCookiesMock.mockResolvedValue(undefined);
+    saveMock.mockReset();
+    openMock.mockReset();
+    readTextFileMock.mockReset();
+    writeTextFileMock.mockReset();
+    buildBackupMock.mockReset();
+    parseBackupMock.mockReset();
+    restoreBackupMock.mockReset();
+  });
+
+  it("백업 저장 시 파일에 직렬화된 백업을 쓴다", async () => {
+    saveMock.mockResolvedValue("/tmp/backup.json");
+    writeTextFileMock.mockResolvedValue(undefined);
+    buildBackupMock.mockResolvedValue({ swaggerman: "backup", schemaVersion: 1, localStorage: {}, indexedDB: {} });
+    setup();
+    fireEvent.click(screen.getByText("백업 파일로 저장"));
+    await waitFor(() => expect(writeTextFileMock).toHaveBeenCalled());
+    expect(saveMock).toHaveBeenCalled();
+    expect(screen.getByText("백업을 저장했습니다.")).toBeTruthy();
+  });
+
+  it("복원 파일 선택 시 덮어쓰기 확인 경고를 표시한다", async () => {
+    openMock.mockResolvedValue("/tmp/backup.json");
+    readTextFileMock.mockResolvedValue("{...}");
+    parseBackupMock.mockReturnValue({ swaggerman: "backup", schemaVersion: 1, exportedAt: 0, localStorage: { a: "1" }, indexedDB: {} });
+    setup();
+    fireEvent.click(screen.getByText("복원(파일 선택)"));
+    await waitFor(() => expect(screen.getByText(/전체 덮어쓰기/)).toBeTruthy());
+    expect(parseBackupMock).toHaveBeenCalledWith("{...}");
+    expect(restoreBackupMock).not.toHaveBeenCalled();
+  });
+
+  it("잘못된 복원 파일이면 에러 메시지", async () => {
+    openMock.mockResolvedValue("/tmp/bad.json");
+    readTextFileMock.mockResolvedValue("nope");
+    parseBackupMock.mockImplementation(() => {
+      throw new Error("SwaggerMan 백업 파일이 아닙니다.");
+    });
+    setup();
+    fireEvent.click(screen.getByText("복원(파일 선택)"));
+    await waitFor(() => expect(screen.getByText(/복원 실패/)).toBeTruthy());
   });
 
   it("네트워크 설정을 렌더하고 앱 버전을 표시한다", async () => {
