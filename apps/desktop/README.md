@@ -48,39 +48,40 @@ npm run tauri build    # 현재 OS용 설치본 생성 (.dmg / .msi 등)
 
 ## 배포 / 릴리스
 
-- `desktop-v*` 태그를 푸시하면 GitHub Actions(`.github/workflows/desktop-release.yml`)가
-  **macOS(universal) + Windows** 설치본을 빌드해 Release 초안에 첨부합니다.
-- 코드 서명: macOS는 Developer ID + 공증, Windows는 코드서명 인증서가 필요합니다.
-  워크플로의 주석 처리된 `APPLE_*` / Windows secret을 채우면 자동 서명됩니다.
+- `SwaggerMan-v*` 태그를 푸시하면 GitHub Actions(`.github/workflows/desktop-release.yml`, "SwaggerMan Release")가
+  **macOS(aarch64) + Windows** 설치본을 빌드해 Release 초안에 첨부합니다(자동 업데이트용 `latest.json` 포함).
+- 초안은 검토 후 `gh release edit … --draft=false --latest`로 게시합니다.
+- 공식 배포처는 개인 public 레포 [`jehyukkim674/swaggerman`](https://github.com/jehyukkim674/swaggerman)입니다.
+- 코드 서명: macOS는 Developer ID + 공증, Windows는 코드서명 인증서가 필요합니다(미서명 시 Gatekeeper/SmartScreen 안내).
 
-## 구현 현황 (v0.4.3 기준)
+## 구현 현황 (v0.5.7 기준)
 
 **기본**
-- [x] OpenAPI spec URL 로드 (JSON/YAML, $ref 해석, 디스커버리)
+- [x] OpenAPI 3.x / Swagger 2 로드 (JSON/YAML, $ref 해석, 디스커버리, **오프라인 캐시 폴백**, **파일에서 가져오기**)
 - [x] 태그별 엔드포인트 목록 + 검색 + 즐겨찾기 + 커스텀 드롭다운(태그 검색)
 - [x] 요청 편집(path/query/header/body, multipart/파일) 및 전송(임의 호스트, CORS 우회)
 - [x] 응답 표시(상태/시간/크기/헤더/본문) + JSON 뷰어 + 스키마 검증
-- [x] 히스토리 + 비교(diff·미니맵·검색) / 컬렉션(Postman 호환) / 러너
+- [x] 히스토리(**검색·필터**·비교 diff·미니맵) / 컬렉션(Postman 호환, **4개 포맷 내보내기**) / 러너(반복 실행)
 - [x] 환경·변수 치환 `{{}}` / 요청 체이닝(추출) / 어서션
 - [x] 인증(Bearer/Basic/API Key/OAuth2) + 전역 헤더 + 쿠키 관리
 - [x] cURL 가져오기/내보내기 + 코드 스니펫
-- [x] AI 어시스턴트 (Claude CLI — 설명/진단/폼 채우기/채팅)
-- [x] 자동 업데이트 / 멀티윈도우 / 커맨드 팔레트(⌘K) / 다크·라이트 테마
+- [x] AI 어시스턴트 (로컬 `claude` CLI — 설명/진단/폼 채우기/채팅/**✦ API 설명**, API 키 불필요)
+- [x] 자동 업데이트 / 멀티윈도우 / 커맨드 팔레트(⌘K) / 전역 단축키 / 다크·라이트 테마
 
-**개발·자동화 (v0.4.0~v0.4.2)**
-- [x] **Mock 서버** — 스펙 기반 로컬 가짜 API 서버 (스키마 자동 생성/AI/히스토리 응답)
-- [x] **프록시 녹화 모드** — 실서버 트래픽 투명 포워딩 + 자동 녹화 → Mock 변환
+**개발·자동화**
+- [x] **Mock 서버** — 스펙 기반 로컬 가짜 API 서버(스키마 자동 생성/AI/히스토리 응답, 페이징·지연·일관성, **이름 붙인 프리셋**)
+- [x] **프록시 녹화 모드** — 실서버 트래픽 투명 포워딩 + 자동 녹화 → Mock 변환(쿠키·리다이렉트·SSO 통과, **브라우저 CDP 캡처**)
 - [x] **API 성능 추이** — 응답시간 통계(평균/p95) + 스파크라인 + 느려짐 감지
 - [x] **가이드 문서 생성** — 스펙+실제 예시 → Markdown 연동 가이드 내보내기
 - [x] **API 시간여행** — 주기 응답 스냅샷 + 타임라인 탐색·비교
 - [x] **플로우 빌더** — API 단계 순차 실행 시나리오(변수 전달·어서션·드래그 재배치)
 
-**협업·생산성 (v0.4.1)**
+**협업·생산성**
 - [x] **API 메모 + 상태 태그** (Deprecated/검토중/안정/사용금지)
 - [x] **요청 공유** — 압축 코드 복사/붙여넣기 (민감 헤더 제외)
 - [x] **권한 매트릭스** — 토큰별 API 접근 권한 상태코드 표
 - [x] **전역 단축키** — 어디서든 ⌘⇧P로 호출 + 커맨드 팔레트
 
-> 1차·2차 로드맵 11개 기능 모두 출시 완료.
+> 1차·2차 로드맵 기능 전부 출시 완료. 이후 v0.5.x에서 히스토리 검색·필터, 컬렉션 4포맷 내보내기(Postman·cURL·OpenAPI·Bruno), AI "✦ API 설명" 등을 추가했습니다. 전체 이력은 [`CHANGELOG.md`](CHANGELOG.md).
 
 사용 매뉴얼: https://jehyukkim674.github.io/swaggerman/
