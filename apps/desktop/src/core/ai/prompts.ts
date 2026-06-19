@@ -8,3 +8,13 @@ export function diagnosePrompt(): string {
 export function explainPrompt(): string {
   return "직전 응답 본문을 한국어로 간결히 요약하고, 주요 필드의 의미를 설명해 주세요.";
 }
+
+export function explainApiPrompt(): string {
+  return [
+    "지금 선택된 엔드포인트를 이 API를 처음 보는 신입 개발자에게 한국어로 설명해 주세요.",
+    "다음 세 가지를 순서대로 포함하세요:",
+    "1) 이 API가 무엇을 하는지(언제 쓰는지) 쉬운 말로 설명",
+    "2) 주요 파라미터를 채운 현실적인 호출 예시",
+    "3) 자주 하는 실수 3가지",
+  ].join("\n");
+}

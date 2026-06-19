@@ -34,6 +34,8 @@ interface Props {
   onChange: (inputs: RequestInputs) => void;
   onSend: () => void;
   onCancel: () => void;
+  /** "✦ API 설명" 클릭 시: AI 패널을 열고 이 엔드포인트 설명을 자동 요청. */
+  onExplainApi?: () => void;
   samples: RequestSample[];
   onSaveSample: (name: string) => void;
   onDeleteSample: (name: string) => void;
@@ -74,6 +76,7 @@ export function RequestEditor({
   onChange,
   onSend,
   onCancel,
+  onExplainApi,
   samples,
   onSaveSample,
   onDeleteSample,
@@ -171,6 +174,15 @@ export function RequestEditor({
         >
           ↺ 초기화
         </button>
+        {onExplainApi && (
+          <button
+            className="btn small"
+            title="AI가 이 엔드포인트를 신입 개발자용으로 설명합니다(설명·예시·흔한 실수, ✦ AI 패널에서)"
+            onClick={onExplainApi}
+          >
+            ✦ API 설명
+          </button>
+        )}
         {sending ? (
           <button className="btn send cancel" onClick={onCancel} title="요청 취소">
             ✕ 취소

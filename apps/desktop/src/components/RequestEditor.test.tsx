@@ -55,6 +55,42 @@ function renderEditor() {
   );
 }
 
+describe("RequestEditor API 설명", () => {
+  it("'✦ API 설명' 버튼 클릭 시 onExplainApi 호출", () => {
+    const onExplainApi = vi.fn();
+    render(
+      <RequestEditor
+        operation={operation}
+        inputs={defaultInputs(operation)}
+        baseURL="https://x"
+        globalHeaders={[]}
+        vars={{}}
+        sending={false}
+        onChange={() => {}}
+        onSend={() => {}}
+        onCancel={() => {}}
+        onExplainApi={onExplainApi}
+        samples={[]}
+        onSaveSample={() => {}}
+        onDeleteSample={() => {}}
+        historyItem={null}
+        extractRules={[]}
+        assertions={[]}
+        assertResults={[]}
+        onExtractChange={() => {}}
+        onAssertChange={() => {}}
+      />,
+    );
+    fireEvent.click(screen.getByText("✦ API 설명"));
+    expect(onExplainApi).toHaveBeenCalledTimes(1);
+  });
+
+  it("onExplainApi 미전달 시 버튼이 없다", () => {
+    renderEditor();
+    expect(screen.queryByText("✦ API 설명")).toBeNull();
+  });
+});
+
 describe("RequestEditor 요청 샘플", () => {
   it("body 없는 GET 요청에서도 요청 샘플 바가 표시된다", () => {
     const { container } = renderEditor();

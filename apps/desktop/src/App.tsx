@@ -94,7 +94,7 @@ import { AiPanel } from "./components/AiPanel";
 import { getProvider } from "./core/ai/provider";
 import { buildAiContext } from "./core/ai/context";
 import { applySuggestion, applySuggestionForOp, filterKnownParams } from "./core/ai/schema";
-import { diagnosePrompt, explainPrompt } from "./core/ai/prompts";
+import { diagnosePrompt, explainPrompt, explainApiPrompt } from "./core/ai/prompts";
 import type { RequestSuggestion } from "./core/ai/types";
 import type { ShareableRequest } from "./core/share";
 import { TimeTravelModal } from "./components/TimeTravelModal";
@@ -384,6 +384,11 @@ export default function App() {
   function askAiAboutResponse(kind: "diagnose" | "explain") {
     setAiOpen(true);
     setAiPendingPrompt(kind === "diagnose" ? diagnosePrompt() : explainPrompt());
+  }
+  // 엔드포인트 기반 AI 액션: 이 API를 신입용으로 설명(응답 없어도 동작).
+  function askAiExplainApi() {
+    setAiOpen(true);
+    setAiPendingPrompt(explainApiPrompt());
   }
 
   // AI 패널 접기(folding) — 열린 상태에서 좁게 접기/펼치기, 전역 저장
@@ -1566,6 +1571,7 @@ export default function App() {
             onChange={setInputs}
             onSend={send}
             onCancel={cancelSend}
+            onExplainApi={askAiExplainApi}
             samples={selected ? (bodySamples[selected.id] ?? []) : []}
             onSaveSample={(name) => {
               if (selected && inputs) saveSample(selected.id, name, inputs);
