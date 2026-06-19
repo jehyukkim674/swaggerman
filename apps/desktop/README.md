@@ -54,18 +54,19 @@ npm run tauri build    # 현재 OS용 설치본 생성 (.dmg / .msi 등)
 - 공식 배포처는 개인 public 레포 [`jehyukkim674/swaggerman`](https://github.com/jehyukkim674/swaggerman)입니다.
 - 코드 서명: macOS는 Developer ID + 공증, Windows는 코드서명 인증서가 필요합니다(미서명 시 Gatekeeper/SmartScreen 안내).
 
-## 구현 현황 (v0.5.7 기준)
+## 구현 현황 (v0.6.0 기준)
 
 **기본**
 - [x] OpenAPI 3.x / Swagger 2 로드 (JSON/YAML, $ref 해석, 디스커버리, **오프라인 캐시 폴백**, **파일에서 가져오기**)
 - [x] 태그별 엔드포인트 목록 + 검색 + 즐겨찾기 + 커스텀 드롭다운(태그 검색)
 - [x] 요청 편집(path/query/header/body, multipart/파일) 및 전송(임의 호스트, CORS 우회)
-- [x] 응답 표시(상태/시간/크기/헤더/본문) + JSON 뷰어 + 스키마 검증
+- [x] 응답 표시(상태/시간/크기/헤더/본문) + JSON 뷰어 + 스키마 검증 + **표(Table) 보기**(배열 경로·자동탐색)
 - [x] 히스토리(**검색·필터**·비교 diff·미니맵) / 컬렉션(Postman 호환, **4개 포맷 내보내기**) / 러너(반복 실행)
 - [x] 환경·변수 치환 `{{}}` / 요청 체이닝(추출) / 어서션
-- [x] 인증(Bearer/Basic/API Key/OAuth2) + 전역 헤더 + 쿠키 관리
+- [x] 인증(Bearer/Basic/API Key/OAuth2) + 전역 헤더 + 쿠키 관리 + **인증 플로우 토큰 갱신 자동 주입(🔑)**
 - [x] cURL 가져오기/내보내기 + 코드 스니펫
-- [x] AI 어시스턴트 (로컬 `claude` CLI — 설명/진단/폼 채우기/채팅/**✦ API 설명**, API 키 불필요)
+- [x] AI 어시스턴트 (로컬 `claude` CLI — 설명/진단/폼 채우기/채팅/**✦ API 설명**/**✦ 고쳐줘(실패 진단+수정 제안)**/**✦ /찾아(자연어로 엔드포인트 찾기)**, API 키 불필요)
+- [x] **전체 백업/복원** — 모든 설정·데이터를 JSON 한 파일로 백업·복원(버전 독립적)
 - [x] 자동 업데이트 / 멀티윈도우 / 커맨드 팔레트(⌘K) / 전역 단축키 / 다크·라이트 테마
 
 **개발·자동화**
@@ -82,6 +83,6 @@ npm run tauri build    # 현재 OS용 설치본 생성 (.dmg / .msi 등)
 - [x] **권한 매트릭스** — 토큰별 API 접근 권한 상태코드 표
 - [x] **전역 단축키** — 어디서든 ⌘⇧P로 호출 + 커맨드 팔레트
 
-> 1차·2차 로드맵 기능 전부 출시 완료. 이후 v0.5.x에서 히스토리 검색·필터, 컬렉션 4포맷 내보내기(Postman·cURL·OpenAPI·Bruno), AI "✦ API 설명" 등을 추가했습니다. 전체 이력은 [`CHANGELOG.md`](CHANGELOG.md).
+> 1차·2차 로드맵 기능 전부 출시 완료. 이후 v0.5.x~v0.6.0에서 히스토리 검색·필터, 컬렉션 4포맷 내보내기(Postman·cURL·OpenAPI·Bruno), AI "✦ API 설명/✦ 고쳐줘/✦ /찾아", 응답 Table 보기, 전체 백업/복원, 인증 플로우 토큰 갱신 등을 추가했습니다. 전체 이력은 [`CHANGELOG.md`](CHANGELOG.md).
 
 사용 매뉴얼: https://jehyukkim674.github.io/swaggerman/
