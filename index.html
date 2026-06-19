@@ -287,7 +287,7 @@
   <h1><span class="mark">✦</span> SwaggerMan</h1>
   <p>OpenAPI(Swagger) 스펙을 탐색하고 API 요청을 실행하는 데스크톱 앱.
     로컬 <code>claude</code> CLI 기반 AI 어시스턴트를 내장했습니다.</p>
-  <span class="ver">매뉴얼 기준 버전: v0.3.23</span>
+  <span class="ver">매뉴얼 기준 버전: v0.5.7</span>
 </header>
 
 <div class="wrap">
@@ -647,6 +647,12 @@
         항목을 <strong>클릭하면 당시 요청 값과 응답이 그대로 복원</strong>되어 재전송(replay)할 수 있습니다.</li>
     </ul>
 
+    <h3>검색 · 필터 <span class="badge">v0.5.5</span></h3>
+    <p>요청이 쌓이면 히스토리 탭 상단의 <strong>검색창</strong>에 경로·URL을 입력해 좁히고,
+      <strong>필터</strong> 버튼으로 <strong>HTTP 메서드 · 상태코드(2xx~5xx) · 기간(최근 1시간/오늘/최근 7일)</strong>을
+      조합할 수 있습니다. 필터가 켜져 있을 때 <strong>전체 삭제</strong>는 <strong>“보이는 N개 삭제”</strong>로 바뀌어
+      현재 조건에 맞는 항목만 지웁니다.</p>
+
     <h3>두 요청 비교</h3>
     <p>“같은 API인데 왜 결과가 다르지?”를 확인할 때 사용합니다. 히스토리에서 2건을 선택하고
       <strong>비교</strong>를 누르세요.</p>
@@ -679,7 +685,10 @@
     </figure>
     <ul class="nums">
       <li><span class="n">1</span> <strong>가져오기 · 내보내기</strong> — <strong>Postman 컬렉션 v2.1</strong> 또는
-        SwaggerMan 네이티브 JSON을 가져오고, 네이티브 JSON으로 내보냅니다.</li>
+        SwaggerMan 네이티브 JSON을 가져옵니다. 내보내기는 드롭다운에서 포맷을 골라
+        <strong>SwaggerMan JSON · Postman v2.1 · cURL 스크립트(.sh) · OpenAPI 3.1(YAML) · Bruno(.bru 폴더)</strong>
+        중 하나로 저장합니다. <span class="badge">v0.5.6</span> Bruno는 대상 폴더를 고르면 요청별 <code>.bru</code> 파일이
+        폴더 구조 그대로 저장됩니다.</li>
       <li><span class="n">2</span> <strong>현재 요청 저장</strong> — 지금 편집 중인 요청을 이름을 붙여 선택한 컬렉션에 저장합니다.</li>
       <li><span class="n">3</span> <strong>컬렉션 · 저장된 요청 목록</strong> — 컬렉션별로 요청이 정리됩니다.</li>
       <li><span class="n">4</span> <strong>불러오기</strong> — 저장된 요청을 요청 편집기로 불러옵니다.</li>
@@ -736,6 +745,11 @@
     <p>요청을 보낸 뒤 Response 탭의 <strong>✦ 설명</strong> 버튼(<a href="#response">6장</a> <span class="n">2</span>)을 누르면
       응답 본문을 한국어로 해설해 줍니다. 4xx/5xx 오류면 원인과 해결 방향을 진단합니다.
       커맨드 팔레트(<kbd>⌘</kbd><kbd>K</kbd>)에서 “AI: 응답 설명/진단”으로도 실행할 수 있습니다.</p>
+
+    <h3>✦ API 설명 <span class="badge">v0.5.7</span></h3>
+    <p>요청 화면 상단의 <strong>✦ API 설명</strong> 버튼을 누르면 AI가 <strong>지금 선택한 엔드포인트</strong>를
+      이 API를 처음 보는 신입 개발자용으로 설명합니다 — ① 이 API가 무엇을 하는지 ② 주요 파라미터를 채운
+      현실적인 호출 예시 ③ 자주 하는 실수 3가지. 응답을 보내지 않아도 동작하며, 결과는 AI 패널에 표시됩니다.</p>
 
     <h3>대화 히스토리</h3>
     <p>대화는 <strong>프로젝트별로 자동 저장</strong>되어 앱을 재시작해도 복원됩니다.</p>
