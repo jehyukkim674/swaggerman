@@ -1959,6 +1959,61 @@ mark.hl.active {
   white-space: pre-wrap;
   word-break: break-all;
 }
+.resp-table-wrap {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+.resp-table-path {
+  margin: 6px 8px;
+  padding: 5px 8px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text);
+  font-size: 12px;
+  font-family: ui-monospace, monospace;
+}
+.resp-table-path:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+.resp-table-scroll {
+  flex: 1;
+  overflow: auto;
+  min-height: 0;
+}
+.resp-table {
+  border-collapse: collapse;
+  font-size: 12px;
+  font-family: ui-monospace, monospace;
+  width: max-content;
+  min-width: 100%;
+}
+.resp-table th,
+.resp-table td {
+  border: 1px solid var(--border);
+  padding: 4px 8px;
+  text-align: left;
+  max-width: 320px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.resp-table thead th {
+  position: sticky;
+  top: 0;
+  background: var(--bg-3);
+  z-index: 1;
+}
+.resp-table tbody tr:nth-child(even) {
+  background: var(--bg-2);
+}
+.resp-table .resp-table-idx {
+  color: var(--muted);
+  text-align: right;
+}
 
 /* === AI 어시스턴트 패널 === */
 .ai-panel {

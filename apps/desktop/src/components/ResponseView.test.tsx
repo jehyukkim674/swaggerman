@@ -143,6 +143,20 @@ describe("ResponseView 뷰 모드", () => {
     fireEvent.click(screen.getByText("Preview"));
     expect(container.querySelector("iframe.resp-preview")).toBeTruthy();
   });
+  it("객체 배열 응답은 Table 버튼으로 표를 렌더한다", () => {
+    const arr: HTTPResponse = { ...response, body: '[{"id":1,"name":"a"},{"id":2,"name":"b"}]' };
+    const { container } = renderFull({ response: arr });
+    fireEvent.click(screen.getByText("Table"));
+    const table = container.querySelector("table.resp-table")!;
+    expect(table).toBeTruthy();
+    expect(table.querySelectorAll("thead th")).toHaveLength(3); // # + id + name
+    expect(table.querySelectorAll("tbody tr")).toHaveLength(2);
+  });
+  it("객체 배열이 없으면 Table 버튼이 없다", () => {
+    const obj: HTTPResponse = { ...response, body: '{"a":1}' };
+    renderFull({ response: obj });
+    expect(screen.queryByText("Table")).toBeNull();
+  });
 });
 
 describe("ResponseView 복사/저장/스니펫", () => {

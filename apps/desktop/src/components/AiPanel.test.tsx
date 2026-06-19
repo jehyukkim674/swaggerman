@@ -40,6 +40,45 @@ describe("AiPanel", () => {
     expect(provider.complete).toHaveBeenCalled();
   });
 
+  it("'/찾아'는 complete로 엔드포인트를 골라 onRoute를 호출한다", async () => {
+    const provider = makeProvider({
+      complete: vi.fn().mockResolvedValue('{"operationId":"GET /orders"}'),
+    });
+    const onRoute = vi.fn();
+    render(
+      <AiPanel
+        provider={provider}
+        buildContext={ctx}
+        onApplySuggestion={() => {}}
+        routeOperations={[
+          { id: "GET /orders", method: "GET", path: "/orders", summary: "주문" },
+          { id: "POST /users", method: "POST", path: "/users" },
+        ]}
+        onRoute={onRoute}
+      />,
+    );
+    fireEvent.change(screen.getByPlaceholderText(/질문/), { target: { value: "/찾아 주문 목록" } });
+    fireEvent.click(screen.getByText("전송"));
+    await waitFor(() => expect(onRoute).toHaveBeenCalledWith("GET /orders", "주문 목록"));
+    expect(provider.complete).toHaveBeenCalled();
+  });
+
+  it("pendingFill이 내려오면 complete로 폼 제안 카드를 자동 생성한다", async () => {
+    const provider = makeProvider();
+    const onConsumed = vi.fn();
+    render(
+      <AiPanel
+        provider={provider}
+        buildContext={ctx}
+        onApplySuggestion={() => {}}
+        pendingFill="주문 목록"
+        onPendingFillConsumed={onConsumed}
+      />,
+    );
+    await waitFor(() => expect(screen.getByText("폼에 적용")).toBeTruthy());
+    expect(onConsumed).toHaveBeenCalled();
+  });
+
   it("pendingFix가 내려오면 complete로 고친 요청 제안 카드를 자동 생성한다", async () => {
     const provider = makeProvider();
     const onConsumed = vi.fn();

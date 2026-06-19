@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import type { AiProvider, AiHandle } from "../core/ai/provider";
 import type { AiEvent, RequestSuggestion } from "../core/ai/types";
 import { parseSuggestion, requestSuggestionSchema, filterKnownParams } from "../core/ai/schema";
+import { buildRoutePrompt, parseRouteId, ROUTE_SCHEMA, type RouteOp } from "../core/ai/route";
 import { loadChat, saveChat, clearChat } from "../core/ai/history";
 import { CHAT_MODELS, DEFAULT_CHAT_MODEL, COMPLETE_MODEL } from "../core/ai/models";
 import { AiSuggestionCard } from "./AiSuggestionCard";
@@ -26,6 +27,12 @@ interface Props {
   /** 실패 응답 "고쳐줘": 진단 + 고친 요청 제안 카드를 자동 생성(handleRequestBuild 경유). */
   pendingFix?: string;
   onPendingFixConsumed?: () => void;
+  /** 자연어 라우팅(/찾아)용 전체 operation 목록 + 이동 콜백. */
+  routeOperations?: RouteOp[];
+  onRoute?: (opId: string, intent: string) => void;
+  /** 라우팅 후 폼 자동작성: 이동한 엔드포인트로 handleRequestBuild 실행. */
+  pendingFill?: string;
+  onPendingFillConsumed?: () => void;
   onCopyCurl?: (s: RequestSuggestion) => void;
   onSaveVars?: (s: RequestSuggestion) => void;
   /** claude 실행파일 경로 수동 지정(설정에서). 비우면 자동 탐지. */
@@ -50,6 +57,9 @@ export function detectMentions(text: string, names: string[]): string[] {
 }
 
 const REQUEST_PREFIX = "/요청";
+const ROUTE_PREFIX = "/찾아";
+const ROUTE_SYSTEM =
+  "사용자 의도에 가장 알맞은 엔드포인트 하나를 목록에서 골라 JSON으로만 답하세요. 목록의 id를 정확히 그대로 쓰고, 도구를 사용하거나 실행하지 마세요.";
 const CHAT_SYSTEM =
   "당신은 OpenAPI 클라이언트의 어시스턴트입니다. 사용자가 보고 있는 엔드포인트 컨텍스트를 바탕으로 한국어로 간결히 답하세요. 어떤 도구(셸/MCP/네트워크)도 사용하지 말고, 직접 실행을 시도하지 마세요. 이미 정의된 API에 대한 설명/안내만 텍스트로 제공합니다.";
 const REQUEST_SYSTEM =
@@ -62,7 +72,7 @@ const REQUEST_FORMAT = `\n\n## 출력 형식(중요)\n아래 JSON 스키마에 �
 // 요청 식별용 단조 증가 카운터(취소 매칭용). 모듈 스코프 — 단일 패널 인스턴스 가정.
 let reqCounter = 1;
 
-export function AiPanel({ provider, buildContext, onApplySuggestion, paramNames = [], onMentions, specUrl, pendingPrompt, onPendingConsumed, pendingFix, onPendingFixConsumed, onCopyCurl, onSaveVars, claudePath }: Props) {
+export function AiPanel({ provider, buildContext, onApplySuggestion, paramNames = [], onMentions, specUrl, pendingPrompt, onPendingConsumed, pendingFix, onPendingFixConsumed, routeOperations, onRoute, pendingFill, onPendingFillConsumed, onCopyCurl, onSaveVars, claudePath }: Props) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [totals, setTotals] = useState({ input: 0, output: 0 });
   const [input, setInput] = useState("");
@@ -205,6 +215,14 @@ export function AiPanel({ provider, buildContext, onApplySuggestion, paramNames 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pendingFix]);
 
+  // 라우팅 후 폼 자동작성: 이동한 엔드포인트로 제안 카드를 만든다(별도 사용자 메시지 없음).
+  useEffect(() => {
+    if (!pendingFill || busy) return;
+    handleRequestBuild(pendingFill);
+    onPendingFillConsumed?.();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pendingFill]);
+
   // 마운트 시 claude CLI 가용성 확인(없으면 경고 표시). 수동 경로가 지정되면 경고 안 함.
   useEffect(() => {
     let alive = true;
@@ -252,12 +270,55 @@ export function AiPanel({ provider, buildContext, onApplySuggestion, paramNames 
     }
   }
 
+  // 자연어 라우팅: 스펙 전체에서 알맞은 엔드포인트를 골라 이동(App이 폼 자동작성).
+  async function handleRoute(intent: string) {
+    if (!routeOperations || routeOperations.length === 0 || !onRoute) {
+      setError("이동할 엔드포인트 목록이 없습니다.");
+      return;
+    }
+    const myGen = genRef.current;
+    setBusy(true);
+    setBuilding(true);
+    setError(null);
+    try {
+      const raw = await provider.complete({
+        prompt: buildRoutePrompt(routeOperations, intent),
+        system: ROUTE_SYSTEM,
+        model: COMPLETE_MODEL,
+        schema: JSON.stringify(ROUTE_SCHEMA),
+        claudePath: claudePath || undefined,
+      });
+      if (genRef.current !== myGen) return;
+      const opId = parseRouteId(
+        raw,
+        routeOperations.map((o) => o.id),
+      );
+      if (!opId) {
+        setError("의도에 맞는 엔드포인트를 찾지 못했습니다. 더 구체적으로 입력해 보세요.");
+        return;
+      }
+      const op = routeOperations.find((o) => o.id === opId)!;
+      setMessages((m) => [
+        ...m,
+        { role: "assistant", text: `→ ${op.method} ${op.path} 로 이동해 폼을 채웁니다.` },
+      ]);
+      onRoute(opId, intent);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setBusy(false);
+      setBuilding(false);
+    }
+  }
+
   function send() {
     const q = input.trim();
     if (!q || busy) return;
     setMessages((m) => [...m, { role: "user", text: q }]);
     setInput("");
-    if (q.startsWith(REQUEST_PREFIX)) {
+    if (q.startsWith(ROUTE_PREFIX)) {
+      handleRoute(q.slice(ROUTE_PREFIX.length).trim());
+    } else if (q.startsWith(REQUEST_PREFIX)) {
       handleRequestBuild(q.slice(REQUEST_PREFIX.length).trim());
     } else {
       handleChat(q);
@@ -292,7 +353,7 @@ export function AiPanel({ provider, buildContext, onApplySuggestion, paramNames 
         )}
         {messages.length === 0 && (
           <div className="ai-empty">
-            질문하거나 <code>/요청 …</code> 으로 요청 폼을 자동 작성하세요.
+            질문하거나 <code>/요청 …</code> 으로 폼을 자동 작성, <code>/찾아 …</code> 로 자연어로 엔드포인트를 찾아 이동하세요.
           </div>
         )}
         {messages.map((m, i) => (

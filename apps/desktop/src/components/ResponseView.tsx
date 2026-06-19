@@ -5,6 +5,7 @@ import { CloseCircleIcon, CopyIcon } from "./icons";
 import { Minimap } from "./Minimap";
 import { DocsPane } from "./DocsPane";
 import { JsonView, LINE_HEIGHT } from "./JsonView";
+import { findTable, cellText } from "../core/json-table";
 import { save } from "@tauri-apps/plugin-dialog";
 import { buildSnippet, SNIPPET_LANGS, type SnippetLang } from "../core/snippet-builder";
 import { writeTextFile } from "../core/fs";
@@ -61,7 +62,8 @@ export function ResponseView({
   const [submitted, setSubmitted] = useState("");
   const [active, setActive] = useState(0);
   const [snippetOpen, setSnippetOpen] = useState(false);
-  const [viewMode, setViewMode] = useState<"pretty" | "raw" | "preview">("pretty");
+  const [viewMode, setViewMode] = useState<"pretty" | "raw" | "preview" | "table">("pretty");
+  const [tablePath, setTablePath] = useState("");
   const bodyRef = useRef<HTMLDivElement>(null);
   const searchRef = useRef<HTMLInputElement>(null);
 
@@ -97,6 +99,13 @@ export function ResponseView({
 
   const body = useMemo(() => (response ? prettyBody(response.body) : ""), [response]);
   const lines = useMemo(() => body.split("\n"), [body]);
+
+  // 표 시각화: 자동 탐색 가능 여부(버튼 노출) + 현재 경로 기준 테이블 데이터
+  const canTable = useMemo(() => (response ? findTable(response.body) != null : false), [response]);
+  const tableData = useMemo(
+    () => (response && viewMode === "table" ? findTable(response.body, tablePath) : null),
+    [response, viewMode, tablePath],
+  );
 
   const { matchLines, matchCount, matchLineOf, lineMatchStarts } = useMemo(() => {
     const set = new Set<number>(); // Minimap용: 매치가 있는 줄 인덱스
@@ -182,6 +191,15 @@ export function ResponseView({
                 title="HTML 응답을 안전한 샌드박스에서 미리보기"
               >
                 Preview
+              </button>
+            )}
+            {canTable && (
+              <button
+                className={viewMode === "table" ? "active" : ""}
+                onClick={() => setViewMode("table")}
+                title="객체 배열 응답을 표로 봅니다(경로 지정 가능)"
+              >
+                Table
               </button>
             )}
           </span>
@@ -359,7 +377,50 @@ export function ResponseView({
         </button>
       </div>
 
-      {viewMode === "preview" && isHtml ? (
+      {viewMode === "table" ? (
+        <div className="resp-table-wrap">
+          <input
+            className="resp-table-path"
+            type="text"
+            value={tablePath}
+            placeholder="배열 경로 (예: data.items) — 비우면 자동 탐색"
+            onChange={(e) => setTablePath(e.target.value)}
+          />
+          {tableData ? (
+            <div className="resp-table-scroll">
+              <table className="resp-table">
+                <thead>
+                  <tr>
+                    <th className="resp-table-idx">#</th>
+                    {tableData.columns.map((c) => (
+                      <th key={c}>{c}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {tableData.rows.map((row, i) => (
+                    <tr key={i}>
+                      <td className="resp-table-idx">{i + 1}</td>
+                      {tableData.columns.map((c) => (
+                        <td key={c} title={cellText(row[c])}>
+                          {cellText(row[c])}
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              {tableData.truncated && (
+                <div className="hint">행이 많아 처음 1000개만 표시했습니다.</div>
+              )}
+            </div>
+          ) : (
+            <div className="hint center">
+              표로 만들 객체 배열을 찾지 못했습니다. 위에 배열 경로를 지정해 보세요.
+            </div>
+          )}
+        </div>
+      ) : viewMode === "preview" && isHtml ? (
         <iframe className="resp-preview" sandbox="" srcDoc={response.body} title="HTML 미리보기" />
       ) : (
         <div className="resp-body-wrap">

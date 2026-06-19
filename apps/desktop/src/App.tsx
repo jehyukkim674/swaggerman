@@ -382,6 +382,14 @@ export default function App() {
   // 응답 기반 AI 액션: 패널을 열고 보류 프롬프트를 내려 자동 전송시킨다.
   const [aiPendingPrompt, setAiPendingPrompt] = useState<string | null>(null);
   const [aiPendingFix, setAiPendingFix] = useState<string | null>(null);
+  const [aiPendingFill, setAiPendingFill] = useState<string | null>(null);
+  // 자연어 라우팅(/찾아): 선택한 엔드포인트로 이동 후 그 의도로 폼 자동작성.
+  function routeToOperation(opId: string, intent: string) {
+    const op = spec?.operations.find((o) => o.id === opId);
+    if (!op) return;
+    selectOperation(op);
+    setAiPendingFill(intent);
+  }
   function askAiAboutResponse(kind: "diagnose" | "explain" | "fix") {
     setAiOpen(true);
     if (kind === "fix") setAiPendingFix(fixRequestPrompt());
@@ -1661,6 +1669,10 @@ export default function App() {
                     onPendingConsumed={() => setAiPendingPrompt(null)}
                     pendingFix={aiPendingFix ?? undefined}
                     onPendingFixConsumed={() => setAiPendingFix(null)}
+                    routeOperations={spec?.operations.map((o) => ({ id: o.id, method: o.method, path: o.path, summary: o.summary, tags: o.tags }))}
+                    onRoute={routeToOperation}
+                    pendingFill={aiPendingFill ?? undefined}
+                    onPendingFillConsumed={() => setAiPendingFill(null)}
                     onCopyCurl={copyCurlFromSuggestion}
                     onSaveVars={saveVarsFromSuggestion}
                     claudePath={claudePath || undefined}
