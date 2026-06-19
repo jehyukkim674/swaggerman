@@ -110,6 +110,13 @@ export function MockServerModal({ spec, specUrl, history, onClose }: Props) {
     spec.operations[0]?.id ?? null
   );
 
+  // operation 목록 검색
+  const [opQuery, setOpQuery] = useState("");
+  const q = opQuery.trim().toLowerCase();
+  const visibleOps = q
+    ? spec.operations.filter((op) => `${op.method} ${op.path}`.toLowerCase().includes(q))
+    : spec.operations;
+
   // 우측 패널: AI 생성 중 여부, 에러
   const [aiGenerating, setAiGenerating] = useState(false);
   const [panelError, setPanelError] = useState<string | null>(null);
@@ -568,7 +575,18 @@ export function MockServerModal({ spec, specUrl, history, onClose }: Props) {
         <div className="mock-body">
           {/* 좌측: operation 목록 */}
           <div className="mock-op-list">
-            {spec.operations.map((op) => {
+            <input
+              className="mock-op-search"
+              type="text"
+              value={opQuery}
+              onChange={(e) => setOpQuery(e.target.value)}
+              placeholder="operation 검색 (메서드·경로)"
+              spellCheck={false}
+            />
+            {visibleOps.length === 0 && (
+              <div className="mock-op-empty">일치하는 operation이 없습니다</div>
+            )}
+            {visibleOps.map((op) => {
               const opCfg = config.operations.find((o) => o.opId === op.id);
               const isSelected = selectedOpId === op.id;
               return (

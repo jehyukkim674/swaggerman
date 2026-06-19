@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Group, Panel, Separator, useDefaultLayout, type PanelImperativeHandle } from "react-resizable-panels";
+import { Group, Panel, Separator, useDefaultLayout } from "react-resizable-panels";
 import { getCurrentWebview } from "@tauri-apps/api/webview";
 import { listen } from "@tauri-apps/api/event";
 import { loadShortcut, saveShortcut, registerShortcut } from "./core/global-shortcut";
@@ -401,15 +401,6 @@ export default function App() {
     setAiOpen(true);
     setAiPendingPrompt(explainApiPrompt());
   }
-
-  // AI 패널 접기(folding) — 열린 상태에서 좁게 접기/펼치기, 전역 저장
-  const [aiCollapsed, setAiCollapsed] = useState<boolean>(() =>
-    loadJSON("swaggerman.aiCollapsed", false),
-  );
-  useEffect(() => {
-    saveJSON("swaggerman.aiCollapsed", aiCollapsed);
-  }, [aiCollapsed]);
-  const aiPanelRef = useRef<PanelImperativeHandle>(null);
 
   // 패널 레이아웃 저장/복원 (v4: autoSaveId 대체) — AI 패널 유무별로 따로 저장
   const { defaultLayout, onLayoutChanged } = useDefaultLayout({
@@ -1628,32 +1619,16 @@ export default function App() {
             <Separator className="resize-handle" />
             <Panel
               id="ai"
-              panelRef={aiPanelRef}
-              collapsible
-              collapsedSize="4%"
-              defaultSize={aiCollapsed ? "4%" : "26%"}
+              defaultSize="26%"
               minSize="16%"
-              onResize={() => setAiCollapsed(aiPanelRef.current?.isCollapsed() ?? false)}
               className="pane"
             >
-              {/* 접힘 스트립과 본문을 둘 다 마운트해 두고 CSS로 전환한다.
-                  AiPanel을 언마운트하면 대화(messages) state가 사라지므로,
-                  접어도 unmount하지 않고 display로만 숨겨 대화를 보존한다. */}
-              {aiCollapsed && (
-                <button
-                  className="ai-collapsed-strip"
-                  title="AI 패널 펼치기"
-                  onClick={() => aiPanelRef.current?.expand()}
-                >
-                  ✦
-                </button>
-              )}
-              <div className="ai-panel-wrap" style={{ display: aiCollapsed ? "none" : "flex" }}>
+              <div className="ai-panel-wrap">
                 <div className="ai-collapse-bar">
                   <button
                     className="ai-collapse-btn"
-                    title="AI 패널 접기"
-                    onClick={() => aiPanelRef.current?.collapse()}
+                    title="AI 패널 닫기"
+                    onClick={() => setAiOpen(false)}
                   >
                     »
                   </button>

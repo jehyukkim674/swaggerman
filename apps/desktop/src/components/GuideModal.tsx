@@ -20,6 +20,12 @@ export function GuideModal({ spec, history, baseURL, onSaveFile, onClose }: Prop
   const [checked, setChecked] = useState<Set<string>>(() => new Set(spec.operations.map((o) => o.id)));
   const [markdown, setMarkdown] = useState("");
   const [copied, setCopied] = useState(false);
+  const [query, setQuery] = useState("");
+
+  const q = query.trim().toLowerCase();
+  const visibleOps = q
+    ? spec.operations.filter((o) => `${o.method} ${o.path}`.toLowerCase().includes(q))
+    : spec.operations;
 
   const toggle = (id: string) =>
     setChecked((prev) => {
@@ -42,14 +48,26 @@ export function GuideModal({ spec, history, baseURL, onSaveFile, onClose }: Prop
           <button className="icon-btn" onClick={onClose} title="닫기"><CloseCircleIcon size={18} /></button>
         </div>
         <div className="modal-body guide-body">
+          <input
+            className="guide-op-search"
+            type="text"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="operation 검색 (메서드·경로)"
+            spellCheck={false}
+          />
           <div className="guide-ops">
-            {spec.operations.map((o) => (
-              <label className="guide-op-check" key={o.id}>
-                <input type="checkbox" checked={checked.has(o.id)} onChange={() => toggle(o.id)} />
-                <span className="method" style={{ color: methodColor(o.method) }}>{o.method}</span>
-                <span className="guide-op-path">{o.path}</span>
-              </label>
-            ))}
+            {visibleOps.length === 0 ? (
+              <div className="guide-ops-empty">일치하는 operation이 없습니다</div>
+            ) : (
+              visibleOps.map((o) => (
+                <label className="guide-op-check" key={o.id}>
+                  <input type="checkbox" checked={checked.has(o.id)} onChange={() => toggle(o.id)} />
+                  <span className="method" style={{ color: methodColor(o.method) }}>{o.method}</span>
+                  <span className="guide-op-path">{o.path}</span>
+                </label>
+              ))
+            )}
           </div>
           <div className="guide-actions">
             <button className="btn small primary" disabled={checked.size === 0} onClick={generate}>생성</button>
